@@ -9,6 +9,16 @@ export const connectDB = async () => {
       throw new Error("MONGODB_URI environment variable is not defined");
     }
 
+    if (
+      uri.includes("<username>") ||
+      uri.includes("<password>") ||
+      uri.includes("cluster0.example.mongodb.net")
+    ) {
+      throw new Error(
+        "MONGODB_URI still contains the example MongoDB host. Set it to your actual MongoDB connection string.",
+      );
+    }
+
     const conn = await mongoose.connect(uri, {
       dbName: "skillbridge",
     });
