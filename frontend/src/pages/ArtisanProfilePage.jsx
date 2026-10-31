@@ -37,7 +37,6 @@ import {
   updateArtisanOrderStatus,
 } from '../utils/order-storage'
 import { getExpertCourses } from '../utils/training-storage'
-import { baseCourses } from '../data/training-courses'
 import {
   getArtisanDashboardApi,
   getArtisanShopApi,
@@ -134,7 +133,7 @@ const ArtisanProfilePage = () => {
     useState(loadPublishedCourses)
   const { courses: expertCourses, error: publishedCourseError } =
     publishedCourseState
-  const courses = [...baseCourses, ...expertCourses]
+  const courses = expertCourses
   const [courseSearch, setCourseSearch] = useState('')
   const [courseCategory, setCourseCategory] = useState('All courses')
   const [shopFormOpen, setShopFormOpen] = useState(false)
@@ -595,7 +594,7 @@ const ArtisanProfilePage = () => {
                     ).length,
                     icon: ClipboardList,
                   },
-                  { label: 'Courses to explore', value: courses.length, icon: GraduationCap },
+                  { label: 'Published courses', value: courses.length, icon: GraduationCap },
                   { label: 'Payments received', value: '₹0', icon: WalletCards },
                 ].map(({ label, value, icon: Icon }) => (
                   <div
@@ -821,9 +820,13 @@ const ArtisanProfilePage = () => {
               ) : (
                 <div className="rounded-xl border border-dashed border-border-strong bg-background px-5 py-10 text-center">
                   <Search aria-hidden="true" className="mx-auto h-8 w-8 text-secondary" />
-                  <h3 className="mt-3 font-semibold text-text-main">No matching courses</h3>
+                  <h3 className="mt-3 font-semibold text-text-main">
+                    {courses.length ? 'No matching courses' : 'No courses published yet'}
+                  </h3>
                   <p className="mt-1 text-sm text-text-secondary">
-                    Try another course title, craft, expert, or category.
+                    {courses.length
+                      ? 'Try another course title, craft, expert, or category.'
+                      : 'Courses published by training experts will appear here.'}
                   </p>
                 </div>
               )}
