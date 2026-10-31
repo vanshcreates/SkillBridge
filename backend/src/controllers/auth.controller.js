@@ -58,6 +58,15 @@ export const signup = async (req, res) => {
       });
     }
 
+    // Phone number validation: if provided, must be at least 10 digits
+    const cleanPhone = sanitizeString(phone).replace(/\D/g, "");
+    if (cleanPhone && cleanPhone.length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number must contain at least 10 digits.",
+      });
+    }
+
     const existingUser = await User.findOne({ email: trimmedEmail });
 
     if (existingUser) {
@@ -329,6 +338,17 @@ export const getProfile = async (req, res) => {
 // @access  Private
 export const updateProfile = async (req, res) => {
   try {
+    // Phone validation if updating phone
+    if (req.body.phone !== undefined) {
+      const cleanPhone = String(req.body.phone).replace(/\D/g, "");
+      if (cleanPhone && cleanPhone.length < 10) {
+        return res.status(400).json({
+          success: false,
+          message: "Phone number must be at least 10 digits.",
+        });
+      }
+    }
+
     const allowed = [
       "name",
       "phone",

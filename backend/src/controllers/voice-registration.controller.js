@@ -79,8 +79,13 @@ export const processVoiceAnswer = async (req, res) => {
       guidanceMessage =
         SYSTEM_MESSAGES.redirect[language] || SYSTEM_MESSAGES.redirect.en;
     } else if (extraction.needs_clarification || !extraction.is_valid) {
-      guidanceMessage =
-        SYSTEM_MESSAGES.unclear[language] || SYSTEM_MESSAGES.unclear.en;
+      if (question_id === "Q7") {
+        guidanceMessage =
+          SYSTEM_MESSAGES.phoneInvalid[language] || SYSTEM_MESSAGES.phoneInvalid.en;
+      } else {
+        guidanceMessage =
+          SYSTEM_MESSAGES.unclear[language] || SYSTEM_MESSAGES.unclear.en;
+      }
     }
 
     return res.status(200).json({
@@ -147,6 +152,13 @@ export const registerArtisanVoice = async (req, res) => {
     }
 
     const phone = (answers.phone || "").replace(/\D/g, "");
+    if (phone && phone.length < 10) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number must contain at least 10 digits.",
+      });
+    }
+
     const location = (answers.location || "").trim();
     const skills = Array.isArray(answers.skills)
       ? answers.skills.join(", ")
@@ -231,4 +243,3 @@ export const registerArtisanVoice = async (req, res) => {
     });
   }
 };
-

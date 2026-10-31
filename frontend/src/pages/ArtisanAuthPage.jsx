@@ -48,11 +48,18 @@ const ArtisanAuthPage = () => {
         if (password !== formData.get('confirmPassword')) {
           throw new Error('The passwords do not match.')
         }
+
+        const phone = formData.get('phone') || ''
+        const cleanPhone = phone.replace(/\D/g, '')
+        if (cleanPhone.length < 10) {
+          throw new Error('Please enter a valid phone number with at least 10 digits.')
+        }
+
         const profileImageFile = formData.get('profileImage')
         const signupPayload = new FormData()
         signupPayload.append('accountType', 'artisan')
         signupPayload.append('name', formData.get('name') || '')
-        signupPayload.append('phone', formData.get('phone') || '')
+        signupPayload.append('phone', cleanPhone)
         signupPayload.append('email', formData.get('email') || '')
         signupPayload.append('artCategory', formData.get('artCategory') || '')
         signupPayload.append('experience', formData.get('experience') || '')
@@ -218,9 +225,12 @@ const ArtisanAuthPage = () => {
                         <input
                           autoComplete="tel"
                           className={inputClass}
+                          minLength={10}
                           name="phone"
-                          placeholder="Your phone number"
+                          pattern="[0-9]{10,}"
+                          placeholder="10-digit mobile number"
                           required
+                          title="Please enter at least 10 digits"
                           type="tel"
                         />
                       </label>

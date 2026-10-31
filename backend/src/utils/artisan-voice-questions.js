@@ -156,19 +156,19 @@ export const ARTISAN_QUESTIONS = [
     required: false,
     prompts: {
       pa: {
-        spoken: "ਕੀ ਤੁਸੀਂ ਆਪਣਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦੱਸ ਸਕਦੇ ਹੋ ਤਾਂ ਜੋ ਅਸੀਂ ਕੰਮ ਦੇ ਮੌਕਿਆਂ ਬਾਰੇ ਤੁਹਾਡੇ ਨਾਲ ਗੱਲ ਕਰ ਸਕੀਏ? ਜੇਕਰ ਨਹੀਂ ਹੈ ਤਾਂ ਕਹਿ ਦਿਓ ਕੋਈ ਨਹੀਂ।",
-        display: "ਸੰਪਰਕ ਲਈ ਮੋਬਾਈਲ ਨੰਬਰ (ਮਰਜ਼ੀ ਮੁਤਾਬਕ)",
-        transliteration: "Ki tusi apna mobile number dass sakde ho ji? (Optional)",
+        spoken: "ਕੀ ਤੁਸੀਂ ਆਪਣਾ 10 ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦੱਸ ਸਕਦੇ ਹੋ ਤਾਂ ਜੋ ਅਸੀਂ ਕੰਮ ਦੇ ਮੌਕਿਆਂ ਬਾਰੇ ਤੁਹਾਡੇ ਨਾਲ ਗੱਲ ਕਰ ਸਕੀਏ? ਜੇਕਰ ਨਹੀਂ ਹੈ ਤਾਂ ਕਹਿ ਦਿਓ ਕੋਈ ਨਹੀਂ।",
+        display: "ਸੰਪਰਕ ਲਈ ਮੋਬਾਈਲ ਨੰਬਰ (ਘੱਟੋ-ਘੱਟ 10 ਅੰਕ, ਮਰਜ਼ੀ ਮੁਤਾਬਕ)",
+        transliteration: "Ki tusi apna 10 ankaan da mobile number dass sakde ho ji? (Optional)",
       },
       hi: {
-        spoken: "क्या आप अपना मोबाइल नंबर बता सकती हैं ताकि हम काम के अवसरों के लिए आपसे संपर्क कर सकें? यदि नहीं है तो कोई बात नहीं।",
-        display: "संपर्क हेतु मोबाइल नंबर (वैकल्पिक)",
-        transliteration: "Kya aap apna mobile number bata sakti hain ji? (Optional)",
+        spoken: "क्या आप अपना 10 अंकों का मोबाइल नंबर बता सकती हैं ताकि हम काम के अवसरों के लिए आपसे संपर्क कर सकें? यदि नहीं है तो कोई बात नहीं।",
+        display: "संपर्क हेतु मोबाइल नंबर (कम से कम 10 अंक, वैकल्पिक)",
+        transliteration: "Kya aap apna 10 ankon ka mobile number bata sakti hain ji? (Optional)",
       },
       en: {
-        spoken: "Can you share a mobile number so that we can contact you about work opportunities? You can say skip if you do not have one.",
-        display: "Contact mobile number (Optional)",
-        transliteration: "Can you share a mobile number so we can contact you?",
+        spoken: "Can you share a 10-digit mobile number so that we can contact you about work opportunities? You can say skip if you do not have one.",
+        display: "Contact mobile number (at least 10 digits, Optional)",
+        transliteration: "Can you share a 10-digit mobile number so we can contact you?",
       },
     },
     hint: "e.g. 9876543210 or Skip",
@@ -185,6 +185,11 @@ export const SYSTEM_MESSAGES = {
     pa: "ਮੈਨੂੰ ਤੁਹਾਡੀ ਗੱਲ ਠੀਕ ਤਰ੍ਹਾਂ ਸਮਝ ਨਹੀਂ ਆਈ ਜੀ, ਕਿਰਪਾ ਕਰਕੇ ਇੱਕ ਵਾਰ ਫਿਰ ਦੱਸੋ।",
     hi: "मुझे आपकी बात ठीक से समझ नहीं आई जी, कृपया एक बार फिर बताएँ।",
     en: "I could not quite understand that. Could you please say that again?",
+  },
+  phoneInvalid: {
+    pa: "ਕਿਰਪਾ ਕਰਕੇ ਘੱਟੋ-ਘੱਟ 10 ਅੰਕਾਂ ਦਾ ਮੋਬਾਈਲ ਨੰਬਰ ਦੱਸੋ ਜੀ, ਜਾਂ 'ਕੋਈ ਨਹੀਂ' ਕਹੋ।",
+    hi: "कृपया कम से कम 10 अंकों का मोबाइल नंबर बताएँ जी, या 'कोई नहीं' बोलें।",
+    en: "Please provide a mobile number with at least 10 digits, or say 'skip'.",
   },
   redirect: {
     pa: "ਕਿਰਪਾ ਕਰਕੇ ਪਹਿਲਾਂ ਇਸ ਸਵਾਲ ਦਾ ਜਵਾਬ ਦਿਓ ਜੀ।",
@@ -233,4 +238,3 @@ export function buildSummaryText(answers = {}, lang = "pa") {
   }
   return `Your name is ${name}. You are from ${loc}. Your craft is ${skills}. You have ${exp} of experience. You make ${prods}. You prefer to work ${pref}. And your contact number is ${phone}.`;
 }
-

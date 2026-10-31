@@ -35,7 +35,7 @@ IMPORTANT CONSTRAINTS:
 4. If the user's answer is relevant and understandable, set is_valid: true, needs_clarification: false.
 5. If the answer is completely silent, gibberish, or off-topic, set is_valid: false, needs_clarification: true, is_unrelated: true.
 6. If the user provided answers to multiple questions at once (e.g., "My name is Gurpreet and I do embroidery in Patiala"), extract the main answer for ${targetQuestion.id} into 'extracted_value', and put other extracted answers into 'secondary_extractions' object (e.g. { "Q2": "Patiala", "Q3": ["Embroidery"] }).
-7. For Q7 (phone/contact): It is OPTIONAL. If the user says "No", "Nahi hai", "Koi nahi", "Skip", set extracted_value: "", is_valid: true, needs_clarification: false.
+7. For Q7 (phone/contact): It is OPTIONAL. If the user says "No", "Nahi hai", "Koi nahi", "Skip", set extracted_value: "", is_valid: true, needs_clarification: false. HOWEVER, if the user speaks a phone number, it MUST have AT LEAST 10 digits. If fewer than 10 digits are provided, you MUST set is_valid: false, needs_clarification: true.
 8. If the user confirms a summary (e.g. "Haan", "Sahi hai", "Yes", "Theek hai"), note is_confirmation: true.
 
 REQUIRED JSON SCHEMA:
@@ -54,7 +54,7 @@ REQUIRED JSON SCHEMA:
     "Q4": "experience if mentioned",
     "Q5": "products if mentioned",
     "Q6": "preference if mentioned",
-    "Q7": "phone if mentioned"
+    "Q7": "10-digit phone if mentioned"
   }
 }`;
 }
@@ -275,7 +275,7 @@ function deterministicExtractionFallback(questionId, transcript, language = "pa"
       break;
     }
     case "Q7": {
-      // Contact / Phone (Optional)
+      // Contact / Phone (Optional, but must have AT LEAST 10 digits if provided)
       const digits = raw.replace(/\D/g, "");
       const isSkip =
         lower.includes("skip") ||
@@ -283,17 +283,26 @@ function deterministicExtractionFallback(questionId, transcript, language = "pa"
         lower.includes("no") ||
         raw.includes("ਨਹੀਂ") ||
         raw.includes("ਕੋਈ ਨਹੀਂ") ||
+        raw.includes("ਨਾ") ||
         raw.includes("नहीं");
 
       if (digits.length >= 10) {
         extractedValue = digits.slice(-10);
         isValid = true;
-      } else if (isSkip || raw.length === 0) {
+        needsClarification = false;
+      } else if (digits.length > 0 && digits.length < 10) {
+        // Less than 10 digits provided
+        extractedValue = "";
+        isValid = false;
+        needsClarification = true;
+      } else if (isSkip || digits.length === 0) {
         extractedValue = "";
         isValid = true;
+        needsClarification = false;
       } else {
-        extractedValue = digits || "";
-        isValid = true;
+        extractedValue = "";
+        isValid = false;
+        needsClarification = true;
       }
       break;
     }
@@ -332,35 +341,71 @@ export async function extractVoiceAnswer(questionId, transcript, language = "pa"
     };
   }
 
+  let result = null;
+
   // Attempt configured LLM Provider first
   if (LLM_PROVIDER === "groq" && GROQ_API_KEY) {
     try {
-      const result = await callGroq(questionId, trimmed, language);
-      if (result && result.question_id) return result;
+      result = await callGroq(questionId, trimmed, language);
     } catch (err) {
       console.warn("Groq LLM extraction failed, falling back:", err.message);
     }
   }
 
-  if (GEMINI_API_KEY) {
+  if (!result && GEMINI_API_KEY) {
     try {
-      const result = await callGemini(questionId, trimmed, language);
-      if (result && result.question_id) return result;
+      result = await callGemini(questionId, trimmed, language);
     } catch (err) {
       console.warn("Gemini LLM extraction failed, falling back:", err.message);
     }
   }
 
-  if (GROQ_API_KEY) {
+  if (!result && GROQ_API_KEY) {
     try {
-      const result = await callGroq(questionId, trimmed, language);
-      if (result && result.question_id) return result;
+      result = await callGroq(questionId, trimmed, language);
     } catch (err) {
       console.warn("Groq fallback failed:", err.message);
     }
   }
 
-  // Fallback to deterministic NLP parser
-  return deterministicExtractionFallback(questionId, trimmed, language);
-}
+  // Fallback to deterministic NLP parser if LLM didn't return valid result
+  if (!result || !result.question_id) {
+    result = deterministicExtractionFallback(questionId, trimmed, language);
+  }
 
+  // Double-check Q7 phone length constraint across all providers (must be AT LEAST 10 digits)
+  if (questionId === "Q7") {
+    const transcriptDigits = trimmed.replace(/\D/g, "");
+    const lowerTrimmed = trimmed.toLowerCase();
+    const isSkip =
+      lowerTrimmed.includes("skip") ||
+      lowerTrimmed.includes("nahi") ||
+      lowerTrimmed.includes("no") ||
+      trimmed.includes("ਨਹੀਂ") ||
+      trimmed.includes("ਕੋਈ ਨਹੀਂ") ||
+      trimmed.includes("ਨਾ") ||
+      trimmed.includes("नहीं");
+
+    if (transcriptDigits.length >= 10) {
+      result.extracted_value = transcriptDigits.slice(-10);
+      result.is_valid = true;
+      result.needs_clarification = false;
+    } else if (transcriptDigits.length > 0 && transcriptDigits.length < 10) {
+      // User attempted to give a phone number with fewer than 10 digits
+      result.extracted_value = "";
+      result.is_valid = false;
+      result.needs_clarification = true;
+    } else if (isSkip || transcriptDigits.length === 0) {
+      // User opted to skip or said no phone
+      result.extracted_value = "";
+      result.is_valid = true;
+      result.needs_clarification = false;
+    } else {
+      result.extracted_value = "";
+      result.is_valid = false;
+      result.needs_clarification = true;
+    }
+  }
+
+  return result;
+}
