@@ -205,7 +205,6 @@ export const createArtisanProduct = async (req, res) => {
       description,
       materialCost,
       laborHours,
-      hourlyRate,
       packagingCost,
       dimensions,
       craftTime,
@@ -220,15 +219,39 @@ export const createArtisanProduct = async (req, res) => {
       });
     }
 
-    let imageUrl = req.body.image?.trim() || "";
+    const uploadedImages = [];
+    const filesToUpload = [];
 
-    // If an image file was uploaded via Multer, upload to Cloudinary
-    if (req.file) {
-      const uploadRes = await uploadOnCloudinary(req.file.path);
+    if (Array.isArray(req.files)) {
+      filesToUpload.push(...req.files);
+    } else if (req.files && typeof req.files === "object") {
+      if (Array.isArray(req.files.images)) filesToUpload.push(...req.files.images);
+      if (Array.isArray(req.files.image)) filesToUpload.push(...req.files.image);
+    } else if (req.file) {
+      filesToUpload.push(req.file);
+    }
+
+    for (const f of filesToUpload) {
+      const uploadRes = await uploadOnCloudinary(f.path, {
+        folder: "skillbridge/products",
+      });
       if (uploadRes?.secure_url) {
-        imageUrl = uploadRes.secure_url;
+        uploadedImages.push(uploadRes.secure_url);
       }
     }
+
+    if (req.body.image?.trim() && !uploadedImages.includes(req.body.image.trim())) {
+      uploadedImages.push(req.body.image.trim());
+    }
+    if (Array.isArray(req.body.images)) {
+      for (const img of req.body.images) {
+        if (typeof img === "string" && img.trim() && !uploadedImages.includes(img.trim())) {
+          uploadedImages.push(img.trim());
+        }
+      }
+    }
+
+    const primaryImage = uploadedImages[0] || "";
 
     const parsedMaterials = Array.isArray(materials)
       ? materials
@@ -244,11 +267,10 @@ export const createArtisanProduct = async (req, res) => {
       price: Number(price),
       stock: Number(stock),
       description: description?.trim() || "",
-      image: imageUrl,
-      images: imageUrl ? [imageUrl] : [],
+      image: primaryImage,
+      images: uploadedImages,
       materialCost: Number(materialCost) || 0,
       laborHours: Number(laborHours) || 0,
-      hourlyRate: Number(hourlyRate) || 0,
       packagingCost: Number(packagingCost) || 0,
       dimensions: dimensions?.trim() || "",
       craftTime: craftTime?.trim() || "",
@@ -547,13 +569,14 @@ export const getArtisanProfile = async (req, res) => {
 export const updateArtisanProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
-    const { name, phone, bio, artCategory, experience, city, state } = req.body;
+    const { name, phone, bio, artCategory, experience, city, state, hourlyRate } = req.body;
 
     if (name?.trim()) user.name = name.trim();
     if (phone !== undefined) user.phone = String(phone).trim();
     if (bio !== undefined) user.bio = String(bio).trim();
     if (artCategory !== undefined) user.artCategory = String(artCategory).trim();
     if (experience !== undefined) user.experience = String(experience).trim();
+    if (hourlyRate !== undefined) user.hourlyRate = Number(hourlyRate) || 0;
     if (city !== undefined) user.city = String(city).trim();
     if (state !== undefined) user.state = String(state).trim();
 
