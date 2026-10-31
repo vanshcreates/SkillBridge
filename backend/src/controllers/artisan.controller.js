@@ -3,6 +3,8 @@ import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 import { Course } from "../models/course.model.js";
 import { User } from "../models/user.model.js";
+import { Notification } from "../models/notification.model.js";
+import { Project } from "../models/project.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 // ==========================================
@@ -442,6 +444,79 @@ export const updateOrderStatus = async (req, res) => {
     if (itemUpdated) {
       order.orderStatus = status;
       await order.save();
+
+      // Notify customer / industry partner if applicable
+      if (order.customer) {
+        try {
+          // Check for linked industry project
+          const project = await Project.findOne({
+            $or: [
+              { orderRef: order._id },
+              { assignedArtisan: artisanId, title: order.items[0]?.title || order.items[0]?.name },
+            ],
+          });
+
+          if (project) {
+            if (["Processing", "Ready to ship", "Shipped"].includes(status)) {
+              project.status = "Accepted";
+              project.acceptanceDetails = {
+                acceptedAt: new Date(),
+                acceptedBy: artisanId,
+                agreedPrice: order.items[0]?.price || project.unitPrice,
+                agreedDuration: project.duration,
+              };
+            } else if (status === "Completed") {
+              project.status = "Completed";
+            } else if (status === "Rejected") {
+              project.status = "Rejected";
+            }
+            await project.save();
+          }
+
+          // Build notification details
+          const isAccepted = ["Processing", "Ready to ship", "Shipped"].includes(status);
+          const isCompleted = status === "Completed";
+          const isRejected = status === "Rejected";
+
+          let notifType = "ORDER_STATUS_UPDATED";
+          let notifTitle = `Order Status: ${status}`;
+          let notifMessage = `Artisan ${req.user.name} updated your order #${order.orderNumber || order._id} to "${status}".`;
+
+          if (isAccepted) {
+            notifType = "ORDER_ACCEPTED";
+            notifTitle = `Order Accepted by ${req.user.name}! 🌟`;
+            notifMessage = `Artisan ${req.user.name} has accepted your order request for "${order.items[0]?.title || order.items[0]?.name}" (Quantity: ${order.items[0]?.quantity || 1}). Production has started!`;
+          } else if (isCompleted) {
+            notifType = "PROJECT_COMPLETED";
+            notifTitle = `Order Completed by ${req.user.name}! 🎉`;
+            notifMessage = `Artisan ${req.user.name} has completed order #${order.orderNumber || order._id} for "${order.items[0]?.title || order.items[0]?.name}".`;
+          } else if (isRejected) {
+            notifType = "ORDER_REJECTED";
+            notifTitle = `Order Declined by ${req.user.name}`;
+            notifMessage = `Artisan ${req.user.name} was unable to accept your production request for "${order.items[0]?.title || order.items[0]?.name}".`;
+          }
+
+          await Notification.create({
+            recipient: order.customer,
+            sender: artisanId,
+            type: notifType,
+            title: notifTitle,
+            message: notifMessage,
+            orderId: order._id,
+            projectId: project ? project._id : null,
+            metadata: {
+              orderNumber: order.orderNumber,
+              artisanName: req.user.name,
+              itemTitle: order.items[0]?.title || order.items[0]?.name,
+              status,
+              price: order.items[0]?.price,
+              quantity: order.items[0]?.quantity,
+            },
+          });
+        } catch (notifErr) {
+          console.warn("Failed to generate order status notification:", notifErr.message);
+        }
+      }
     }
 
     return res.status(200).json({
@@ -454,6 +529,175 @@ export const updateOrderStatus = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to update order status.",
+    });
+  }
+};
+
+// ==========================================
+// 3B. RESPONSIBLE PROJECTS FOR ARTISANS
+// ==========================================
+
+export const getAvailableResponsibleProjects = async (req, res) => {
+  try {
+    const { category, search } = req.query;
+    const filter = { status: "Open" };
+
+    if (category && category !== "All") {
+      filter.category = new RegExp(category.trim(), "i");
+    }
+
+    if (search?.trim()) {
+      const regex = new RegExp(search.trim(), "i");
+      filter.$or = [{ title: regex }, { specifications: regex }, { category: regex }];
+    }
+
+    const projects = await Project.find(filter)
+      .populate("industry", "name contactName email phone industry companyAddress")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({
+      success: true,
+      count: projects.length,
+      projects: projects.map((p) => p.toSafeObject(p.industry, null)),
+    });
+  } catch (error) {
+    console.error("Get available responsible projects error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to retrieve available projects.",
+    });
+  }
+};
+
+export const takeResponsibleProject = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const artisanId = req.user._id;
+
+    const project = await Project.findById(id).populate("industry");
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        message: "Project not found.",
+      });
+    }
+
+    if (project.status !== "Open" && project.status !== "Assigned") {
+      return res.status(400).json({
+        success: false,
+        message: `This project is already ${project.status.toLowerCase()} and cannot be accepted.`,
+      });
+    }
+
+    // If assigned to another artisan specifically
+    if (
+      project.assignedArtisan &&
+      project.assignedArtisan.toString() !== artisanId.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "This project was assigned to another artisan.",
+      });
+    }
+
+    // Accept project
+    project.assignedArtisan = artisanId;
+    project.status = "Accepted";
+    project.acceptanceDetails = {
+      acceptedAt: new Date(),
+      acceptedBy: artisanId,
+      agreedPrice: project.unitPrice,
+      agreedDuration: project.duration,
+      artisanNote: req.body.note || "Accepted by artisan.",
+    };
+
+    // Create or update linked order
+    let order = null;
+    if (project.orderRef) {
+      order = await Order.findById(project.orderRef);
+      if (order) {
+        order.orderStatus = "Processing";
+        order.items.forEach((item) => {
+          item.itemStatus = "Processing";
+          item.artisanId = artisanId;
+          item.artisanName = req.user.name;
+        });
+        await order.save();
+      }
+    }
+
+    if (!order) {
+      const orderDeadlineStr = project.deadline
+        ? new Date(project.deadline).toISOString().slice(0, 10)
+        : "";
+
+      order = await Order.create({
+        customer: project.industry._id || project.industry,
+        customerName: project.industry.contactName || project.industry.name || "Industry Partner",
+        customerEmail: project.industry.email || "",
+        customerPhone: project.industry.phone || "",
+        items: [
+          {
+            title: project.title,
+            name: project.title,
+            category: project.category,
+            price: project.unitPrice,
+            quantity: project.quantity,
+            artisanId: artisanId,
+            artisanName: req.user.name,
+            itemStatus: "Processing",
+          },
+        ],
+        subtotal: project.totalBudget,
+        shipping: 0,
+        totalAmount: project.totalBudget,
+        orderStatus: "Processing",
+        source: "industry",
+        deadline: orderDeadlineStr,
+        specifications: project.specifications,
+        shippingAddress: {
+          fullName: project.industry.contactName || project.industry.name || "",
+          phone: project.industry.phone || "",
+          email: project.industry.email || "",
+          address: project.industry.companyAddress || "",
+        },
+      });
+
+      project.orderRef = order._id;
+    }
+
+    await project.save();
+
+    // Create Notification for the Industry partner
+    await Notification.create({
+      recipient: project.industry._id || project.industry,
+      sender: artisanId,
+      type: "PROJECT_ACCEPTED",
+      title: `Artisan ${req.user.name} Accepted Your Project! 🌟`,
+      message: `Artisan ${req.user.name} (${req.user.artCategory || "Traditional Artisan"}) has accepted your responsible project "${project.title}"! Production has started according to the offered ₹${project.unitPrice.toLocaleString("en-IN")}/unit and ${project.duration} timeline.`,
+      orderId: order._id,
+      projectId: project._id,
+      metadata: {
+        artisanName: req.user.name,
+        artisanEmail: req.user.email,
+        artisanPhone: req.user.phone,
+        projectTitle: project.title,
+        price: project.unitPrice,
+        duration: project.duration,
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `You have successfully accepted "${project.title}". It is now in your active orders!`,
+      project: project.toSafeObject(project.industry, req.user),
+      order: order.toArtisanOrder(artisanId),
+    });
+  } catch (error) {
+    console.error("Take responsible project error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to accept responsible project.",
     });
   }
 };

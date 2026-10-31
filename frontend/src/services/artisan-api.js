@@ -150,3 +150,23 @@ export async function removeArtisanProfilePhotoApi() {
 export async function getArtisanPaymentsApi() {
   return await apiRequest('/artisan/payments', { method: 'GET' })
 }
+
+/**
+ * Fetch available responsible projects posted by industry partners
+ */
+export async function getAvailableResponsibleProjectsApi(params = {}) {
+  const query = new URLSearchParams(params).toString()
+  return await apiRequest(`/artisan/responsible-projects${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Artisan accepts and takes on a responsible project
+ */
+export async function takeResponsibleProjectApi(projectId, payload = {}) {
+  return await apiRequest(`/artisan/responsible-projects/${projectId}/take`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}

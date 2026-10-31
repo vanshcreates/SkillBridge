@@ -10,6 +10,8 @@ import {
   deleteArtisanProduct,
   getArtisanOrders,
   updateOrderStatus,
+  getAvailableResponsibleProjects,
+  takeResponsibleProject,
   getArtisanCourses,
   getArtisanCourseById,
   getArtisanProfile,
@@ -55,9 +57,11 @@ router.patch("/products/:id/publish", publishArtisanProduct);
 router.patch("/products/:id/unpublish", unpublishArtisanProduct);
 router.delete("/products/:id", deleteArtisanProduct);
 
-// 4. Orders
+// 4. Orders & Responsible Industry Projects
 router.get("/orders", getArtisanOrders);
 router.patch("/orders/:id/status", updateOrderStatus);
+router.get("/responsible-projects", getAvailableResponsibleProjects);
+router.post("/responsible-projects/:id/take", takeResponsibleProject);
 
 // 5. Training
 router.get("/courses", getArtisanCourses);
@@ -73,4 +77,3 @@ router.delete("/profile/photo", removeArtisanProfilePhoto);
 router.get("/payments", getArtisanPayments);
 
 export default router;
-
