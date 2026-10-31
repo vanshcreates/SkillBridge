@@ -1,4 +1,5 @@
 import { Search } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import Nav from './nav'
 
 const Navbar = ({
@@ -25,9 +26,9 @@ const Navbar = ({
             : 'contents'
         }
       >
-        <a
+        <Link
           className="w-fit rounded-sm font-serif text-2xl font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          href={isMarketplace ? '/' : '#top'}
+          to="/"
         >
           SkillBridge
           {isMarketplace && showSearch && (
@@ -35,7 +36,7 @@ const Navbar = ({
               / Marketplace
             </span>
           )}
-        </a>
+        </Link>
         {isMarketplace && (
           <form
             className="order-3 flex min-w-0 basis-full rounded-lg bg-white p-1 focus-within:ring-2 focus-within:ring-accent lg:order-none lg:mx-auto lg:basis-auto lg:flex-1 lg:max-w-lg"
