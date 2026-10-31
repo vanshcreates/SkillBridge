@@ -186,22 +186,6 @@ const Nav = ({ variant = 'home', cartCount = 0, onItemClick }) => {
         <span>About</span>
       </Link>
 
-      {/* Language Selector */}
-      <div className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/80">
-        <Globe className="h-3.5 w-3.5 text-accent-light" />
-        <select
-          aria-label="Select language"
-          className="cursor-pointer bg-transparent text-xs text-white outline-none"
-          defaultValue="en"
-          id="language"
-          name="language"
-        >
-          <option className="bg-primary text-white" value="en">EN</option>
-          <option className="bg-primary text-white" value="hin">HI</option>
-          <option className="bg-primary text-white" value="pun">PA</option>
-        </select>
-      </div>
-
       {currentUser ? (
         <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 md:border-l md:border-white/15 md:pl-2">
           <Link
