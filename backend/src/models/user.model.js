@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema(
       trim: true,
       default: "",
     },
+    hourlyRate: {
+      type: Number,
+      default: 0,
+    },
     // Expert specific fields
     expertise: {
       type: String,
@@ -145,6 +149,7 @@ userSchema.methods.toSafeObject = function () {
     bio: this.bio || "",
     artCategory: this.artCategory || "",
     experience: this.experience || "",
+    hourlyRate: this.hourlyRate || 0,
     expertise: this.expertise || "",
     contactName: this.contactName || "",
     industry: this.industry || "",

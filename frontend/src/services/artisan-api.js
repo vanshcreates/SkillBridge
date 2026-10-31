@@ -35,9 +35,11 @@ export async function getArtisanListingsApi() {
  * Create a new product listing (saved as Draft)
  */
 export async function createArtisanListingApi(listingData) {
+  const isFormData =
+    typeof FormData !== 'undefined' && listingData instanceof FormData
   return await apiRequest('/artisan/products', {
     method: 'POST',
-    body: JSON.stringify(listingData),
+    body: isFormData ? listingData : JSON.stringify(listingData),
   })
 }
 
@@ -115,9 +117,11 @@ export async function getArtisanProfileApi() {
  * Update artisan profile info
  */
 export async function updateArtisanProfileApi(profileData) {
+  const isFormData =
+    typeof FormData !== 'undefined' && profileData instanceof FormData
   return await apiRequest('/artisan/profile', {
     method: 'PUT',
-    body: JSON.stringify(profileData),
+    body: isFormData ? profileData : JSON.stringify(profileData),
   })
 }
 

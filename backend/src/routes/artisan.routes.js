@@ -52,7 +52,14 @@ router.put(
 
 // 3. Products / Listings
 router.get("/products", getArtisanProducts);
-router.post("/products", upload.single("image"), createArtisanProduct);
+router.post(
+  "/products",
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "image", maxCount: 10 },
+  ]),
+  createArtisanProduct
+);
 router.patch("/products/:id/publish", publishArtisanProduct);
 router.patch("/products/:id/unpublish", unpublishArtisanProduct);
 router.delete("/products/:id", deleteArtisanProduct);

@@ -84,6 +84,38 @@ export function getPublishedArtisanListings() {
 }
 
 export function toMarketplaceProduct(listing) {
+  const primaryImg =
+    listing.image ||
+    (Array.isArray(listing.images) && listing.images[0]) ||
+    ''
+  const images =
+    Array.isArray(listing.images) && listing.images.length > 0
+      ? listing.images
+      : primaryImg
+      ? [primaryImg]
+      : []
+
+  return {
+    id: listing.id || listing._id,
+    _id: listing._id || listing.id,
+    name: listing.title || listing.name,
+    title: listing.title || listing.name,
+    category: listing.category,
+    description: listing.description,
+    price: listing.price,
+    artisan: listing.artisan || 'SkillBridge artisan',
+    location: listing.location || 'India',
+    rating: listing.rating || 'New',
+    image: primaryImg,
+    images: images,
+    imageAlt: `${listing.title || listing.name}, handmade by ${listing.artisan || 'a SkillBridge artisan'}`,
+    badge: listing.badge || 'New artisan listing',
+    stock: listing.stock,
+    listingId: listing.id || listing._id,
+  }
+}
+
+function _old_toMarketplaceProduct(listing) {
   return {
     id: listing.id,
     name: listing.title,
@@ -114,9 +146,17 @@ export function saveArtisanListing(user, listing) {
     stock: Number(listing.stock),
     materialCost: Number(listing.materialCost) || 0,
     laborHours: Number(listing.laborHours) || 0,
-    hourlyRate: Number(listing.hourlyRate) || 0,
+
     packagingCost: Number(listing.packagingCost) || 0,
-    image: listing.image?.trim() ?? '',
+    image:
+      (Array.isArray(listing.images) && listing.images[0]) ||
+      listing.image?.trim() ||
+      '',
+    images: Array.isArray(listing.images)
+      ? listing.images
+      : listing.image
+      ? [listing.image]
+      : [],
     artisan: user.name,
     location: getArtisanShop(user)?.location || 'India',
     createdAt: new Date().toISOString(),

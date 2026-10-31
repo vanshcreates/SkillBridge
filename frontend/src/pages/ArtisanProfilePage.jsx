@@ -19,6 +19,9 @@ import {
   Truck,
   UserRound,
   WalletCards,
+  Edit3,
+  Loader2,
+  Upload,
   X,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -48,6 +51,7 @@ import {
   updateArtisanOrderStatusApi,
   getArtisanCoursesApi,
   getArtisanPaymentsApi,
+  updateArtisanProfileApi,
 } from '../services/artisan-api'
 
 const sections = [
@@ -145,9 +149,14 @@ const ArtisanProfilePage = () => {
   const [pricingInputs, setPricingInputs] = useState({
     materialCost: '',
     laborHours: '',
-    hourlyRate: '',
     packagingCost: '',
   })
+  const [productImages, setProductImages] = useState([])
+  const [productImagePreviews, setProductImagePreviews] = useState([])
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileNotice, setProfileNotice] = useState('')
+  const [profileNoticeIsError, setProfileNoticeIsError] = useState(false)
   const [listingPrice, setListingPrice] = useState('')
   const [artisanOrders, setArtisanOrders] = useState([])
   const [ordersError, setOrdersError] = useState('')
@@ -368,41 +377,58 @@ const ArtisanProfilePage = () => {
     }
     const formElement = event.currentTarget
     const formData = new FormData(formElement)
-    const payload = {
-      title: formData.get('title'),
-      category: formData.get('category'),
-      description: formData.get('description'),
-      price: formData.get('price'),
-      stock: formData.get('stock'),
-      materialCost: formData.get('materialCost'),
-      laborHours: formData.get('laborHours'),
-      hourlyRate: formData.get('hourlyRate'),
-      packagingCost: formData.get('packagingCost'),
-      image: formData.get('image'),
+
+    const payloadFormData = new FormData()
+    payloadFormData.append('title', formData.get('title'))
+    payloadFormData.append('category', formData.get('category'))
+    payloadFormData.append('description', formData.get('description'))
+    payloadFormData.append('price', formData.get('price'))
+    payloadFormData.append('stock', formData.get('stock'))
+    payloadFormData.append('materialCost', formData.get('materialCost') || 0)
+    payloadFormData.append('laborHours', formData.get('laborHours') || 0)
+    payloadFormData.append('packagingCost', formData.get('packagingCost') || 0)
+
+    for (const file of productImages) {
+      payloadFormData.append('images', file)
     }
 
     try {
       let listing
       try {
-        const res = await createArtisanListingApi(payload)
+        const res = await createArtisanListingApi(payloadFormData)
         listing = res?.listing
       } catch (apiErr) {
         console.warn('Backend listing create error, using local fallback:', apiErr.message)
       }
       if (!listing) {
-        listing = saveArtisanListing(currentUser, payload)
+        const localPayload = {
+          title: formData.get('title'),
+          category: formData.get('category'),
+          description: formData.get('description'),
+          price: formData.get('price'),
+          stock: formData.get('stock'),
+          materialCost: formData.get('materialCost'),
+          laborHours: formData.get('laborHours'),
+          packagingCost: formData.get('packagingCost'),
+          image: productImagePreviews[0] || '',
+          images: productImagePreviews,
+        }
+        listing = saveArtisanListing(currentUser, localPayload)
       } else {
-        saveArtisanListing(currentUser, payload)
+        try {
+          saveArtisanListing(currentUser, listing)
+        } catch {}
       }
       setSavedListingState((existingState) => ({
         listings: [listing, ...existingState.listings],
         error: '',
       }))
       setShowListingForm(false)
+      setProductImages([])
+      setProductImagePreviews([])
       setPricingInputs({
         materialCost: '',
         laborHours: '',
-        hourlyRate: '',
         packagingCost: '',
       })
       setListingPrice('')
@@ -411,6 +437,56 @@ const ArtisanProfilePage = () => {
     } catch (error) {
       setListingNotice(error.message || 'Unable to save this listing.')
       setListingError(true)
+    }
+  }
+
+  const handleProductImagesChange = (e) => {
+    const files = Array.from(e.target.files || [])
+    if (!files.length) return
+    const newFiles = [...productImages, ...files].slice(0, 8)
+    setProductImages(newFiles)
+    const newPreviews = newFiles.map((file) => URL.createObjectURL(file))
+    setProductImagePreviews(newPreviews)
+  }
+
+  const handleRemoveProductImage = (indexToRemove) => {
+    const updatedFiles = productImages.filter((_, idx) => idx !== indexToRemove)
+    setProductImages(updatedFiles)
+    const updatedPreviews = updatedFiles.map((file) => URL.createObjectURL(file))
+    setProductImagePreviews(updatedPreviews)
+  }
+
+  const handleSaveProfile = async (event) => {
+    event.preventDefault()
+    setProfileSaving(true)
+    setProfileNotice('')
+    setProfileNoticeIsError(false)
+
+    const formData = new FormData(event.currentTarget)
+    const updatePayload = {
+      name: formData.get('name'),
+      phone: formData.get('phone'),
+      artCategory: formData.get('artCategory'),
+      experience: formData.get('experience'),
+      hourlyRate: Number(formData.get('hourlyRate')) || 0,
+      bio: formData.get('bio'),
+    }
+
+    try {
+      const res = await updateArtisanProfileApi(updatePayload)
+      if (res?.user) {
+        authenticate(res.user)
+      } else {
+        authenticate({ ...currentUser, ...updatePayload })
+      }
+      setProfileNotice('Profile details updated successfully.')
+      setProfileModalOpen(false)
+    } catch (err) {
+      authenticate({ ...currentUser, ...updatePayload })
+      setProfileNotice('Profile updated locally.')
+      setProfileModalOpen(false)
+    } finally {
+      setProfileSaving(false)
     }
   }
 
@@ -444,10 +520,10 @@ const ArtisanProfilePage = () => {
     }
   }
 
+  const artisanHourlyRate = Number(currentUser?.hourlyRate || 0)
   const productionCost =
     Number(pricingInputs.materialCost || 0) +
-    Number(pricingInputs.laborHours || 0) *
-      Number(pricingInputs.hourlyRate || 0) +
+    Number(pricingInputs.laborHours || 0) * artisanHourlyRate +
     Number(pricingInputs.packagingCost || 0)
   const suggestedPriceRange =
     productionCost > 0
@@ -1061,7 +1137,6 @@ const ArtisanProfilePage = () => {
                       {[
                         ['materialCost', 'Materials per item (₹)', '0.01'],
                         ['laborHours', 'Hours per item', '0.01'],
-                        ['hourlyRate', 'Your hourly rate (₹)', '1'],
                         ['packagingCost', 'Packaging per item (₹)', '0.01'],
                       ].map(([name, label, step]) => (
                         <label className="text-xs font-medium text-text-secondary" key={name}>
@@ -1107,15 +1182,65 @@ const ArtisanProfilePage = () => {
                     Product description
                     <textarea className={inputClass} maxLength={500} name="description" placeholder="Materials, process, size, and what makes it special" required rows="3" />
                   </label>
-                  <label className="text-sm font-medium text-text-main">
-                    Product image URL <span className="font-normal text-text-muted">(optional)</span>
-                    <input
-                      className={inputClass}
-                      name="image"
-                      placeholder="https://..."
-                      type="url"
-                    />
-                  </label>
+                  <div className="sm:col-span-2">
+                    <label className="block text-sm font-medium text-text-main">
+                      Product Images <span className="font-normal text-text-muted">(upload one or multiple)</span>
+                    </label>
+                    <p className="mt-1 text-xs text-text-muted">
+                      Upload clear photos of your craft from different angles. JPG, PNG, or WebP.
+                    </p>
+
+                    <div className="mt-2.5">
+                      {productImagePreviews.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-3">
+                          {productImagePreviews.map((preview, idx) => (
+                            <div
+                              key={idx}
+                              className="group relative h-24 w-24 overflow-hidden rounded-xl border border-border bg-surface shadow-sm"
+                            >
+                              <img
+                                alt={`Product preview ${idx + 1}`}
+                                className="h-full w-full object-cover"
+                                src={preview}
+                              />
+                              {idx === 0 && (
+                                <span className="absolute bottom-1 left-1 rounded bg-black/75 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+                                  Cover
+                                </span>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => handleRemoveProductImage(idx)}
+                                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-90 transition hover:bg-error hover:opacity-100"
+                                aria-label="Remove image"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      <label className="flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed border-border-strong bg-background p-5 text-center transition hover:border-secondary hover:bg-surface-muted">
+                        <Upload className="h-6 w-6 text-secondary" />
+                        <span className="mt-2 text-sm font-semibold text-text-main">
+                          {productImagePreviews.length > 0
+                            ? 'Add more photos'
+                            : 'Click to select product images'}
+                        </span>
+                        <span className="mt-0.5 text-xs text-text-muted">
+                          Choose one or multiple files
+                        </span>
+                        <input
+                          accept="image/jpeg,image/png,image/webp"
+                          className="sr-only"
+                          multiple
+                          onChange={handleProductImagesChange}
+                          type="file"
+                        />
+                      </label>
+                    </div>
+                  </div>
                   <button
                     className="min-h-11 rounded-lg bg-primary px-4 py-2.5 font-semibold text-white transition hover:bg-primary-hover sm:col-span-2"
                     type="submit"
@@ -1437,6 +1562,10 @@ const ArtisanProfilePage = () => {
                 { label: 'Phone number', value: currentUser.phone || 'Not provided' },
                 { label: 'Craft category', value: currentUser.artCategory || 'Not provided' },
                 { label: 'Experience', value: currentUser.experience || 'Not provided' },
+                {
+                  label: 'Hourly rate',
+                  value: currentUser.hourlyRate ? `₹${currentUser.hourlyRate}/hr` : 'Not set',
+                },
               ].map(({ label, value }) => (
                 <div className="rounded-xl border border-border bg-background p-5" key={label}>
                   <p className="text-sm font-medium text-text-muted">{label}</p>
