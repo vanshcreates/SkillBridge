@@ -232,13 +232,30 @@ const ArtisanProfilePage = () => {
   }, [currentUser, shopName])
 
   useEffect(() => {
+    let isMounted = true
+    getArtisanCoursesApi()
+      .then((res) => {
+        if (isMounted && res?.success && Array.isArray(res.courses) && res.courses.length > 0) {
+          setPublishedCourseState({
+            courses: res.courses,
+            error: '',
+          })
+        }
+      })
+      .catch((err) => {
+        console.warn('Backend training courses fetch error:', err)
+      })
+
     const refreshCourses = () => {
       const courseState = loadPublishedCourses()
       setPublishedCourseState(courseState)
     }
 
     window.addEventListener('storage', refreshCourses)
-    return () => window.removeEventListener('storage', refreshCourses)
+    return () => {
+      isMounted = false
+      window.removeEventListener('storage', refreshCourses)
+    }
   }, [])
 
   if (!currentUser) {

@@ -15,9 +15,15 @@ const lessonSchema = new mongoose.Schema(
     duration: {
       type: String,
       default: "",
+      trim: true,
+    },
+    description: {
+      type: String,
+      default: "",
+      trim: true,
     },
   },
-  { _id: false }
+  { _id: true, timestamps: true }
 );
 
 const courseSchema = new mongoose.Schema(
@@ -25,6 +31,8 @@ const courseSchema = new mongoose.Schema(
     expert: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+      required: true,
+      index: true,
     },
     title: {
       type: String,
@@ -45,10 +53,11 @@ const courseSchema = new mongoose.Schema(
     duration: {
       type: String,
       default: "4 weeks",
+      trim: true,
     },
     level: {
       type: String,
-      enum: ["Beginner", "Intermediate", "Advanced"],
+      enum: ["Beginner", "Intermediate", "Advanced", "All levels"],
       default: "Beginner",
     },
     instructor: {
@@ -60,6 +69,11 @@ const courseSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default: "",
+    },
+    thumbnail: {
+      type: String,
+      default: "",
+      trim: true,
     },
     iconName: {
       type: String,
@@ -84,6 +98,15 @@ const courseSchema = new mongoose.Schema(
 );
 
 courseSchema.methods.toSafeObject = function () {
+  const lessonsList = (this.lessons || []).map((lesson, idx) => ({
+    id: lesson._id ? lesson._id.toString() : `lesson-${idx + 1}`,
+    _id: lesson._id ? lesson._id.toString() : undefined,
+    title: lesson.title,
+    videoUrl: lesson.videoUrl || "",
+    duration: lesson.duration || "",
+    description: lesson.description || "",
+  }));
+
   return {
     id: this._id.toString(),
     _id: this._id.toString(),
@@ -95,8 +118,9 @@ courseSchema.methods.toSafeObject = function () {
     level: this.level,
     instructor: this.instructor,
     expertise: this.expertise || "",
+    thumbnail: this.thumbnail || "",
     iconName: this.iconName || "GraduationCap",
-    lessons: this.lessons || [],
+    lessons: lessonsList,
     outcomes: this.outcomes || [],
     isPublished: this.isPublished,
     createdAt: this.createdAt,
@@ -105,4 +129,3 @@ courseSchema.methods.toSafeObject = function () {
 };
 
 export const Course = mongoose.model("Course", courseSchema);
-

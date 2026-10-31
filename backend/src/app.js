@@ -3,6 +3,7 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
 import artisanRoutes from "./routes/artisan.routes.js";
+import expertRoutes from "./routes/expert.routes.js";
 import marketplaceRoutes from "./routes/marketplace.routes.js";
 
 const app = express();
@@ -56,6 +57,9 @@ app.use("/api/v1/auth", authRoutes);
 
 app.use("/api/artisan", artisanRoutes);
 app.use("/api/v1/artisan", artisanRoutes);
+
+app.use("/api/expert", expertRoutes);
+app.use("/api/v1/expert", expertRoutes);
 
 app.use("/api/marketplace", marketplaceRoutes);
 app.use("/api/v1/marketplace", marketplaceRoutes);

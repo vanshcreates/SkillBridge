@@ -1,4 +1,4 @@
-import { GraduationCap, LogOut, Store } from 'lucide-react'
+import { GraduationCap, LayoutDashboard, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
 
@@ -54,10 +54,10 @@ const ExpertLayout = ({ children }) => {
             )}
             <Link
               className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 sm:px-4"
-              to="/marketplace"
+              to="/expert/dashboard"
             >
-              <Store aria-hidden="true" className="h-4 w-4" />
-              <span className="hidden sm:inline">Marketplace</span>
+              <LayoutDashboard aria-hidden="true" className="h-4 w-4" />
+              <span className="hidden sm:inline">Studio</span>
             </Link>
           </div>
         </div>

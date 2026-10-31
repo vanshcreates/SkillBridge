@@ -1,4 +1,4 @@
-import { createElement, useMemo, useState } from 'react'
+import { createElement, useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
   BookOpenCheck,
@@ -13,6 +13,7 @@ import ArtisanLayout from '../components/layout/ArtisanLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getExpertCourses } from '../utils/training-storage'
 import { baseCourses } from '../data/training-courses'
+import { getArtisanCourseByIdApi } from '../services/artisan-api'
 
 function readCourses() {
   try {
@@ -41,9 +42,42 @@ const ArtisanCoursePage = () => {
   const { courseId } = useParams()
   const { currentUser } = useAuthDialog()
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0)
-  const { courses: expertCourses, error } = useMemo(readCourses, [])
-  const courses = [...baseCourses, ...expertCourses]
-  const course = courses.find((entry) => entry.id === courseId)
+  const { courses: localExpertCourses, error: localError } = useMemo(readCourses, [])
+  const [liveCourse, setLiveCourse] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [apiError, setApiError] = useState('')
+
+  const courses = [...baseCourses, ...localExpertCourses]
+  const initialCourse = courses.find((entry) => entry.id === courseId || entry._id === courseId)
+
+  useEffect(() => {
+    let isMounted = true
+    setIsLoading(true)
+    getArtisanCourseByIdApi(courseId)
+      .then((res) => {
+        if (isMounted && res?.success && res.course) {
+          setLiveCourse({
+            ...res.course,
+            lessons: (res.course.lessons ?? []).map((lesson) =>
+              typeof lesson === 'string'
+                ? { title: lesson, videoUrl: '' }
+                : lesson,
+            ),
+            outcomes: Array.isArray(res.course.outcomes) ? res.course.outcomes : [],
+          })
+        }
+      })
+      .catch((err) => {
+        if (isMounted) setApiError(err.message || '')
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false)
+      })
+
+    return () => {
+      isMounted = false
+    }
+  }, [courseId])
 
   if (!currentUser) {
     return <Navigate replace to="/artisan/auth" />
@@ -52,7 +86,9 @@ const ArtisanCoursePage = () => {
     return <Navigate replace to="/marketplace" />
   }
 
-  if (!course) {
+  const course = liveCourse || initialCourse
+
+  if (!course && !isLoading) {
     return (
       <ArtisanLayout>
         <main className="mx-auto max-w-3xl px-5 py-16 text-center sm:px-8">
@@ -61,7 +97,7 @@ const ArtisanCoursePage = () => {
             Course not found
           </h1>
           <p className="mt-3 leading-7 text-text-secondary">
-            {error || 'This course may have been removed or its link may be incorrect.'}
+            {apiError || localError || 'This course may have been removed or its link may be incorrect.'}
           </p>
           <Link
             className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary-hover"
@@ -75,12 +111,22 @@ const ArtisanCoursePage = () => {
     )
   }
 
+  if (!course && isLoading) {
+    return (
+      <ArtisanLayout>
+        <main className="mx-auto max-w-3xl px-5 py-24 text-center sm:px-8">
+          <p className="text-base text-text-muted">Loading masterclass details...</p>
+        </main>
+      </ArtisanLayout>
+    )
+  }
+
   const lessons = course.lessons.map((lesson) =>
     typeof lesson === 'string'
       ? { title: lesson, videoUrl: '' }
       : lesson,
   )
-  const selectedLesson = lessons[selectedLessonIndex]
+  const selectedLesson = lessons[selectedLessonIndex] || lessons[0] || { title: 'Intro', videoUrl: '' }
   const CourseIcon = course.icon ?? GraduationCap
 
   return (
@@ -148,85 +194,50 @@ const ArtisanCoursePage = () => {
                 <PlayCircle aria-hidden="true" className="h-12 w-12 text-white/80" />
                 <p className="mt-4 font-semibold">Video lesson coming soon</p>
                 <p className="mt-2 max-w-md text-sm leading-6 text-white/75">
-                  This course includes a module outline. A video will appear here
-                  when the instructor adds one.
+                  The instructor hasn&apos;t attached a video to this module yet. Review the notes and practice outline below.
                 </p>
               </div>
             )}
-            <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm text-text-muted">
-                {course.expertise || 'Learn step by step with your instructor.'}
-              </p>
-              <div className="flex gap-2">
-                <button
-                  className="min-h-10 rounded-lg border border-border-strong px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-background disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={selectedLessonIndex === 0}
-                  onClick={() => setSelectedLessonIndex((index) => index - 1)}
-                  type="button"
-                >
-                  Previous module
-                </button>
-                <button
-                  className="min-h-10 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={selectedLessonIndex === lessons.length - 1}
-                  onClick={() => setSelectedLessonIndex((index) => index + 1)}
-                  type="button"
-                >
-                  Next module
-                </button>
-              </div>
-            </div>
           </section>
 
-          <aside className="space-y-5">
-            <section
-              aria-labelledby="modules-heading"
-              className="rounded-2xl border border-border bg-surface p-5 shadow-card"
-            >
-              <h2
-                className="font-serif text-xl font-semibold text-text-main"
-                id="modules-heading"
-              >
+          <aside className="space-y-6">
+            <section className="rounded-2xl border border-border bg-surface p-5 shadow-card">
+              <h2 className="font-serif text-xl font-semibold text-text-main">
                 Course modules
               </h2>
               <ol className="mt-4 space-y-2">
                 {lessons.map((lesson, index) => {
-                  const isSelected = index === selectedLessonIndex
+                  const isCurrent = index === selectedLessonIndex
                   return (
-                    <li key={`${course.id}-${lesson.title}-${index}`}>
+                    <li key={`${course.id}-${index}`}>
                       <button
-                        aria-current={isSelected ? 'step' : undefined}
-                        className={`flex w-full items-start gap-3 rounded-xl border p-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${
-                          isSelected
-                            ? 'border-primary bg-surface-muted'
-                            : 'border-transparent hover:border-border hover:bg-background'
+                        className={`w-full rounded-xl p-3 text-left transition ${
+                          isCurrent
+                            ? 'bg-primary text-white shadow-sm'
+                            : 'bg-background text-text-main hover:bg-surface-muted'
                         }`}
                         onClick={() => setSelectedLessonIndex(index)}
                         type="button"
                       >
-                        <span
-                          className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-semibold ${
-                            isSelected
-                              ? 'bg-primary text-white'
-                              : 'bg-background text-text-secondary'
-                          }`}
-                        >
-                          {index + 1}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block font-medium leading-5 text-text-main">
-                            {lesson.title}
+                        <div className="flex items-center justify-between gap-2">
+                          <span
+                            className={`text-xs font-bold uppercase tracking-wider ${
+                              isCurrent ? 'text-secondary-light' : 'text-secondary'
+                            }`}
+                          >
+                            Module {index + 1}
                           </span>
-                          <span className="mt-1 block text-xs text-text-muted">
-                            {lesson.videoUrl ? 'Video lesson' : 'Module outline'}
+                          <span
+                            className={`text-xs ${
+                              isCurrent ? 'text-white/80' : 'text-text-muted'
+                            }`}
+                          >
+                            {lesson.videoUrl ? 'Video' : 'Outline'}
                           </span>
-                        </span>
-                        {lesson.videoUrl && (
-                          <PlayCircle
-                            aria-label="Video lesson"
-                            className="mt-1 h-4 w-4 shrink-0 text-secondary"
-                          />
-                        )}
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-sm font-medium">
+                          {lesson.title}
+                        </p>
                       </button>
                     </li>
                   )
@@ -236,7 +247,7 @@ const ArtisanCoursePage = () => {
 
             <section className="rounded-2xl border border-border bg-surface p-5 shadow-card">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-surface-muted text-secondary">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted text-secondary">
                   {createElement(CourseIcon, {
                     'aria-hidden': true,
                     className: 'h-5 w-5',
