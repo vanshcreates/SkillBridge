@@ -1,4 +1,12 @@
 import "dotenv/config";
+import dns from "node:dns";
+
+// Use Cloudflare DNS to resolve MongoDB Atlas SRV records on Windows networks
+try {
+  dns.setServers(["1.1.1.1", "1.0.0.1"]);
+} catch (e) {
+  console.warn("Could not set custom DNS servers:", e.message);
+}
 
 import { connectDB } from "./config/db.js";
 import app from "./app.js";
