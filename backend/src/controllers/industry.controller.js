@@ -18,6 +18,7 @@ export const getIndustryDashboard = async (req, res) => {
     // Fetch projects
     const projects = await Project.find({ industry: industryId })
       .populate("assignedArtisan", "name email phone artCategory experience city state avatar")
+      .populate("orderRef")
       .sort({ createdAt: -1 });
 
     // Fetch orders placed by this industry partner
@@ -45,6 +46,15 @@ export const getIndustryDashboard = async (req, res) => {
       projects.filter((p) => p.status === "Completed").length ||
       orders.filter((o) => o.orderStatus === "Completed").length;
 
+    const paidOrders = orders.filter((o) => o.paymentStatus === "paid");
+    const pendingPaymentOrders = orders.filter(
+      (o) => o.orderStatus === "Completed" && o.paymentStatus !== "paid"
+    );
+    const totalAmountPaid = paidOrders.reduce(
+      (sum, o) => sum + (o.totalAmount || 0),
+      0
+    );
+
     // Fetch unread notifications count
     const unreadNotificationsCount = await Notification.countDocuments({
       recipient: industryId,
@@ -71,6 +81,9 @@ export const getIndustryDashboard = async (req, res) => {
         awaitingResponse: awaitingCount,
         acceptedByArtisans: acceptedCount,
         completedProjects: completedCount,
+        paidOrdersCount: paidOrders.length,
+        pendingPaymentCount: pendingPaymentOrders.length,
+        totalAmountPaid,
         unreadNotificationsCount,
       },
       projects: projects.map((p) => p.toSafeObject(req.user, p.assignedArtisan)),
@@ -90,7 +103,12 @@ export const getIndustryDashboard = async (req, res) => {
         })),
         subtotal: o.subtotal,
         total: o.totalAmount,
+        totalAmount: o.totalAmount,
         status: o.orderStatus,
+        source: o.source || "industry",
+        paymentStatus: o.paymentStatus || "pending",
+        razorpayPaymentId: o.razorpayPaymentId || "",
+        paidAt: o.paidAt || null,
         assignedArtisan: o.items[0]?.artisanName
           ? { name: o.items[0].artisanName, id: o.items[0].artisanId?.toString() }
           : null,
@@ -296,6 +314,7 @@ export const getIndustryProjects = async (req, res) => {
 
     const projects = await Project.find(filter)
       .populate("assignedArtisan", "name email phone artCategory experience city state avatar")
+      .populate("orderRef")
       .sort({ createdAt: -1 });
 
     return res.status(200).json({

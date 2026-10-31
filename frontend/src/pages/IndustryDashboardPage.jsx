@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
+  AlertCircle,
   Bell,
   BellRing,
   Building2,
@@ -8,13 +9,25 @@ import {
   Check,
   CheckCircle2,
   Clock3,
+  CreditCard,
+  Download,
   Info,
   PackagePlus,
+  Printer,
+  Receipt,
   ShieldCheck,
   Sparkles,
   Store,
+  WalletCards,
+  X,
   XCircle,
 } from 'lucide-react'
+import {
+  createPaymentOrderApi,
+  verifyPaymentApi,
+  reportPaymentFailureApi,
+} from '../services/payment-api'
+import { loadRazorpayScript } from '../utils/razorpay'
 import IndustryLayout from '../components/layout/IndustryLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getArtisansApi } from '../services/auth-api'
@@ -66,6 +79,13 @@ const IndustryDashboardPage = () => {
   const [notice, setNotice] = useState('')
   const [noticeIsError, setNoticeIsError] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+
+  // Payment Integration States
+  const [payingOrderId, setPayingOrderId] = useState(null)
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false)
+  const [confirmPaymentOrder, setConfirmPaymentOrder] = useState(null)
+  const [paymentReceiptModal, setPaymentReceiptModal] = useState(null)
+  const [modalError, setModalError] = useState('')
 
   // Smart Responsible Analysis State
   const [analysisData, setAnalysisData] = useState(null)
@@ -120,36 +140,62 @@ const IndustryDashboardPage = () => {
           setArtisans(res.availableArtisans)
         }
 
-        // Merge backend projects & orders
+        // Merge backend projects & orders with complete payment statuses
         const backendOrders = Array.isArray(res.orders) ? res.orders : []
         const backendProjects = Array.isArray(res.projects)
-          ? res.projects.map((p) => ({
-              id: p.id || p._id,
-              createdAt: p.createdAt,
-              deadline: p.deadline,
-              duration: p.duration,
-              specifications: p.specifications,
-              items: [
-                {
-                  name: p.title,
-                  category: p.category,
-                  artisan: p.assignedArtisan?.name || 'Open / Unassigned',
-                  price: p.unitPrice,
-                  quantity: p.quantity,
-                  status: p.status,
-                },
-              ],
-              subtotal: p.totalBudget || p.unitPrice * p.quantity,
-              total: p.totalBudget || p.unitPrice * p.quantity,
-              status: p.status === 'Open' ? 'Awaiting response' : p.status,
-              assignedArtisan: p.assignedArtisan || {},
-              responsibleAnalysis: p.responsibleAnalysis,
-            }))
+          ? res.projects.map((p) => {
+              const matchedOrder = backendOrders.find(
+                (bo) =>
+                  bo._id === p.orderRef ||
+                  bo.id === p.orderRef ||
+                  bo.orderNumber === p.orderRef ||
+                  (bo.items?.[0]?.name === p.title &&
+                    bo.assignedArtisan?.name === p.assignedArtisan?.name)
+              )
+              return {
+                id: p.id || p._id,
+                _id: p._id,
+                orderRef: p.orderRef || matchedOrder?._id,
+                orderNumber: matchedOrder?.orderNumber || p.orderNumber || p.id,
+                createdAt: p.createdAt,
+                deadline: p.deadline,
+                duration: p.duration,
+                specifications: p.specifications,
+                items: [
+                  {
+                    name: p.title,
+                    category: p.category,
+                    artisan: p.assignedArtisan?.name || 'Open / Unassigned',
+                    price: p.unitPrice,
+                    quantity: p.quantity,
+                    status: p.status,
+                  },
+                ],
+                subtotal: p.totalBudget || p.unitPrice * p.quantity,
+                total: p.totalBudget || p.unitPrice * p.quantity,
+                totalAmount: p.totalBudget || p.unitPrice * p.quantity,
+                status: p.status === 'Open' ? 'Awaiting response' : p.status,
+                paymentStatus: matchedOrder?.paymentStatus || p.paymentStatus || 'pending',
+                razorpayPaymentId: matchedOrder?.razorpayPaymentId || p.razorpayPaymentId || '',
+                paidAt: matchedOrder?.paidAt || p.paidAt || null,
+                assignedArtisan: p.assignedArtisan || {},
+                responsibleAnalysis: p.responsibleAnalysis,
+              }
+            })
           : []
 
         const combined = [...backendProjects]
         backendOrders.forEach((bo) => {
-          if (!combined.some((p) => p.id === bo.id)) combined.push(bo)
+          if (!combined.some((p) => p.id === bo.id || p.orderRef === bo._id || p.orderRef === bo.id)) {
+            combined.push({
+              ...bo,
+              orderRef: bo._id,
+              total: bo.total || bo.totalAmount,
+              paymentStatus: bo.paymentStatus || 'pending',
+              razorpayPaymentId: bo.razorpayPaymentId || '',
+              paidAt: bo.paidAt || null,
+            })
+          }
         })
         setOrders(combined)
       }
@@ -246,6 +292,194 @@ const IndustryDashboardPage = () => {
     }
     setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })))
     setUnreadNotifsCount(0)
+  }
+
+  // ==========================================
+  // PAYMENT HANDLERS (RAZORPAY INTEGRATION)
+  // ==========================================
+  const handleProceedPayment = async (orderToPay) => {
+    if (!orderToPay) return
+    const targetOrderId = orderToPay.orderRef || orderToPay.id || orderToPay._id
+    setIsProcessingPayment(true)
+    setPayingOrderId(orderToPay.id || orderToPay._id)
+    setModalError('')
+    setNotice('')
+    setNoticeIsError(false)
+
+    try {
+      // 1. Ensure Razorpay Checkout SDK script is loaded
+      const isScriptLoaded = await loadRazorpayScript()
+      if (!isScriptLoaded || typeof window.Razorpay === 'undefined') {
+        throw new Error(
+          'Could not load the Razorpay checkout interface. Please check your internet connection or use Simulate Test Payment.'
+        )
+      }
+
+      // 2. Initialize payment order on backend
+      const response = await createPaymentOrderApi({ existingOrderId: targetOrderId })
+      if (!response?.success || !response.razorpayOrderId) {
+        throw new Error(response?.message || 'Unable to initialize payment order on server.')
+      }
+
+      const { razorpayOrderId, amount, currency, keyId, orderNumber } = response
+      if (razorpayOrderId.startsWith('order_test_')) {
+        throw new Error(
+          'Razorpay could not create a checkout order. Check that the matching test Key ID and Key Secret are set in backend/.env, restart the backend, or use Simulate Test Payment for local testing.'
+        )
+      }
+
+      // 3. Configure Razorpay checkout modal
+      const options = {
+        key: keyId,
+        amount,
+        currency: currency || 'INR',
+        name: 'SkillBridge',
+        description: `Payment for ${orderToPay.items?.[0]?.name || 'Production Order'} to ${orderToPay.assignedArtisan?.name || 'Artisan'}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: currentUser.contactName || currentUser.name || '',
+          email: currentUser.email || '',
+          contact: currentUser.phone || '',
+        },
+        notes: {
+          orderId: targetOrderId,
+          orderNumber: orderNumber || orderToPay.id,
+          artisanName: orderToPay.assignedArtisan?.name || '',
+          industryName: currentUser.name || '',
+        },
+        theme: {
+          color: '#8B4513',
+        },
+        handler: async function (paymentResponse) {
+          try {
+            setIsProcessingPayment(true)
+            const verifyRes = await verifyPaymentApi({
+              orderId: targetOrderId,
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature,
+            })
+
+            if (verifyRes?.success) {
+              setNotice(
+                `🎉 Payment of ₹${orderToPay.total?.toLocaleString('en-IN')} verified successfully! Artisan ${
+                  orderToPay.assignedArtisan?.name || ''
+                } has received your payment. Transaction ID: ${paymentResponse.razorpay_payment_id}`
+              )
+              setNoticeIsError(false)
+              setConfirmPaymentOrder(null)
+
+              setPaymentReceiptModal({
+                ...orderToPay,
+                paymentStatus: 'paid',
+                razorpayPaymentId: paymentResponse.razorpay_payment_id,
+                paidAt: new Date(),
+                orderNumber: orderNumber || orderToPay.id,
+              })
+
+              await refreshBackendData()
+            } else {
+              throw new Error(verifyRes?.message || 'Payment signature verification failed.')
+            }
+          } catch (vErr) {
+            console.error('Payment verification error:', vErr)
+            setModalError(vErr.message || 'Payment verification failed.')
+            setNotice(vErr.message || 'Payment verification failed.')
+            setNoticeIsError(true)
+          } finally {
+            setIsProcessingPayment(false)
+            setPayingOrderId(null)
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            reportPaymentFailureApi({
+              orderId: targetOrderId,
+              razorpay_order_id: razorpayOrderId,
+              error: { description: 'Payment modal closed by user.' },
+            }).catch(() => {})
+            setNotice('Payment window was closed. You can retry whenever you are ready.')
+            setIsProcessingPayment(false)
+            setPayingOrderId(null)
+          },
+        },
+      }
+
+      const rzpInstance = new window.Razorpay(options)
+      rzpInstance.on('payment.failed', function (failureData) {
+        reportPaymentFailureApi({
+          orderId: targetOrderId,
+          razorpay_order_id: razorpayOrderId,
+          error: failureData?.error,
+        }).catch(() => {})
+        setModalError(failureData?.error?.description || 'Payment failed.')
+        setIsProcessingPayment(false)
+        setPayingOrderId(null)
+      })
+
+      rzpInstance.open()
+    } catch (err) {
+      console.error('Checkout error:', err)
+      setModalError(err.message || 'Unable to open checkout.')
+      setIsProcessingPayment(false)
+      setPayingOrderId(null)
+    }
+  }
+
+  // Seamless Simulation Fallback (for instant test verification)
+  const handleSimulatePayment = async (orderToPay) => {
+    if (!orderToPay) return
+    const targetOrderId = orderToPay.orderRef || orderToPay.id || orderToPay._id
+    setIsProcessingPayment(true)
+    setPayingOrderId(orderToPay.id || orderToPay._id)
+    setModalError('')
+    setNotice('')
+    setNoticeIsError(false)
+
+    try {
+      const initRes = await createPaymentOrderApi({ existingOrderId: targetOrderId })
+      const orderNumber = initRes?.orderNumber || orderToPay.id
+
+      const testRazorpayOrderId = initRes?.razorpayOrderId || `order_test_${Date.now()}`
+      const testPaymentId = `pay_test_${Date.now()}`
+
+      const verifyRes = await verifyPaymentApi({
+        orderId: targetOrderId,
+        razorpay_order_id: testRazorpayOrderId,
+        razorpay_payment_id: testPaymentId,
+        razorpay_signature: 'simulated_test_signature',
+      })
+
+      if (verifyRes?.success) {
+        setNotice(
+          `🎉 Test payment of ₹${orderToPay.total?.toLocaleString('en-IN')} completed and verified! Artisan ${
+            orderToPay.assignedArtisan?.name || ''
+          } has received your payment. Transaction ID: ${testPaymentId}`
+        )
+        setNoticeIsError(false)
+        setConfirmPaymentOrder(null)
+
+        setPaymentReceiptModal({
+          ...orderToPay,
+          paymentStatus: 'paid',
+          razorpayPaymentId: testPaymentId,
+          paidAt: new Date(),
+          orderNumber,
+        })
+
+        await refreshBackendData()
+      } else {
+        throw new Error(verifyRes?.message || 'Simulated payment verification failed.')
+      }
+    } catch (err) {
+      console.error('Simulate payment error:', err)
+      setModalError(err.message || 'Simulation payment failed.')
+      setNotice(err.message || 'Payment verification failed.')
+      setNoticeIsError(true)
+    } finally {
+      setIsProcessingPayment(false)
+      setPayingOrderId(null)
+    }
   }
 
   if (!currentUser) {
@@ -463,7 +697,7 @@ const IndustryDashboardPage = () => {
         )}
 
         {/* Metrics Grid */}
-        <section className="mt-5 grid gap-4 sm:grid-cols-4">
+        <section className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <div className="rounded-xl border border-border bg-surface p-5">
             <p className="text-sm font-medium text-text-secondary">Total requests</p>
             <p className="mt-3 font-serif text-3xl font-semibold text-text-main">
@@ -471,7 +705,7 @@ const IndustryDashboardPage = () => {
             </p>
           </div>
           <div className="rounded-xl border border-border bg-surface p-5">
-            <p className="text-sm font-medium text-text-secondary">Awaiting artisan response</p>
+            <p className="text-sm font-medium text-text-secondary">Awaiting response</p>
             <p className="mt-3 font-serif text-3xl font-semibold text-text-main">
               {stats.awaitingResponse ||
                 orders.filter(
@@ -480,16 +714,25 @@ const IndustryDashboardPage = () => {
             </p>
           </div>
           <div className="rounded-xl border border-border bg-surface p-5">
-            <p className="text-sm font-medium text-text-secondary">Accepted by artisans</p>
+            <p className="text-sm font-medium text-text-secondary">In production</p>
             <p className="mt-3 font-serif text-3xl font-semibold text-success">
               {stats.acceptedByArtisans || acceptedOrders.length}
             </p>
           </div>
           <div className="rounded-xl border border-border bg-surface p-5">
-            <p className="text-sm font-medium text-text-secondary">Completed projects</p>
+            <p className="text-sm font-medium text-text-secondary">Completed orders</p>
             <p className="mt-3 font-serif text-3xl font-semibold text-primary">
               {stats.completedProjects ||
                 orders.filter((o) => o.status === 'Completed').length}
+            </p>
+          </div>
+          <div className="rounded-xl border border-secondary/30 bg-secondary/5 p-5 sm:col-span-2 lg:col-span-1">
+            <p className="text-sm font-medium text-secondary">Payments settled</p>
+            <p className="mt-3 font-serif text-2xl font-bold text-text-main">
+              ₹{(stats.totalAmountPaid ?? orders.filter((o) => o.paymentStatus === 'paid').reduce((s, o) => s + (o.total || 0), 0)).toLocaleString('en-IN')}
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              {orders.filter((o) => o.paymentStatus === 'paid').length} order(s) paid
             </p>
           </div>
         </section>
@@ -854,18 +1097,32 @@ const IndustryDashboardPage = () => {
                           {order.id} · Assigned to {assignedArtisan.name || item?.artisan}
                         </p>
                       </div>
-                      <span
-                        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold ${getStatusStyle(order.status)}`}
-                      >
-                        {isAccepted ? (
-                          <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
-                        ) : order.status === 'Rejected' ? (
-                          <XCircle aria-hidden="true" className="h-4 w-4" />
-                        ) : (
-                          <Clock3 aria-hidden="true" className="h-4 w-4" />
+                      <div className="flex flex-wrap items-center gap-2">
+                        {order.status === 'Completed' && (
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-xs font-semibold ${
+                              order.paymentStatus === 'paid'
+                                ? 'bg-green-50 text-success border-success/30'
+                                : 'bg-amber-50 text-amber-800 border-amber-300'
+                            }`}
+                          >
+                            <CreditCard className="h-3.5 w-3.5" />
+                            {order.paymentStatus === 'paid' ? 'Paid via Razorpay' : 'Payment Due'}
+                          </span>
                         )}
-                        {isAccepted ? `Accepted (${order.status})` : order.status}
-                      </span>
+                        <span
+                          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold ${getStatusStyle(order.status)}`}
+                        >
+                          {isAccepted ? (
+                            <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+                          ) : order.status === 'Rejected' ? (
+                            <XCircle aria-hidden="true" className="h-4 w-4" />
+                          ) : (
+                            <Clock3 aria-hidden="true" className="h-4 w-4" />
+                          )}
+                          {isAccepted ? `Accepted (${order.status})` : order.status}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="grid gap-4 p-5 sm:grid-cols-2 sm:p-6">
@@ -946,6 +1203,82 @@ const IndustryDashboardPage = () => {
                         )}
                       </div>
                     </div>
+
+                    {/* Integrated Payment Action Strip */}
+                    <div className="border-t border-border bg-surface px-5 py-4 sm:px-6">
+                      {order.status === 'Completed' ? (
+                        order.paymentStatus === 'paid' ? (
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div className="flex items-center gap-2.5">
+                              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-green-100 text-success">
+                                <CheckCircle2 className="h-4 w-4" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-success">
+                                  Payment Completed · ₹{(order.total || 0).toLocaleString('en-IN')}
+                                </p>
+                                <p className="text-xs text-text-muted">
+                                  Paid via Razorpay Test Mode · ID:{' '}
+                                  <span className="font-mono font-medium text-text-secondary">
+                                    {order.razorpayPaymentId || 'pay_verified'}
+                                  </span>
+                                  {order.paidAt && ` · ${new Date(order.paidAt).toLocaleString()}`}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-white px-3 py-1.5 text-xs font-semibold text-text-main shadow-xs transition hover:bg-surface-muted hover:border-secondary"
+                              onClick={() => setPaymentReceiptModal(order)}
+                              type="button"
+                            >
+                              <Receipt className="h-3.5 w-3.5 text-secondary" />
+                              View Payment Receipt
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50/80 p-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800">
+                                <WalletCards className="h-5 w-5" />
+                              </div>
+                              <div>
+                                <p className="text-sm font-semibold text-amber-950">
+                                  Order Completed by Artisan! 🎉 Payment is now due.
+                                </p>
+                                <p className="text-xs text-amber-800">
+                                  {assignedArtisan.name || 'Artisan'} has finished production. Please release payment of ₹
+                                  {(order.total || 0).toLocaleString('en-IN')} via Razorpay.
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-60"
+                              disabled={isProcessingPayment && payingOrderId === (order.id || order._id)}
+                              onClick={() => {
+                                setModalError('')
+                                setConfirmPaymentOrder(order)
+                              }}
+                              type="button"
+                            >
+                              <CreditCard className="h-4 w-4" />
+                              {isProcessingPayment && payingOrderId === (order.id || order._id)
+                                ? 'Processing…'
+                                : `Make Payment (₹${(order.total || 0).toLocaleString('en-IN')})`}
+                            </button>
+                          </div>
+                        )
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-text-muted">
+                          <span className="flex items-center gap-1.5">
+                            <Info className="h-4 w-4 text-secondary shrink-0" />
+                            Payment of ₹{(order.total || 0).toLocaleString('en-IN')} will be unlocked as soon as {assignedArtisan.name || 'artisan'} marks this order as Completed.
+                          </span>
+                          <span className="font-medium text-text-secondary">
+                            Current Stage: {order.status}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </article>
                 )
               })}
@@ -963,6 +1296,265 @@ const IndustryDashboardPage = () => {
             </div>
           )}
         </section>
+        {/* Payment Confirmation Modal */}
+        {confirmPaymentOrder && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="relative w-full max-w-lg rounded-2xl border border-border bg-surface p-6 shadow-2xl sm:p-8">
+              <button
+                aria-label="Close"
+                className="absolute right-4 top-4 rounded-lg p-2 text-text-muted hover:bg-surface-muted hover:text-text-main"
+                onClick={() => {
+                  setConfirmPaymentOrder(null)
+                  setModalError('')
+                }}
+                type="button"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-100 text-emerald-800">
+                  <CreditCard className="h-5 w-5" />
+                </div>
+                <div>
+                  <h3 className="font-serif text-xl font-bold text-text-main">
+                    Complete Order Payment
+                  </h3>
+                  <p className="text-xs text-text-muted">
+                    Order Ref: #{confirmPaymentOrder.id || confirmPaymentOrder._id}
+                  </p>
+                </div>
+              </div>
+
+              {/* Order & Artisan Details */}
+              <div className="mt-5 space-y-3 rounded-xl border border-border bg-background p-4 text-sm">
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-text-muted">Product / Project:</span>
+                  <span className="font-semibold text-text-main">
+                    {confirmPaymentOrder.items?.[0]?.name}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-text-muted">Master Artisan:</span>
+                  <span className="font-semibold text-primary">
+                    {confirmPaymentOrder.assignedArtisan?.name || confirmPaymentOrder.items?.[0]?.artisan}
+                  </span>
+                </div>
+                <div className="flex justify-between border-b border-border pb-2">
+                  <span className="text-text-muted">Quantity & Unit Price:</span>
+                  <span className="text-text-main">
+                    {confirmPaymentOrder.items?.[0]?.quantity} unit(s) × ₹
+                    {(confirmPaymentOrder.items?.[0]?.price || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+                <div className="flex justify-between pt-1 text-base font-bold text-text-main">
+                  <span>Total Amount Payable:</span>
+                  <span className="text-emerald-700">
+                    ₹{(confirmPaymentOrder.total || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
+              {/* Razorpay Trust Badge */}
+              <div className="mt-4 flex items-center gap-2.5 rounded-lg border border-secondary/30 bg-secondary/5 px-3.5 py-2.5 text-xs text-text-secondary">
+                <ShieldCheck className="h-4 w-4 text-secondary shrink-0" />
+                <span>
+                  Processed securely via <strong>Razorpay Test Mode</strong>. Instant verification and artisan payout settlement.
+                </span>
+              </div>
+
+              {modalError && (
+                <div className="mt-4 flex items-center gap-2 rounded-lg border border-error/30 bg-red-50 p-3 text-xs text-error">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                  <span>{modalError}</span>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex flex-col gap-2.5 sm:flex-row sm:justify-end">
+                <button
+                  className="rounded-lg border border-border px-4 py-2.5 text-sm font-semibold text-text-secondary hover:bg-surface-muted"
+                  disabled={isProcessingPayment}
+                  onClick={() => {
+                    setConfirmPaymentOrder(null)
+                    setModalError('')
+                  }}
+                  type="button"
+                >
+                  Cancel
+                </button>
+                <button
+                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-secondary/40 bg-secondary/10 px-4 py-2.5 text-sm font-semibold text-secondary transition hover:bg-secondary/20 disabled:opacity-60"
+                  disabled={isProcessingPayment}
+                  onClick={() => handleSimulatePayment(confirmPaymentOrder)}
+                  title="Quick instant test payment simulation without third-party popups"
+                  type="button"
+                >
+                  {isProcessingPayment ? 'Processing…' : 'Simulate Test Payment'}
+                </button>
+                <button
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60"
+                  disabled={isProcessingPayment}
+                  onClick={() => handleProceedPayment(confirmPaymentOrder)}
+                  type="button"
+                >
+                  <CreditCard className="h-4 w-4" />
+                  {isProcessingPayment
+                    ? 'Processing…'
+                    : `Pay ₹${(confirmPaymentOrder.total || 0).toLocaleString('en-IN')} via Razorpay`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Payment Receipt Modal */}
+        {paymentReceiptModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs">
+            <div className="relative w-full max-w-xl rounded-2xl border border-border bg-surface p-6 shadow-2xl sm:p-8">
+              <button
+                aria-label="Close"
+                className="absolute right-4 top-4 rounded-lg p-2 text-text-muted hover:bg-surface-muted hover:text-text-main print:hidden"
+                onClick={() => setPaymentReceiptModal(null)}
+                type="button"
+              >
+                <X className="h-5 w-5" />
+              </button>
+
+              <div className="border-b border-border pb-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="font-serif text-2xl font-bold tracking-tight text-primary">
+                      SkillBridge
+                    </span>
+                    <p className="text-xs uppercase tracking-wider text-text-muted">
+                      Industry Payment Receipt
+                    </p>
+                  </div>
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-success/30 bg-green-50 px-3 py-1 text-xs font-bold text-success">
+                    <CheckCircle2 className="h-3.5 w-3.5" />
+                    PAID · SUCCESS
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid grid-cols-2 gap-4 text-xs">
+                <div>
+                  <p className="text-text-muted">Transaction / Payment ID:</p>
+                  <p className="mt-0.5 font-mono font-bold text-text-main">
+                    {paymentReceiptModal.razorpayPaymentId || 'pay_test_verified'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-text-muted">Order Reference:</p>
+                  <p className="mt-0.5 font-mono font-bold text-text-main">
+                    {paymentReceiptModal.orderNumber || paymentReceiptModal.id}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-text-muted">Payment Date & Time:</p>
+                  <p className="mt-0.5 text-text-main">
+                    {paymentReceiptModal.paidAt
+                      ? new Date(paymentReceiptModal.paidAt).toLocaleString()
+                      : new Date().toLocaleString()}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-text-muted">Payment Gateway:</p>
+                  <p className="mt-0.5 text-text-main">Razorpay Secure Test Mode</p>
+                </div>
+              </div>
+
+              {/* Billing parties */}
+              <div className="mt-4 grid grid-cols-2 gap-4 rounded-xl border border-border bg-background p-4 text-xs">
+                <div>
+                  <p className="font-semibold text-text-secondary uppercase tracking-wider">Paid To (Artisan)</p>
+                  <p className="mt-1 font-bold text-sm text-text-main">
+                    {paymentReceiptModal.assignedArtisan?.name || paymentReceiptModal.items?.[0]?.artisan}
+                  </p>
+                  {paymentReceiptModal.assignedArtisan?.artCategory && (
+                    <p className="text-text-muted">Craft: {paymentReceiptModal.assignedArtisan.artCategory}</p>
+                  )}
+                  {paymentReceiptModal.assignedArtisan?.email && (
+                    <p className="text-text-muted">{paymentReceiptModal.assignedArtisan.email}</p>
+                  )}
+                </div>
+                <div>
+                  <p className="font-semibold text-text-secondary uppercase tracking-wider">Paid By (Industry)</p>
+                  <p className="mt-1 font-bold text-sm text-text-main">{currentUser.name}</p>
+                  <p className="text-text-muted">{currentUser.contactName || currentUser.industry}</p>
+                  <p className="text-text-muted">{currentUser.email}</p>
+                </div>
+              </div>
+
+              {/* Line items table */}
+              <div className="mt-4 overflow-hidden rounded-xl border border-border text-xs">
+                <table className="w-full text-left">
+                  <thead className="bg-surface-muted text-text-muted">
+                    <tr>
+                      <th className="px-3 py-2 font-semibold">Item Specification</th>
+                      <th className="px-3 py-2 font-semibold text-center">Qty</th>
+                      <th className="px-3 py-2 font-semibold text-right">Unit Price</th>
+                      <th className="px-3 py-2 font-semibold text-right">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    <tr>
+                      <td className="px-3 py-2.5 font-medium text-text-main">
+                        {paymentReceiptModal.items?.[0]?.name}
+                        <span className="block text-[10px] text-text-muted">
+                          {paymentReceiptModal.items?.[0]?.category}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2.5 text-center text-text-secondary">
+                        {paymentReceiptModal.items?.[0]?.quantity || 1}
+                      </td>
+                      <td className="px-3 py-2.5 text-right text-text-secondary">
+                        ₹{(paymentReceiptModal.items?.[0]?.price || 0).toLocaleString('en-IN')}
+                      </td>
+                      <td className="px-3 py-2.5 text-right font-semibold text-text-main">
+                        ₹{(paymentReceiptModal.total || 0).toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+                  </tbody>
+                  <tfoot className="border-t border-border bg-surface-muted/50 font-bold">
+                    <tr>
+                      <td colSpan={3} className="px-3 py-2 text-right text-text-main">
+                        Total Amount Paid:
+                      </td>
+                      <td className="px-3 py-2 text-right text-emerald-700 text-sm">
+                        ₹{(paymentReceiptModal.total || 0).toLocaleString('en-IN')}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+
+              <p className="mt-4 text-center text-xs text-text-muted">
+                Thank you for empowering ethical craft preservation and honoring fair wages through SkillBridge.
+              </p>
+
+              {/* Receipt Footer Buttons */}
+              <div className="mt-6 flex items-center justify-end gap-3 print:hidden">
+                <button
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-border px-4 py-2 text-xs font-semibold text-text-main hover:bg-surface-muted"
+                  onClick={() => window.print()}
+                  type="button"
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  Print / Save Receipt
+                </button>
+                <button
+                  className="rounded-lg bg-primary px-5 py-2 text-xs font-semibold text-white hover:bg-primary-hover"
+                  onClick={() => setPaymentReceiptModal(null)}
+                  type="button"
+                >
+                  Done
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
     </IndustryLayout>
   )

@@ -512,7 +512,7 @@ export const updateOrderStatus = async (req, res) => {
           } else if (isCompleted) {
             notifType = "PROJECT_COMPLETED";
             notifTitle = `Order Completed by ${req.user.name}! 🎉`;
-            notifMessage = `Artisan ${req.user.name} has completed order #${order.orderNumber || order._id} for "${order.items[0]?.title || order.items[0]?.name}".`;
+            notifMessage = `Artisan ${req.user.name} has completed order #${order.orderNumber || order._id} for "${order.items[0]?.title || order.items[0]?.name}". Please review and complete payment of ₹${(order.totalAmount || order.subtotal || 0).toLocaleString("en-IN")}.`;
           } else if (isRejected) {
             notifType = "ORDER_REJECTED";
             notifTitle = `Order Declined by ${req.user.name}`;
@@ -937,16 +937,23 @@ export const getArtisanPayments = async (req, res) => {
       ["Processing", "Ready to ship", "Shipped"].includes(order.status)
     );
 
-    const totalEarnings = completed.reduce((sum, o) => sum + (o.subtotal || 0), 0);
-    const pendingPayout = pending.reduce((sum, o) => sum + (o.subtotal || 0), 0);
+    const paidOrders = completed.filter((order) => order.paymentStatus === "paid");
+    const awaitingPaymentOrders = completed.filter((order) => order.paymentStatus !== "paid");
+
+    const totalEarnings = paidOrders.reduce((sum, o) => sum + (o.subtotal || 0), 0);
+    const pendingPayout =
+      awaitingPaymentOrders.reduce((sum, o) => sum + (o.subtotal || 0), 0) +
+      pending.reduce((sum, o) => sum + (o.subtotal || 0), 0);
 
     const payouts = completed.map((order) => ({
       orderId: order.id,
       date: order.createdAt,
+      paidAt: order.paidAt || null,
       amount: order.subtotal,
       customerName: order.customer?.fullName || "Customer",
       itemsCount: order.items?.length || 0,
-      paymentStatus: "Paid",
+      paymentStatus: order.paymentStatus === "paid" ? "Paid" : "Payment Pending from Industry",
+      razorpayPaymentId: order.razorpayPaymentId || "",
     }));
 
     return res.status(200).json({

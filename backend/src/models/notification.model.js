@@ -22,6 +22,8 @@ const notificationSchema = new mongoose.Schema(
         "PROJECT_ACCEPTED",
         "PROJECT_APPLIED",
         "PROJECT_COMPLETED",
+        "PAYMENT_RECEIVED",
+        "PAYMENT_COMPLETED",
         "GENERAL",
       ],
       default: "GENERAL",
@@ -91,4 +93,3 @@ notificationSchema.methods.toSafeObject = function () {
 };
 
 export const Notification = mongoose.model("Notification", notificationSchema);
-
