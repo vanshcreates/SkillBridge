@@ -1,5 +1,5 @@
-import { ArrowLeft, useState } from 'react'
-import { BellRing, Building2 } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, BellRing, Building2 } from 'lucide-react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import IndustryLayout from '../components/layout/IndustryLayout'
 import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'

@@ -1,5 +1,5 @@
-import { ArrowLeft, useState } from 'react'
-import { BookOpenCheck } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, BookOpenCheck } from 'lucide-react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import ExpertLayout from '../components/layout/ExpertLayout'
 import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'

@@ -1,5 +1,5 @@
-import { ArrowLeft, useState } from 'react'
-import { BriefcaseBusiness } from 'lucide-react'
+import { useState } from 'react'
+import { ArrowLeft, BriefcaseBusiness } from 'lucide-react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'

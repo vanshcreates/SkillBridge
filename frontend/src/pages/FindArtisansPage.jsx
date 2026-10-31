@@ -149,14 +149,16 @@ const FindArtisansPage = () => {
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
               {visibleArtisans.map((artisan) => {
                 const featuredProduct = artisan.products[0]
-                const productPath = `/marketplace/products/${getProductSlug(featuredProduct.name)}`
+                const productPath = featuredProduct?.name
+                  ? `/marketplace/products/${getProductSlug(featuredProduct.name)}`
+                  : null
 
                 return (
                   <article
                     className="overflow-hidden rounded-2xl border border-border bg-card shadow-card transition hover:-translate-y-1 hover:shadow-card-hover"
                     key={artisan.name}
                   >
-                    {featuredProduct.image ? (
+                    {featuredProduct?.image ? (
                       <img
                         alt={featuredProduct.imageAlt || `${featuredProduct.name} by ${artisan.name}`}
                         className="h-52 w-full object-cover"
@@ -184,13 +186,15 @@ const FindArtisansPage = () => {
                         {artisan.products.length}{' '}
                         {artisan.products.length === 1 ? 'featured work' : 'featured works'}
                       </p>
-                      <Link
-                        className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
-                        to={productPath}
-                      >
-                        Explore their work
-                        <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                      </Link>
+                      {productPath && (
+                        <Link
+                          className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                          to={productPath}
+                        >
+                          Explore their work
+                          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                        </Link>
+                      )}
                     </div>
                   </article>
                 )
