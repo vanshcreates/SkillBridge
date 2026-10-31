@@ -1,4 +1,7 @@
-import { apiRequest } from './auth-api'
+import { apiRequest, getAuthToken } from './auth-api'
+
+const API_BASE_URL =
+  import.meta.env?.VITE_API_URL || 'http://localhost:8000/api'
 
 /**
  * Fetch expert dashboard metrics and stats
@@ -69,6 +72,30 @@ export async function deleteExpertCourseApi(courseId) {
 }
 
 /**
+ * Upload a local video file to cloud storage (Cloudinary)
+ * @param {File} file
+ */
+export async function uploadCourseVideoApi(file) {
+  const formData = new FormData()
+  formData.append('video', file)
+
+  const token = getAuthToken()
+  const res = await fetch(`${API_BASE_URL}/expert/upload-video`, {
+    method: 'POST',
+    headers: {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: formData,
+  })
+
+  const data = await res.json()
+  if (!res.ok) {
+    throw new Error(data?.message || 'Failed to upload video file.')
+  }
+  return data
+}
+
+/**
  * Fetch paginated video lessons for a specific course
  * @param {string} courseId
  * @param {Object} params - { page, limit }
@@ -85,6 +112,22 @@ export async function getCourseLessonsApi(courseId, params = {}) {
  * Add a new video lesson to an existing course
  */
 export async function addCourseLessonApi(courseId, lessonData) {
+  if (lessonData instanceof FormData) {
+    const token = getAuthToken()
+    const res = await fetch(`${API_BASE_URL}/expert/courses/${courseId}/lessons`, {
+      method: 'POST',
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: lessonData,
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      throw new Error(data?.message || 'Failed to add video lesson.')
+    }
+    return data
+  }
+
   return await apiRequest(`/expert/courses/${courseId}/lessons`, {
     method: 'POST',
     body: JSON.stringify(lessonData),
@@ -126,4 +169,3 @@ export async function updateExpertProfileApi(profileData) {
     body: JSON.stringify(profileData),
   })
 }
-

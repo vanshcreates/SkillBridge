@@ -454,6 +454,44 @@ export const getCourseLessons = async (req, res) => {
   }
 };
 
+export const uploadCourseVideo = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No video file was provided.",
+      });
+    }
+
+    const uploadRes = await uploadOnCloudinary(req.file.path, {
+      resource_type: "video",
+      folder: "skillbridge/videos",
+    });
+
+    if (!uploadRes?.secure_url) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload video to cloud storage. Please check Cloudinary configuration.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: "Video uploaded successfully.",
+      url: uploadRes.secure_url,
+      duration: uploadRes.duration ? `${Math.round(uploadRes.duration)}s` : "",
+      format: uploadRes.format,
+      bytes: uploadRes.bytes,
+    });
+  } catch (error) {
+    console.error("Upload course video error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to process video upload.",
+    });
+  }
+};
+
 export const addCourseLesson = async (req, res) => {
   try {
     const { id } = req.params;
@@ -469,12 +507,26 @@ export const addCourseLesson = async (req, res) => {
       });
     }
 
-    const { title, videoUrl, duration, description } = req.body;
+    let { title, videoUrl, duration, description } = req.body;
     if (!title?.trim()) {
       return res.status(400).json({
         success: false,
         message: "Lesson title is required.",
       });
+    }
+
+    // If a video file was uploaded directly via Multer
+    if (req.file) {
+      const uploadRes = await uploadOnCloudinary(req.file.path, {
+        resource_type: "video",
+        folder: "skillbridge/videos",
+      });
+      if (uploadRes?.secure_url) {
+        videoUrl = uploadRes.secure_url;
+        if (!duration && uploadRes.duration) {
+          duration = `${Math.round(uploadRes.duration)}s`;
+        }
+      }
     }
 
     course.lessons.push({

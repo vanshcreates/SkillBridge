@@ -1,6 +1,11 @@
 export function getCourseVideoSource(value) {
   if (typeof value !== 'string' || !value.trim()) return null
 
+  // Support blob or data URLs for immediate local preview
+  if (value.startsWith('blob:') || value.startsWith('data:video/')) {
+    return { type: 'video', src: value }
+  }
+
   let url
   try {
     url = new URL(value.trim())
@@ -48,7 +53,12 @@ export function getCourseVideoSource(value) {
     }
   }
 
-  if (/\.(mp4|webm|ogg)$/i.test(url.pathname)) {
+  // Cloudinary video URLs (with or without direct video extension)
+  if (
+    host.includes('cloudinary.com') ||
+    url.pathname.includes('/video/upload/') ||
+    /\.(mp4|webm|ogg|mov|m4v|mkv|avi|flv)$/i.test(url.pathname)
+  ) {
     return { type: 'video', src: url.href }
   }
 

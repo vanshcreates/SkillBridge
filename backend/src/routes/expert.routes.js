@@ -13,6 +13,7 @@ import {
   deleteCourseLesson,
   getExpertProfile,
   updateExpertProfile,
+  uploadCourseVideo,
 } from "../controllers/expert.controller.js";
 import { verifyJWT, requireExpert } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -33,9 +34,10 @@ router.put("/courses/:id", upload.single("thumbnail"), updateExpertCourse);
 router.patch("/courses/:id/publish", toggleCoursePublish);
 router.delete("/courses/:id", deleteExpertCourse);
 
-// 3. Video Lessons (with pagination)
+// 3. Video Lessons & Media
+router.post("/upload-video", upload.single("video"), uploadCourseVideo);
 router.get("/courses/:id/lessons", getCourseLessons);
-router.post("/courses/:id/lessons", addCourseLesson);
+router.post("/courses/:id/lessons", upload.single("video"), addCourseLesson);
 router.put("/courses/:id/lessons/:lessonId", updateCourseLesson);
 router.delete("/courses/:id/lessons/:lessonId", deleteCourseLesson);
 

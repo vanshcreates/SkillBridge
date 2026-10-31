@@ -2,20 +2,23 @@ import { useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
   BookOpenCheck,
+  CheckCircle,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Clock3,
+  Eye,
+  EyeOff,
   GraduationCap,
+  Loader2,
   Play,
   Plus,
   Search,
   Trash2,
+  Upload,
   UsersRound,
   Video,
   X,
-  Eye,
-  EyeOff,
 } from 'lucide-react'
 import ExpertLayout from '../components/layout/ExpertLayout'
 import CourseVideo from '../components/training/CourseVideo'
@@ -28,6 +31,7 @@ import {
   deleteExpertCourseApi,
   addCourseLessonApi,
   deleteCourseLessonApi,
+  uploadCourseVideoApi,
 } from '../services/expert-api'
 import {
   getExpertCourses,
@@ -43,7 +47,16 @@ const ExpertDashboardPage = () => {
   const { currentUser } = useAuthDialog()
   const [courseFormOpen, setCourseFormOpen] = useState(false)
   const [lessonDrafts, setLessonDrafts] = useState([
-    { id: 1, title: '', videoUrl: '', duration: '' },
+    {
+      id: 1,
+      title: '',
+      videoUrl: '',
+      fileName: '',
+      isUploading: false,
+      uploadError: '',
+      useUrlInput: false,
+      duration: '',
+    },
   ])
   const nextLessonId = useRef(2)
   const [notice, setNotice] = useState('')
@@ -73,7 +86,7 @@ const ExpertDashboardPage = () => {
   // Video preview modal state
   const [activePreview, setActivePreview] = useState(null)
 
-  // Add lesson modal state: { courseId: string, title: string, videoUrl: string, duration: string } | null
+  // Add lesson modal state
   const [newLessonModal, setNewLessonModal] = useState(null)
   const [isAddingLesson, setIsAddingLesson] = useState(false)
 
@@ -137,11 +150,104 @@ const ExpertDashboardPage = () => {
     return <Navigate replace to="/marketplace" />
   }
 
+  // Handle uploading video file for a specific lesson draft
+  const handleLessonFileChange = async (lessonId, file) => {
+    if (!file) return
+
+    const localPreviewUrl = URL.createObjectURL(file)
+
+    setLessonDrafts((drafts) =>
+      drafts.map((entry) =>
+        entry.id === lessonId
+          ? {
+              ...entry,
+              fileName: file.name,
+              videoUrl: localPreviewUrl,
+              isUploading: true,
+              uploadError: '',
+            }
+          : entry
+      )
+    )
+
+    try {
+      const uploadRes = await uploadCourseVideoApi(file)
+      if (uploadRes?.url) {
+        setLessonDrafts((drafts) =>
+          drafts.map((entry) =>
+            entry.id === lessonId
+              ? {
+                  ...entry,
+                  videoUrl: uploadRes.url,
+                  fileName: file.name,
+                  isUploading: false,
+                  duration: uploadRes.duration || entry.duration,
+                }
+              : entry
+          )
+        )
+      }
+    } catch (err) {
+      console.error('Video upload failed:', err)
+      setLessonDrafts((drafts) =>
+        drafts.map((entry) =>
+          entry.id === lessonId
+            ? {
+                ...entry,
+                isUploading: false,
+                uploadError: err.message || 'Failed to upload video.',
+              }
+            : entry
+        )
+      )
+    }
+  }
+
+  // Handle uploading video file in the Add Lesson modal
+  const handleModalFileChange = async (file) => {
+    if (!file) return
+
+    const localPreviewUrl = URL.createObjectURL(file)
+    setNewLessonModal((prev) => ({
+      ...prev,
+      fileName: file.name,
+      videoUrl: localPreviewUrl,
+      isUploading: true,
+      uploadError: '',
+    }))
+
+    try {
+      const uploadRes = await uploadCourseVideoApi(file)
+      if (uploadRes?.url) {
+        setNewLessonModal((prev) => ({
+          ...prev,
+          videoUrl: uploadRes.url,
+          isUploading: false,
+          duration: uploadRes.duration || prev.duration,
+        }))
+      }
+    } catch (err) {
+      setNewLessonModal((prev) => ({
+        ...prev,
+        isUploading: false,
+        uploadError: err.message || 'Failed to upload video.',
+      }))
+    }
+  }
+
   // 2. Publish new course
   const handlePublishCourse = async (event) => {
     event.preventDefault()
     setNotice('')
     setNoticeIsError(false)
+
+    // Check if any video is still uploading
+    if (lessonDrafts.some((l) => l.isUploading)) {
+      setNotice('Please wait for video upload to complete before publishing.')
+      setNoticeIsError(true)
+      return
+    }
+
     setIsSubmitting(true)
 
     const formData = new FormData(event.currentTarget)
@@ -156,7 +262,7 @@ const ExpertDashboardPage = () => {
       .filter((l) => l.title.trim())
       .map((l) => ({
         title: l.title.trim(),
-        videoUrl: l.videoUrl.trim(),
+        videoUrl: (l.videoUrl || '').trim(),
         duration: l.duration?.trim() || '',
       }))
 
@@ -204,7 +310,18 @@ const ExpertDashboardPage = () => {
       }
 
       setCourseFormOpen(false)
-      setLessonDrafts([{ id: 1, title: '', videoUrl: '', duration: '' }])
+      setLessonDrafts([
+        {
+          id: 1,
+          title: '',
+          videoUrl: '',
+          fileName: '',
+          isUploading: false,
+          uploadError: '',
+          useUrlInput: false,
+          duration: '',
+        },
+      ])
       nextLessonId.current = 2
       event.currentTarget.reset()
     } catch (error) {
@@ -280,6 +397,12 @@ const ExpertDashboardPage = () => {
     e.preventDefault()
     if (!newLessonModal) return
 
+    if (newLessonModal.isUploading) {
+      setNotice('Please wait for the video upload to finish.')
+      setNoticeIsError(true)
+      return
+    }
+
     setIsAddingLesson(true)
     try {
       const res = await addCourseLessonApi(newLessonModal.courseId, {
@@ -300,7 +423,7 @@ const ExpertDashboardPage = () => {
           ...prev,
           totalLessons: prev.totalLessons + 1,
         }))
-        setNotice(`New video lesson added to course.`)
+        setNotice('New video lesson added to course.')
         setNoticeIsError(false)
         setNewLessonModal(null)
       }
@@ -366,7 +489,7 @@ const ExpertDashboardPage = () => {
                   Welcome, {currentUser.name}
                 </h1>
                 <p className="mt-2 max-w-2xl text-sm text-white/85 sm:text-base">
-                  Create practical masterclasses and video lessons to empower artisans.
+                  Create practical masterclasses and upload video lessons to empower artisans.
                 </p>
               </div>
               <span className="inline-flex w-fit items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-2 text-sm font-medium text-white">
@@ -439,7 +562,7 @@ const ExpertDashboardPage = () => {
                   Create a Course
                 </h3>
                 <p className="mt-1 text-sm leading-6 text-text-secondary">
-                  Add a structured outline and video links so artisans can learn step-by-step.
+                  Add a structured outline and upload videos so artisans can learn step-by-step.
                 </p>
               </div>
               <label className="text-sm font-medium text-text-main">
@@ -499,7 +622,7 @@ const ExpertDashboardPage = () => {
                   Course video lessons
                 </legend>
                 <p className="-mt-2 text-sm leading-6 text-text-secondary">
-                  Add each lesson with a title and video link (YouTube, Vimeo, or direct MP4/WebM).
+                  Add each lesson with a title and upload a video file directly from your computer.
                 </p>
                 {lessonDrafts.map((lesson, index) => (
                   <div
@@ -544,25 +667,92 @@ const ExpertDashboardPage = () => {
                         value={lesson.title}
                       />
                     </label>
-                    <label className="text-sm font-medium text-text-main">
-                      Video URL
-                      <input
-                        className={fieldClass}
-                        onChange={(e) =>
-                          setLessonDrafts((drafts) =>
-                            drafts.map((entry) =>
-                              entry.id === lesson.id
-                                ? { ...entry, videoUrl: e.target.value }
-                                : entry
+
+                    {/* VIDEO UPLOAD FIELD */}
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-text-main">Video</span>
+                        <button
+                          className="text-xs font-semibold text-secondary hover:underline"
+                          onClick={() =>
+                            setLessonDrafts((drafts) =>
+                              drafts.map((entry) =>
+                                entry.id === lesson.id
+                                  ? { ...entry, useUrlInput: !entry.useUrlInput }
+                                  : entry
+                              )
                             )
-                          )
-                        }
-                        placeholder="https://youtu.be/... or Vimeo"
-                        required
-                        type="url"
-                        value={lesson.videoUrl}
-                      />
-                    </label>
+                          }
+                          type="button"
+                        >
+                          {lesson.useUrlInput ? 'Upload file instead' : 'Or write URL'}
+                        </button>
+                      </div>
+
+                      {lesson.useUrlInput ? (
+                        <input
+                          className={fieldClass}
+                          onChange={(e) =>
+                            setLessonDrafts((drafts) =>
+                              drafts.map((entry) =>
+                                entry.id === lesson.id
+                                  ? { ...entry, videoUrl: e.target.value }
+                                  : entry
+                              )
+                            )
+                          }
+                          placeholder="https://youtu.be/... or video link"
+                          type="url"
+                          value={lesson.videoUrl}
+                        />
+                      ) : (
+                        <div className="rounded-lg border border-border bg-surface p-2.5">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-hover">
+                              <Upload aria-hidden="true" className="h-3.5 w-3.5" />
+                              <span>Select file</span>
+                              <input
+                                accept="video/*"
+                                className="sr-only"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0]
+                                  if (file) handleLessonFileChange(lesson.id, file)
+                                }}
+                                type="file"
+                              />
+                            </label>
+
+                            {lesson.fileName ? (
+                              <span className="max-w-[12rem] truncate text-xs font-medium text-text-main">
+                                {lesson.fileName}
+                              </span>
+                            ) : (
+                              <span className="text-xs text-text-muted">
+                                No video chosen (MP4, WebM, MOV)
+                              </span>
+                            )}
+
+                            {lesson.isUploading && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-secondary">
+                                <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
+                                Uploading...
+                              </span>
+                            )}
+
+                            {lesson.videoUrl && !lesson.isUploading && (
+                              <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                                <CheckCircle aria-hidden="true" className="h-3.5 w-3.5" />
+                                Ready
+                              </span>
+                            )}
+                          </div>
+
+                          {lesson.uploadError && (
+                            <p className="mt-1.5 text-xs text-error">{lesson.uploadError}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <button
@@ -572,7 +762,16 @@ const ExpertDashboardPage = () => {
                     nextLessonId.current += 1
                     setLessonDrafts((drafts) => [
                       ...drafts,
-                      { id, title: '', videoUrl: '', duration: '' },
+                      {
+                        id,
+                        title: '',
+                        videoUrl: '',
+                        fileName: '',
+                        isUploading: false,
+                        uploadError: '',
+                        useUrlInput: false,
+                        duration: '',
+                      },
                     ])
                   }}
                   type="button"
@@ -686,7 +885,7 @@ const ExpertDashboardPage = () => {
                   const allLessons = Array.isArray(course.lessons)
                     ? course.lessons
                     : []
-                  
+
                   // Video lessons pagination for this course card
                   const currentLessonPage = lessonPages[courseId] || 1
                   const totalLessonPages = Math.ceil(allLessons.length / LESSONS_PER_PAGE) || 1
@@ -779,6 +978,10 @@ const ExpertDashboardPage = () => {
                                 courseId,
                                 title: '',
                                 videoUrl: '',
+                                fileName: '',
+                                isUploading: false,
+                                uploadError: '',
+                                useUrlInput: false,
                                 duration: '',
                               })
                             }
@@ -791,7 +994,7 @@ const ExpertDashboardPage = () => {
 
                         {allLessons.length === 0 ? (
                           <p className="mt-2 text-xs text-text-muted">
-                            No lessons added yet. Click &quot;Add lesson&quot; to attach video guides.
+                            No lessons added yet. Click &quot;Add lesson&quot; to upload video guides.
                           </p>
                         ) : (
                           <ul className="mt-2 space-y-2">
@@ -1015,7 +1218,7 @@ const ExpertDashboardPage = () => {
                 </button>
               </div>
               <p className="mt-1 text-xs text-text-secondary">
-                Attach an instructional YouTube, Vimeo, or direct MP4/WebM video.
+                Upload a video file from your computer or provide a link.
               </p>
 
               <div className="mt-4 space-y-3">
@@ -1035,22 +1238,87 @@ const ExpertDashboardPage = () => {
                     value={newLessonModal.title}
                   />
                 </label>
-                <label className="block text-sm font-medium text-text-main">
-                  Video URL
-                  <input
-                    className={fieldClass}
-                    onChange={(e) =>
-                      setNewLessonModal((prev) => ({
-                        ...prev,
-                        videoUrl: e.target.value,
-                      }))
-                    }
-                    placeholder="https://youtu.be/... or Vimeo"
-                    required
-                    type="url"
-                    value={newLessonModal.videoUrl}
-                  />
-                </label>
+
+                {/* MODAL VIDEO UPLOAD FIELD */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-medium text-text-main">Video</span>
+                    <button
+                      className="text-xs font-semibold text-secondary hover:underline"
+                      onClick={() =>
+                        setNewLessonModal((prev) => ({
+                          ...prev,
+                          useUrlInput: !prev.useUrlInput,
+                        }))
+                      }
+                      type="button"
+                    >
+                      {newLessonModal.useUrlInput ? 'Upload file instead' : 'Or write URL'}
+                    </button>
+                  </div>
+
+                  {newLessonModal.useUrlInput ? (
+                    <input
+                      className={fieldClass}
+                      onChange={(e) =>
+                        setNewLessonModal((prev) => ({
+                          ...prev,
+                          videoUrl: e.target.value,
+                        }))
+                      }
+                      placeholder="https://youtu.be/... or video link"
+                      type="url"
+                      value={newLessonModal.videoUrl}
+                    />
+                  ) : (
+                    <div className="rounded-lg border border-border bg-background p-3">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-md bg-primary px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-hover">
+                          <Upload aria-hidden="true" className="h-3.5 w-3.5" />
+                          <span>Select file</span>
+                          <input
+                            accept="video/*"
+                            className="sr-only"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0]
+                              if (file) handleModalFileChange(file)
+                            }}
+                            type="file"
+                          />
+                        </label>
+
+                        {newLessonModal.fileName ? (
+                          <span className="max-w-[12rem] truncate text-xs font-medium text-text-main">
+                            {newLessonModal.fileName}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-text-muted">
+                            No video chosen (MP4, WebM, MOV)
+                          </span>
+                        )}
+
+                        {newLessonModal.isUploading && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-secondary">
+                            <Loader2 aria-hidden="true" className="h-3.5 w-3.5 animate-spin" />
+                            Uploading...
+                          </span>
+                        )}
+
+                        {newLessonModal.videoUrl && !newLessonModal.isUploading && (
+                          <span className="inline-flex items-center gap-1 text-xs font-semibold text-success">
+                            <CheckCircle aria-hidden="true" className="h-3.5 w-3.5" />
+                            Ready
+                          </span>
+                        )}
+                      </div>
+
+                      {newLessonModal.uploadError && (
+                        <p className="mt-1.5 text-xs text-error">{newLessonModal.uploadError}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <label className="block text-sm font-medium text-text-main">
                   Duration <span className="font-normal text-text-muted">(optional)</span>
                   <input
@@ -1078,7 +1346,7 @@ const ExpertDashboardPage = () => {
                 </button>
                 <button
                   className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
-                  disabled={isAddingLesson}
+                  disabled={isAddingLesson || newLessonModal.isUploading}
                   type="submit"
                 >
                   {isAddingLesson ? 'Adding...' : 'Add Lesson'}
