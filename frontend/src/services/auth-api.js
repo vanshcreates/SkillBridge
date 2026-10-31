@@ -1,5 +1,11 @@
-const API_BASE_URL =
-  import.meta.env?.VITE_API_URL || 'http://localhost:8000/api'
+export const API_BASE_URL =
+  import.meta.env?.VITE_API_URL ||
+  (typeof window !== 'undefined' &&
+  window.location.hostname &&
+  window.location.hostname !== 'localhost' &&
+  window.location.hostname !== '127.0.0.1'
+    ? `${window.location.protocol}//${window.location.hostname}:8000/api`
+    : 'http://localhost:8000/api')
 
 export const AUTH_TOKEN_KEY = 'skillbridge-auth-token'
 
@@ -33,8 +39,9 @@ export function clearAuthToken() {
 
 export async function apiRequest(endpoint, options = {}) {
   const token = getAuthToken()
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData
   const headers = {
-    'Content-Type': 'application/json',
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
     ...options.headers,
   }
@@ -73,9 +80,11 @@ export async function apiRequest(endpoint, options = {}) {
  * @param {Object} userData - { name, email, password, accountType, phone, ... }
  */
 export async function signupApi(userData) {
+  const isFormData =
+    typeof FormData !== 'undefined' && userData instanceof FormData
   const result = await apiRequest('/auth/signup', {
     method: 'POST',
-    body: JSON.stringify(userData),
+    body: isFormData ? userData : JSON.stringify(userData),
   })
 
   if (result.token) {

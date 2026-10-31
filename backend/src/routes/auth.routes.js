@@ -8,12 +8,18 @@ import {
   getArtisans,
 } from "../controllers/auth.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
+import { upload } from "../middlewares/multer.middleware.js";
 
 const router = Router();
 
+const uploadSignupAvatar = upload.fields([
+  { name: "avatar", maxCount: 1 },
+  { name: "profileImage", maxCount: 1 },
+]);
+
 // Public auth endpoints
-router.post("/signup", signup);
-router.post("/register", signup); // alias for convenience
+router.post("/signup", uploadSignupAvatar, signup);
+router.post("/register", uploadSignupAvatar, signup); // alias for convenience
 router.post("/login", login);
 router.post("/logout", logout);
 
@@ -26,4 +32,3 @@ router.post("/verify-account", verifyAccount);
 router.get("/artisans", getArtisans);
 
 export default router;
-

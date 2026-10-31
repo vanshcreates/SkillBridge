@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Camera, UserRound, X } from 'lucide-react'
+import { Camera, Loader2, UserRound, X } from 'lucide-react'
 import {
   getProfileImage,
   PROFILE_IMAGE_CHANGED_EVENT,
@@ -7,6 +7,12 @@ import {
   removeProfileImage,
   saveProfileImage,
 } from '../../utils/artisan-profile-storage'
+import { useAuthDialog } from '../../hooks/useAuthDialog'
+import {
+  uploadArtisanProfilePhotoApi,
+  removeArtisanProfilePhotoApi,
+} from '../../services/artisan-api'
+import { getAuthToken } from '../../services/auth-api'
 
 const sizes = {
   small: 'h-10 w-10 text-base',
@@ -17,7 +23,10 @@ const sizes = {
 
 function loadImage(user) {
   try {
-    return getProfileImage(user)
+    if (typeof user?.avatar === 'string' && user.avatar.trim() !== '') {
+      return user.avatar.trim()
+    }
+    return getProfileImage(user) || ''
   } catch (error) {
     console.error('Unable to load profile photo.', error)
     return ''
@@ -25,20 +34,24 @@ function loadImage(user) {
 }
 
 const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
-  const [image, setImage] = useState(() => loadImage(user))
+  const { currentUser, authenticate } = useAuthDialog()
+  const activeUser = user || currentUser
+  const [image, setImage] = useState(() => loadImage(activeUser))
   const [isOpen, setIsOpen] = useState(false)
   const [notice, setNotice] = useState('')
   const [noticeIsError, setNoticeIsError] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const fileInputRef = useRef(null)
-  const displayName = user?.name || user?.contactName || user?.email || 'Profile'
+  const displayName =
+    activeUser?.name || activeUser?.contactName || activeUser?.email || 'Profile'
 
   useEffect(() => {
-    const refreshImage = () => setImage(loadImage(user))
+    const refreshImage = () => setImage(loadImage(activeUser))
     refreshImage()
     window.addEventListener(PROFILE_IMAGE_CHANGED_EVENT, refreshImage)
     return () =>
       window.removeEventListener(PROFILE_IMAGE_CHANGED_EVENT, refreshImage)
-  }, [user])
+  }, [activeUser, currentUser])
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -56,26 +69,110 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
     setNoticeIsError(false)
     if (!file) return
 
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+      setNotice('Choose a JPG, PNG, or WebP image.')
+      setNoticeIsError(true)
+      return
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setNotice('Choose an image smaller than 5 MB.')
+      setNoticeIsError(true)
+      return
+    }
+
+    setIsUploading(true)
+    const token = getAuthToken()
+    const isArtisan =
+      activeUser?.accountType === 'artisan' ||
+      currentUser?.accountType === 'artisan'
+
+    // Try cloud upload via artisan backend if logged in as artisan
+    if (token && isArtisan) {
+      try {
+        const response = await uploadArtisanProfilePhotoApi(file)
+        if (response?.avatar) {
+          setImage(response.avatar)
+          saveProfileImage(activeUser, response.avatar)
+          if (response.user && authenticate) {
+            authenticate(response.user)
+          } else if (currentUser && authenticate) {
+            authenticate({ ...currentUser, avatar: response.avatar })
+          }
+          setNotice('Profile photo uploaded and saved successfully.')
+          setNoticeIsError(false)
+          setIsUploading(false)
+          return
+        }
+      } catch (backendError) {
+        console.warn(
+          'Cloud upload failed, falling back to local storage:',
+          backendError,
+        )
+      }
+    }
+
+    // Local storage fallback if offline or non-artisan account
     try {
       const imageData = await readProfileImageFile(file)
-      setImage(saveProfileImage(user, imageData))
-      setNotice('Your profile photo has been saved in this browser.')
+      setImage(saveProfileImage(activeUser, imageData))
+      if (currentUser && authenticate) {
+        authenticate({ ...currentUser, avatar: imageData })
+      }
+      setNotice('Profile photo saved locally in this browser.')
+      setNoticeIsError(false)
     } catch (error) {
       setNotice(error.message || 'Unable to save your profile photo.')
       setNoticeIsError(true)
+    } finally {
+      setIsUploading(false)
     }
   }
 
-  const handleRemoveImage = () => {
+  const handleRemoveImage = async () => {
     setNotice('')
     setNoticeIsError(false)
+    setIsUploading(true)
+
+    const token = getAuthToken()
+    const isArtisan =
+      activeUser?.accountType === 'artisan' ||
+      currentUser?.accountType === 'artisan'
+
+    if (token && isArtisan) {
+      try {
+        const response = await removeArtisanProfilePhotoApi()
+        removeProfileImage(activeUser)
+        setImage('')
+        if (response?.user && authenticate) {
+          authenticate(response.user)
+        } else if (currentUser && authenticate) {
+          authenticate({ ...currentUser, avatar: '' })
+        }
+        setNotice('Profile photo removed successfully.')
+        setNoticeIsError(false)
+        setIsUploading(false)
+        return
+      } catch (backendError) {
+        console.warn(
+          'Backend photo removal failed, removing locally:',
+          backendError,
+        )
+      }
+    }
+
     try {
-      removeProfileImage(user)
+      removeProfileImage(activeUser)
       setImage('')
+      if (currentUser && authenticate) {
+        authenticate({ ...currentUser, avatar: '' })
+      }
       setNotice('Your profile photo has been removed.')
+      setNoticeIsError(false)
     } catch (error) {
       setNotice(error.message || 'Unable to remove your profile photo.')
       setNoticeIsError(true)
+    } finally {
+      setIsUploading(false)
     }
   }
 
@@ -109,7 +206,9 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
         <div
           className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 p-4"
           onClick={(event) => {
-            if (event.target === event.currentTarget) setIsOpen(false)
+            if (event.target === event.currentTarget && !isUploading) {
+              setIsOpen(false)
+            }
           }}
         >
           <section
@@ -120,7 +219,8 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
           >
             <button
               aria-label="Close profile photo"
-              className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+              className="absolute right-3 top-3 inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isUploading}
               onClick={() => setIsOpen(false)}
               type="button"
             >
@@ -144,27 +244,39 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
               )}
             </div>
             <p className="mt-3 text-sm text-text-muted">
-              JPG, PNG, or WebP up to 2 MB. Photos are stored locally for now.
+              JPG, PNG, or WebP up to 5 MB. Photos are synced with your cloud profile.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
-                className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+                disabled={isUploading}
                 onClick={() => fileInputRef.current?.click()}
                 type="button"
               >
-                <Camera aria-hidden="true" className="h-4 w-4" />
-                {image ? 'Change photo' : 'Add photo'}
+                {isUploading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Camera aria-hidden="true" className="h-4 w-4" />
+                    {image ? 'Change photo' : 'Add photo'}
+                  </>
+                )}
               </button>
               <input
                 accept="image/jpeg,image/png,image/webp"
                 className="sr-only"
+                disabled={isUploading}
                 onChange={handleImageChange}
                 ref={fileInputRef}
                 type="file"
               />
               {image && (
                 <button
-                  className="min-h-10 rounded-lg border border-border-strong px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                  className="min-h-10 rounded-lg border border-border-strong px-4 py-2 text-sm font-semibold text-text-secondary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isUploading}
                   onClick={handleRemoveImage}
                   type="button"
                 >

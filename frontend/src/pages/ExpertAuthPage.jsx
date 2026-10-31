@@ -45,19 +45,20 @@ const ExpertAuthPage = () => {
         if (password !== formData.get('confirmPassword')) {
           throw new Error('The passwords do not match.')
         }
-        const profileImage = await readProfileImageFile(
-          formData.get('profileImage'),
-        )
-        user = await saveRegisteredUser({
-          accountType: 'expert',
-          name: formData.get('name'),
-          email: formData.get('email'),
-          phone: formData.get('phone'),
-          expertise: formData.get('expertise'),
-          bio: formData.get('bio'),
-          password,
-        })
-        if (profileImage) saveProfileImage(user, profileImage)
+        const profileImageFile = formData.get('profileImage')
+        const signupPayload = new FormData()
+        signupPayload.append('accountType', 'expert')
+        signupPayload.append('name', formData.get('name') || '')
+        signupPayload.append('email', formData.get('email') || '')
+        signupPayload.append('phone', formData.get('phone') || '')
+        signupPayload.append('expertise', formData.get('expertise') || '')
+        signupPayload.append('bio', formData.get('bio') || '')
+        signupPayload.append('password', password)
+        if (profileImageFile && profileImageFile.size > 0) {
+          signupPayload.append('avatar', profileImageFile)
+        }
+        user = await saveRegisteredUser(signupPayload)
+        if (user?.avatar) saveProfileImage(user, user.avatar)
       } else {
         user = await authenticateUser(
           formData.get('email'),

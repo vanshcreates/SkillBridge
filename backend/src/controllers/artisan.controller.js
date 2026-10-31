@@ -583,6 +583,66 @@ export const updateArtisanProfile = async (req, res) => {
   }
 };
 
+export const uploadArtisanProfilePhoto = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "Please choose an image file to upload.",
+      });
+    }
+
+    const uploadRes = await uploadOnCloudinary(req.file.path, {
+      folder: "skillbridge/avatars",
+    });
+
+    if (!uploadRes?.secure_url) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to upload image to cloud storage. Please check Cloudinary configuration.",
+      });
+    }
+
+    const user = await User.findById(req.user._id);
+    user.avatar = uploadRes.secure_url;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo uploaded successfully.",
+      avatar: user.avatar,
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    console.error("Upload artisan profile photo error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to upload profile photo.",
+    });
+  }
+};
+
+export const removeArtisanProfilePhoto = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    user.avatar = "";
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo removed successfully.",
+      avatar: "",
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    console.error("Remove artisan profile photo error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to remove profile photo.",
+    });
+  }
+};
+
 // ==========================================
 // 6. PAYMENT HISTORY COLUMN
 // ==========================================

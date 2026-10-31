@@ -82,16 +82,17 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
         if (password !== formData.get('confirmPassword')) {
           throw new Error('The passwords do not match.')
         }
-        const profileImage = await readProfileImageFile(
-          formData.get('profileImage'),
-        )
-        const user = await saveRegisteredUser({
-          name: formData.get('name'),
-          email: formData.get('email'),
-          password,
-          accountType: 'customer',
-        })
-        if (profileImage) saveProfileImage(user, profileImage)
+        const profileImageFile = formData.get('profileImage')
+        const signupPayload = new FormData()
+        signupPayload.append('accountType', 'customer')
+        signupPayload.append('name', formData.get('name') || '')
+        signupPayload.append('email', formData.get('email') || '')
+        signupPayload.append('password', password)
+        if (profileImageFile && profileImageFile.size > 0) {
+          signupPayload.append('avatar', profileImageFile)
+        }
+        const user = await saveRegisteredUser(signupPayload)
+        if (user?.avatar) saveProfileImage(user, user.avatar)
         onAuthenticate(user)
         navigate('/profile', { replace: true })
         return

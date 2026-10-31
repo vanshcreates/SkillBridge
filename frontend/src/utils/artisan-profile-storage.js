@@ -70,8 +70,8 @@ export function readProfileImageFile(file) {
   if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
     return Promise.reject(new Error('Choose a JPG, PNG, or WebP image.'))
   }
-  if (file.size > 2 * 1024 * 1024) {
-    return Promise.reject(new Error('Choose an image smaller than 2 MB.'))
+  if (file.size > 5 * 1024 * 1024) {
+    return Promise.reject(new Error('Choose an image smaller than 5 MB.'))
   }
 
   return new Promise((resolve, reject) => {

@@ -1,4 +1,5 @@
 import { User } from "../models/user.model.js";
+import { uploadOnCloudinary } from "../utils/cloudinary.js";
 
 const sanitizeString = (val) =>
   typeof val === "string" ? val.trim() : val != null ? String(val).trim() : "";
@@ -71,6 +72,27 @@ export const signup = async (req, res) => {
       ? accountType
       : "customer";
 
+    let avatarUrl = "";
+    const avatarFile =
+      req.file ||
+      req.files?.avatar?.[0] ||
+      req.files?.profileImage?.[0];
+
+    if (avatarFile) {
+      try {
+        const uploadRes = await uploadOnCloudinary(avatarFile.path, {
+          folder: "skillbridge/avatars",
+        });
+        if (uploadRes?.secure_url) {
+          avatarUrl = uploadRes.secure_url;
+        }
+      } catch (uploadErr) {
+        console.error("Cloudinary avatar upload on signup failed:", uploadErr);
+      }
+    } else if (req.body?.avatar && typeof req.body.avatar === "string") {
+      avatarUrl = req.body.avatar.trim();
+    }
+
     const user = await User.create({
       name: trimmedName,
       email: trimmedEmail,
@@ -86,6 +108,7 @@ export const signup = async (req, res) => {
       contactName: sanitizeString(contactName),
       industry: sanitizeString(industry),
       companyAddress: sanitizeString(companyAddress),
+      avatar: avatarUrl,
     });
 
     const token = user.generateAccessToken();

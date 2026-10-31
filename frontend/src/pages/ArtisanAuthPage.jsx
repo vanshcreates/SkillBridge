@@ -45,20 +45,21 @@ const ArtisanAuthPage = () => {
         if (password !== formData.get('confirmPassword')) {
           throw new Error('The passwords do not match.')
         }
-        const profileImage = await readProfileImageFile(
-          formData.get('profileImage'),
-        )
-        user = await saveRegisteredUser({
-          accountType: 'artisan',
-          name: formData.get('name'),
-          phone: formData.get('phone'),
-          email: formData.get('email'),
-          artCategory: formData.get('artCategory'),
-          experience: formData.get('experience'),
-          bio: formData.get('bio'),
-          password,
-        })
-        if (profileImage) saveProfileImage(user, profileImage)
+        const profileImageFile = formData.get('profileImage')
+        const signupPayload = new FormData()
+        signupPayload.append('accountType', 'artisan')
+        signupPayload.append('name', formData.get('name') || '')
+        signupPayload.append('phone', formData.get('phone') || '')
+        signupPayload.append('email', formData.get('email') || '')
+        signupPayload.append('artCategory', formData.get('artCategory') || '')
+        signupPayload.append('experience', formData.get('experience') || '')
+        signupPayload.append('bio', formData.get('bio') || '')
+        signupPayload.append('password', password)
+        if (profileImageFile && profileImageFile.size > 0) {
+          signupPayload.append('avatar', profileImageFile)
+        }
+        user = await saveRegisteredUser(signupPayload)
+        if (user?.avatar) saveProfileImage(user, user.avatar)
       } else {
         user = await authenticateUser(
           formData.get('email'),

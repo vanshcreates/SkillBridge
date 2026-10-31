@@ -1,5 +1,12 @@
-
 import mongoose from "mongoose";
+import dns from "dns";
+
+// Set reliable DNS servers to resolve MongoDB Atlas SRV records on Windows networks
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+} catch (dnsErr) {
+  // Ignore in environments where setting DNS servers is restricted
+}
 
 export const connectDB = async () => {
   try {

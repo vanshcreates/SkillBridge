@@ -1423,7 +1423,7 @@ const ArtisanProfilePage = () => {
                     </h3>
                     <p className="mt-1 text-sm leading-6 text-text-secondary">
                       Add a photo so people can recognize the artisan behind your work.
-                      JPG, PNG, or WebP, up to 2 MB.
+                      JPG, PNG, or WebP, up to 5 MB. Synced with your account.
                     </p>
                     <p className="mt-3 text-sm font-semibold text-primary">
                       Click your photo to view or change it.

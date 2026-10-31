@@ -122,9 +122,31 @@ export async function updateArtisanProfileApi(profileData) {
 }
 
 /**
+ * Upload artisan profile photo to Cloudinary
+ * @param {File} file
+ */
+export async function uploadArtisanProfilePhotoApi(file) {
+  const formData = new FormData()
+  formData.append('photo', file)
+
+  return await apiRequest('/artisan/profile/photo', {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+/**
+ * Remove artisan profile photo
+ */
+export async function removeArtisanProfilePhotoApi() {
+  return await apiRequest('/artisan/profile/photo', {
+    method: 'DELETE',
+  })
+}
+
+/**
  * Fetch payouts and payment history for completed orders
  */
 export async function getArtisanPaymentsApi() {
   return await apiRequest('/artisan/payments', { method: 'GET' })
 }
-

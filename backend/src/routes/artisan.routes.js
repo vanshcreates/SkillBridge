@@ -14,6 +14,8 @@ import {
   getArtisanCourseById,
   getArtisanProfile,
   updateArtisanProfile,
+  uploadArtisanProfilePhoto,
+  removeArtisanProfilePhoto,
   getArtisanPayments,
 } from "../controllers/artisan.controller.js";
 import { verifyJWT, requireArtisan } from "../middlewares/auth.middleware.js";
@@ -64,6 +66,8 @@ router.get("/courses/:id", getArtisanCourseById);
 // 6. Profile Info
 router.get("/profile", getArtisanProfile);
 router.put("/profile", upload.single("avatar"), updateArtisanProfile);
+router.post("/profile/photo", upload.single("photo"), uploadArtisanProfilePhoto);
+router.delete("/profile/photo", removeArtisanProfilePhoto);
 
 // 7. Payment History
 router.get("/payments", getArtisanPayments);
