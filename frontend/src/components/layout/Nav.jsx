@@ -109,7 +109,7 @@ const Nav = ({ variant = 'home', cartCount = 0 }) => {
         </Link>
         <Link
           className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          to="/#mission"
+          to="/about-us"
         >
           About Us
         </Link>
