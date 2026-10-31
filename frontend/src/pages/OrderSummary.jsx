@@ -83,7 +83,18 @@ const OrderSummary = () => {
           </p>
         </header>
 
-        {!isCustomer ? (
+        {!isCustomer && currentUser ? (
+          <section className="mt-8 rounded-2xl border border-border bg-surface px-5 py-10 text-center shadow-card sm:px-8">
+            <ShoppingBag aria-hidden="true" className="mx-auto h-9 w-9 text-secondary" />
+            <h2 className="mt-4 font-serif text-2xl font-semibold text-text-main">
+              Your bag is for customer accounts
+            </h2>
+            <p className="mx-auto mt-2 max-w-lg leading-7 text-text-secondary">
+              You’re signed in as {currentUser.accountType || 'a community member'}.
+              Log out of this account before signing in as a customer.
+            </p>
+          </section>
+        ) : !isCustomer ? (
           <section className="mt-8 rounded-2xl border border-border bg-surface px-5 py-10 text-center shadow-card sm:px-8">
             <ShoppingBag aria-hidden="true" className="mx-auto h-9 w-9 text-secondary" />
             <h2 className="mt-4 font-serif text-2xl font-semibold text-text-main">

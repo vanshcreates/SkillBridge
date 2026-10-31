@@ -3,6 +3,7 @@ import { BookOpenCheck, ShieldCheck } from 'lucide-react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import ExpertLayout from '../components/layout/ExpertLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
+import { getAccountHomePath } from '../utils/account-routing'
 import {
   authenticateUser,
   saveRegisteredUser,
@@ -22,8 +23,8 @@ const ExpertAuthPage = () => {
   const navigate = useNavigate()
   const isSignup = mode === 'signup'
 
-  if (currentUser?.accountType === 'expert') {
-    return <Navigate replace to="/expert/dashboard" />
+  if (currentUser) {
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   const handleSubmit = async (event) => {

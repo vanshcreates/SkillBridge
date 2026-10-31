@@ -3,6 +3,7 @@ import { BriefcaseBusiness, ShieldCheck } from 'lucide-react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
+import { getAccountHomePath } from '../utils/account-routing'
 import {
   authenticateUser,
   saveRegisteredUser,
@@ -22,8 +23,8 @@ const ArtisanAuthPage = () => {
   const navigate = useNavigate()
   const isSignup = mode === 'signup'
 
-  if (currentUser?.accountType === 'artisan') {
-    return <Navigate replace to="/artisan/profile" />
+  if (currentUser) {
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   const handleSubmit = async (event) => {
