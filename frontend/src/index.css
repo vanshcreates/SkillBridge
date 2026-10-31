@@ -1,0 +1,47 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Brand colors */
+  --color-primary: #4A0010;
+  --color-primary-hover: #2D000A;
+  --color-secondary: #A9572E;
+  --color-secondary-hover: #8F4526;
+
+  /* Backgrounds */
+  --color-background: #F8F5EF;
+  --color-surface: #FFFCF8;
+  --color-surface-muted: #F0E8DC;
+  --color-card: #FFFFFF;
+
+  /* Typography colors */
+  --color-text-main: #26372D;
+  --color-text-secondary: #514B41;
+  --color-text-muted: #71695D;
+
+  /* Borders and accents */
+  --color-border: #D9C9B3;
+  --color-border-strong: #BDA88C;
+  --color-accent: #E0B256;
+
+  /* Status */
+  --color-success: #347653;
+  --color-warning: #9A6418;
+  --color-error: #B54135;
+
+  /* Shadows */
+  --shadow-card: 0 4px 16px rgb(54 43 29 / 8%);
+  --shadow-card-hover: 0 8px 24px rgb(54 43 29 / 12%);
+
+  /* Fonts */
+  --font-sans: "DM Sans", sans-serif;
+  --font-serif: "Lora", serif;
+}
+.section-divider {
+  background-image:
+    url("https://static.vecteezy.com/system/resources/previews/022/862/116/non_2x/ethnic-pattern-kerchief-pattern-silk-neck-scarf-bandana-print-headscarf-floral-vintage-style-indonesian-batik-textile-fabric-tile-clothing-tribal-texture-blue-red-gold-yellow-vector.jpg"),
+    var(--hero-background);
+  background-size: auto 50px, cover;
+  background-repeat: repeat-x, no-repeat;
+  background-position: bottom left, center;
+}
