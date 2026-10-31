@@ -1,5 +1,6 @@
 import { ArrowLeft, LogOut, MapPin, UserRound } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
+import { getAccountHomePath } from '../utils/account-routing'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import OrderHistorySection from '../components/profile/OrderHistorySection'
 import ProfileImageControl from '../components/profile/ProfileImageControl'
@@ -48,6 +49,10 @@ const ProfilePage = () => {
         </main>
       </MarketplaceLayout>
     )
+  }
+
+  if (currentUser.accountType !== 'customer') {
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   const location = [currentUser.city, currentUser.state].filter(Boolean).join(', ')

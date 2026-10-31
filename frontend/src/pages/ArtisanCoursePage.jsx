@@ -11,6 +11,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import CourseVideo from '../components/training/CourseVideo'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
+import { getAccountHomePath } from '../utils/account-routing'
 import { getExpertCourses } from '../utils/training-storage'
 import { baseCourses } from '../data/training-courses'
 import { getArtisanCourseByIdApi } from '../services/artisan-api'
@@ -83,7 +84,7 @@ const ArtisanCoursePage = () => {
     return <Navigate replace to="/artisan/auth" />
   }
   if (currentUser.accountType !== 'artisan') {
-    return <Navigate replace to="/marketplace" />
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   const course = liveCourse || initialCourse

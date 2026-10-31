@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import IndustryLayout from '../components/layout/IndustryLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
+import { getAccountHomePath } from '../utils/account-routing'
 import {
   getIndustryOrderHistory,
   saveOrderHistoryEntry,
@@ -270,7 +271,7 @@ const IndustryDashboardPage = () => {
     return <Navigate replace to="/industry/auth" />
   }
   if (currentUser.accountType !== 'industry') {
-    return <Navigate replace to="/marketplace" />
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   // Handle Form Submit: Create and Assign Project
