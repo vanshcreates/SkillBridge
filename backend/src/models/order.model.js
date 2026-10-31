@@ -126,6 +126,37 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "paid", "failed", "refunded"],
       default: "pending",
+      index: true,
+    },
+    razorpayOrderId: {
+      type: String,
+      trim: true,
+      default: "",
+      index: true,
+    },
+    razorpayPaymentId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    razorpaySignature: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    paymentMethod: {
+      type: String,
+      trim: true,
+      default: "razorpay",
+    },
+    paymentError: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    paidAt: {
+      type: Date,
+      default: null,
     },
     orderStatus: {
       type: String,
@@ -218,6 +249,8 @@ orderSchema.methods.toArtisanOrder = function (artisanId) {
       note: addr.note || this.note || "",
     },
     paymentStatus: this.paymentStatus,
+    razorpayPaymentId: this.razorpayPaymentId || "",
+    paidAt: this.paidAt || null,
     specifications: this.specifications || "",
     deadline: this.deadline || "",
   };

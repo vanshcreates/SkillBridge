@@ -1,10 +1,24 @@
 import { useEffect, useState } from 'react'
-import { PackageCheck, RefreshCw, ShoppingBag, XCircle } from 'lucide-react'
+import {
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  PackageCheck,
+  RefreshCw,
+  ShoppingBag,
+  XCircle,
+} from 'lucide-react'
 import { Link } from 'react-router-dom'
 import {
   cancelCustomerOrderApi,
   getCustomerOrdersApi,
 } from '../../services/marketplace-api'
+import {
+  createPaymentOrderApi,
+  verifyPaymentApi,
+  reportPaymentFailureApi,
+} from '../../services/payment-api'
+import { loadRazorpayScript } from '../../utils/razorpay'
 
 const formatPrice = (price) => `₹${Number(price || 0).toLocaleString('en-IN')}`
 
@@ -22,6 +36,7 @@ const OrderHistorySection = ({ user, compact = false }) => {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [cancellingId, setCancellingId] = useState(null)
+  const [payingId, setPayingId] = useState(null)
 
   const loadOrders = async () => {
     setLoading(true)
@@ -60,6 +75,86 @@ const OrderHistorySection = ({ user, compact = false }) => {
       alert('Failed to cancel order. Please try again.')
     } finally {
       setCancellingId(null)
+    }
+  }
+
+  const handleRetryPayment = async (order) => {
+    const orderId = order.id || order.orderNumber || order._id
+    setPayingId(orderId)
+    try {
+      const isScriptLoaded = await loadRazorpayScript()
+      if (!isScriptLoaded || typeof window.Razorpay === 'undefined') {
+        alert('Could not load the Razorpay checkout interface. Please check your internet connection.')
+        setPayingId(null)
+        return
+      }
+
+      const response = await createPaymentOrderApi({ existingOrderId: orderId })
+      if (!response?.success || !response.razorpayOrderId) {
+        throw new Error(response?.message || 'Unable to initialize payment for this order.')
+      }
+
+      const { razorpayOrderId, amount, currency, keyId } = response
+      const options = {
+        key: keyId,
+        amount,
+        currency: currency || 'INR',
+        name: 'SkillBridge',
+        description: `Order #${order.orderNumber || orderId}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: order.shippingAddress?.fullName || user?.name || '',
+          email: order.shippingAddress?.email || user?.email || '',
+          contact: order.shippingAddress?.phone || user?.phone || '',
+        },
+        theme: {
+          color: '#8B4513',
+        },
+        handler: async function (paymentResponse) {
+          try {
+            const verifyRes = await verifyPaymentApi({
+              orderId,
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature,
+            })
+            if (verifyRes?.success) {
+              await loadOrders()
+            } else {
+              alert(verifyRes?.message || 'Payment verification failed.')
+            }
+          } catch (err) {
+            alert(err.message || 'Payment verification failed.')
+          } finally {
+            setPayingId(null)
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            reportPaymentFailureApi({
+              orderId,
+              razorpay_order_id: razorpayOrderId,
+              error: { description: 'Payment modal closed by user.' },
+            }).catch(() => {})
+            setPayingId(null)
+          },
+        },
+      }
+
+      const rzp = new window.Razorpay(options)
+      rzp.on('payment.failed', function (failRes) {
+        reportPaymentFailureApi({
+          orderId,
+          razorpay_order_id: razorpayOrderId,
+          error: failRes.error,
+        }).catch(() => {})
+        alert(`Payment failed: ${failRes.error?.description || 'Transaction declined.'}`)
+        setPayingId(null)
+      })
+      rzp.open()
+    } catch (err) {
+      alert(err.message || 'Unable to initiate payment.')
+      setPayingId(null)
     }
   }
 
@@ -117,6 +212,7 @@ const OrderHistorySection = ({ user, compact = false }) => {
             const status = order.status || order.orderStatus || 'Awaiting response'
             const total = order.totalAmount || order.total || 0
             const canCancel = ['Awaiting response', 'Processing'].includes(status)
+            const isPaid = order.paymentStatus === 'paid'
 
             return (
               <li
@@ -129,8 +225,13 @@ const OrderHistorySection = ({ user, compact = false }) => {
                       Order reference
                     </p>
                     <p className="mt-1 font-semibold text-text-main">{orderId}</p>
+                    {order.razorpayPaymentId && (
+                      <p className="mt-0.5 text-xs text-text-muted">
+                        Payment: <span className="font-mono text-text-secondary">{order.razorpayPaymentId}</span>
+                      </p>
+                    )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-3">
+                  <div className="flex flex-wrap items-center gap-2">
                     <time
                       className="text-sm text-text-secondary"
                       dateTime={order.createdAt}
@@ -143,6 +244,22 @@ const OrderHistorySection = ({ user, compact = false }) => {
                       <PackageCheck aria-hidden="true" className="h-4 w-4" />
                       {status}
                     </span>
+                    {isPaid ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-success">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Paid
+                      </span>
+                    ) : order.paymentStatus === 'failed' ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-error">
+                        <XCircle className="h-3.5 w-3.5" />
+                        Payment Failed
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-warning">
+                        <Clock className="h-3.5 w-3.5" />
+                        Payment Pending
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -170,8 +287,19 @@ const OrderHistorySection = ({ user, compact = false }) => {
                   <span className="text-sm font-bold text-text-main">{formatPrice(total)}</span>
                 </div>
 
-                {canCancel && (
-                  <div className="mt-3 border-t border-border pt-3">
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+                  {!isPaid && status !== 'Rejected' && (
+                    <button
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:opacity-50"
+                      disabled={payingId === orderId}
+                      onClick={() => handleRetryPayment(order)}
+                      type="button"
+                    >
+                      <CreditCard className="h-3.5 w-3.5" />
+                      {payingId === orderId ? 'Opening gateway…' : 'Pay Now'}
+                    </button>
+                  )}
+                  {canCancel && (
                     <button
                       className="inline-flex items-center gap-1.5 rounded-lg border border-error/40 px-3 py-1.5 text-xs font-semibold text-error hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error disabled:opacity-50"
                       disabled={cancellingId === orderId}
@@ -181,8 +309,8 @@ const OrderHistorySection = ({ user, compact = false }) => {
                       <XCircle className="h-3.5 w-3.5" />
                       {cancellingId === orderId ? 'Cancelling…' : 'Cancel order'}
                     </button>
-                  </div>
-                )}
+                  )}
+                </div>
               </li>
             )
           })}

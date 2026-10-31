@@ -406,6 +406,11 @@ export const getCustomerOrders = async (req, res) => {
       subtotal: o.subtotal,
       shipping: o.shipping,
       paymentStatus: o.paymentStatus,
+      razorpayOrderId: o.razorpayOrderId || "",
+      razorpayPaymentId: o.razorpayPaymentId || "",
+      paidAt: o.paidAt || null,
+      paymentMethod: o.paymentMethod || "razorpay",
+      paymentError: o.paymentError || "",
       source: o.source,
       items: o.items.map((item) => ({
         id: item._id?.toString() || "",
@@ -470,6 +475,11 @@ export const getCustomerOrderById = async (req, res) => {
         subtotal: order.subtotal,
         shipping: order.shipping,
         paymentStatus: order.paymentStatus,
+        razorpayOrderId: order.razorpayOrderId || "",
+        razorpayPaymentId: order.razorpayPaymentId || "",
+        paidAt: order.paidAt || null,
+        paymentMethod: order.paymentMethod || "razorpay",
+        paymentError: order.paymentError || "",
         source: order.source,
         items: order.items.map((item) => ({
           id: item._id?.toString() || "",

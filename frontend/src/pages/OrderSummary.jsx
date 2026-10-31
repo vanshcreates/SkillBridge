@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
+  CreditCard,
   ImageOff,
   Minus,
   Plus,
+  ShieldCheck,
   ShoppingBag,
   Trash2,
 } from 'lucide-react'
@@ -12,10 +14,15 @@ import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { useCart } from '../hooks/useCart'
 import {
-  createMarketplaceOrderApi,
   getCustomerAddressesApi,
   addCustomerAddressApi,
 } from '../services/marketplace-api'
+import {
+  createPaymentOrderApi,
+  verifyPaymentApi,
+  reportPaymentFailureApi,
+} from '../services/payment-api'
+import { loadRazorpayScript } from '../utils/razorpay'
 
 const formatPrice = (price) => `₹${price.toLocaleString('en-IN')}`
 const fieldClass =
@@ -97,6 +104,7 @@ const OrderSummary = () => {
     const formData = new FormData(event.currentTarget)
     const customer = Object.fromEntries(formData.entries())
     setIsSubmitting(true)
+
     try {
       const databaseProductIdPattern = /^[0-9a-f]{24}$/i
       const hasDatabaseProducts = items.every((item) =>
@@ -108,31 +116,135 @@ const OrderSummary = () => {
         )
       }
 
-      const response = await createMarketplaceOrderApi({
+      // 1. Ensure Razorpay Checkout SDK is dynamically loaded
+      const isScriptLoaded = await loadRazorpayScript()
+      if (!isScriptLoaded || typeof window.Razorpay === 'undefined') {
+        throw new Error(
+          'Could not load the Razorpay checkout interface. Please check your internet connection.',
+        )
+      }
+
+      // 2. Initialize payment order on backend (calculates amounts from database)
+      const orderPayload = {
         items: items.map((item) => ({
           productId: item.id || item._id,
           quantity: item.quantity,
         })),
         shippingAddress: customer,
         note: customer.note,
-      })
-      if (!response?.success || !response.order) {
-        throw new Error(response?.message || 'Unable to place your order.')
       }
 
-      const order = {
-        ...response.order,
-        customer: response.order.customer || customer,
-        total: response.order.total ?? response.order.totalAmount,
+      const response = await createPaymentOrderApi(orderPayload)
+      if (!response?.success || !response.razorpayOrderId) {
+        throw new Error(response?.message || 'Unable to initialize payment order.')
       }
-      // Persist address to backend for customer profile if not already saved
-      addCustomerAddressApi(customer).catch(() => {})
-      clearCart()
-      navigate('/marketplace/order-confirmation', { state: { order } })
+
+      const {
+        razorpayOrderId,
+        amount,
+        currency,
+        keyId,
+        orderId,
+        orderNumber,
+      } = response
+
+      // 3. Configure and trigger Razorpay Checkout popup in Test Mode
+      const options = {
+        key: keyId,
+        amount,
+        currency: currency || 'INR',
+        name: 'SkillBridge',
+        description: `Order #${orderNumber || orderId}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: customer.fullName || currentUser?.name || '',
+          email: customer.email || currentUser?.email || '',
+          contact: customer.phone || currentUser?.phone || '',
+        },
+        notes: {
+          orderId,
+          orderNumber,
+        },
+        theme: {
+          color: '#8B4513',
+        },
+        handler: async function (paymentResponse) {
+          try {
+            setIsSubmitting(true)
+            // 4. Verify payment signature on backend using HMAC SHA256
+            const verifyResponse = await verifyPaymentApi({
+              orderId,
+              razorpay_order_id: paymentResponse.razorpay_order_id,
+              razorpay_payment_id: paymentResponse.razorpay_payment_id,
+              razorpay_signature: paymentResponse.razorpay_signature,
+            })
+
+            if (verifyResponse?.success && verifyResponse.order) {
+              // Persist address to profile for future convenience
+              addCustomerAddressApi(customer).catch(() => {})
+              clearCart()
+              navigate('/marketplace/order-confirmation', {
+                state: {
+                  order: {
+                    ...verifyResponse.order,
+                    customer: verifyResponse.order.customer || customer,
+                    total:
+                      verifyResponse.order.total ??
+                      verifyResponse.order.totalAmount,
+                  },
+                  paymentSuccess: true,
+                  paymentId: paymentResponse.razorpay_payment_id,
+                },
+              })
+            } else {
+              setFormError(
+                verifyResponse?.message ||
+                  'Payment was received, but server verification failed. Please contact support.',
+              )
+              setIsSubmitting(false)
+            }
+          } catch (err) {
+            console.error('Payment verification error:', err)
+            setFormError(
+              err.message ||
+                'Payment verification failed. Please check your order history.',
+            )
+            setIsSubmitting(false)
+          }
+        },
+        modal: {
+          ondismiss: function () {
+            reportPaymentFailureApi({
+              orderId,
+              razorpay_order_id: razorpayOrderId,
+              error: { description: 'Payment modal closed by user.' },
+            }).catch(() => {})
+            setFormError(
+              'Payment was cancelled. You can retry whenever you are ready.',
+            )
+            setIsSubmitting(false)
+          },
+        },
+      }
+
+      const razorpayInstance = new window.Razorpay(options)
+
+      razorpayInstance.on('payment.failed', function (failureData) {
+        reportPaymentFailureApi({
+          orderId,
+          razorpay_order_id: razorpayOrderId,
+          error: failureData.error,
+        }).catch(() => {})
+        setFormError(
+          `Payment failed: ${failureData.error?.description || failureData.error?.reason || 'Transaction was declined.'}`,
+        )
+        setIsSubmitting(false)
+      })
+
+      razorpayInstance.open()
     } catch (error) {
-      console.error('Unable to save the order request.', error)
+      console.error('Checkout error:', error)
       setFormError(error.message)
-    } finally {
       setIsSubmitting(false)
     }
   }
@@ -175,7 +287,7 @@ const OrderSummary = () => {
               Log in to view your bag
             </h2>
             <p className="mx-auto mt-2 max-w-lg leading-7 text-text-secondary">
-              Sign in with a customer account to manage your bag and send an order request.
+              Sign in with a customer account to manage your bag and place your order.
             </p>
             <button
               className="mt-6 inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-5 py-2.5 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
@@ -290,7 +402,7 @@ const OrderSummary = () => {
                   Delivery details
                 </h2>
                 <p className="mt-1 text-sm text-text-muted">
-                  Share where the artisan can send your order request.
+                  Share where the artisan can send your handcrafted order.
                 </p>
                 <p className="mt-3 rounded-lg border border-border bg-background px-3.5 py-2.5 text-xs leading-5 text-text-muted">
                   {savedAddress
@@ -385,7 +497,7 @@ const OrderSummary = () => {
                     <textarea
                       className={fieldClass}
                       name="note"
-                      placeholder="Any helpful delivery or product notes"
+                      placeholder="Any helpful delivery or customization notes"
                       rows="2"
                     />
                   </label>
@@ -408,12 +520,12 @@ const OrderSummary = () => {
                 </div>
                 {subtotal > 0 && subtotal < 1500 && (
                   <p className="text-xs leading-5 text-text-muted">
-                    Free delivery on sample orders over ₹1,500.
+                    Free delivery on orders over ₹1,500.
                   </p>
                 )}
                 <div className="flex justify-between gap-4 border-t border-border pt-4 text-base font-bold text-text-main">
-                  <span>Estimated total</span>
-                  <span>{formatPrice(subtotal + shipping)}</span>
+                  <span>Total payable</span>
+                  <span className="text-primary">{formatPrice(subtotal + shipping)}</span>
                 </div>
               </div>
 
@@ -425,17 +537,24 @@ const OrderSummary = () => {
                   {formError}
                 </p>
               )}
-              <p className="mt-5 rounded-lg border border-border bg-background p-3 text-xs leading-5 text-text-muted">
-                Prices and delivery are confirmed when your request is placed.
-                No payment is taken at this stage.
-              </p>
+
+              <div className="mt-5 rounded-lg border border-border bg-background p-3.5 text-xs text-text-muted space-y-1.5">
+                <div className="flex items-center gap-2 font-medium text-text-main">
+                  <ShieldCheck aria-hidden="true" className="h-4 w-4 text-success" />
+                  <span>Razorpay Test Mode Secure Payment</span>
+                </div>
+                <p className="leading-5">
+                  Complete test payments via UPI, Cards, NetBanking, and Wallets using official Razorpay test credentials.
+                </p>
+              </div>
+
               <button
-                className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 disabled:opacity-50"
                 disabled={!addressLoadComplete || isSubmitting}
                 type="submit"
               >
-                <ShoppingBag aria-hidden="true" className="h-4 w-4" />
-                {isSubmitting ? 'Sending request…' : 'Send order request'}
+                <CreditCard aria-hidden="true" className="h-4 w-4" />
+                {isSubmitting ? 'Opening payment gateway…' : `Pay ${formatPrice(subtotal + shipping)} now`}
               </button>
             </aside>
           </form>
@@ -446,7 +565,7 @@ const OrderSummary = () => {
               Your bag is empty
             </h2>
             <p className="mt-2 text-sm text-text-secondary">
-              Find something handmade to start an order request.
+              Find something handmade to start your order.
             </p>
             <Link
               className="mt-6 inline-flex rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary-hover"

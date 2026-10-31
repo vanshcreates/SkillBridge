@@ -7,6 +7,7 @@ import expertRoutes from "./routes/expert.routes.js";
 import marketplaceRoutes from "./routes/marketplace.routes.js";
 import industryRoutes from "./routes/industry.routes.js";
 import customerRoutes from "./routes/customer.routes.js";
+import paymentRoutes from "./routes/payment.routes.js";
 
 const app = express();
 
@@ -71,6 +72,9 @@ app.use("/api/v1/marketplace", marketplaceRoutes);
 
 app.use("/api/customer", customerRoutes);
 app.use("/api/v1/customer", customerRoutes);
+
+app.use("/api/payment", paymentRoutes);
+app.use("/api/v1/payment", paymentRoutes);
 
 // 404 handler
 app.use((req, res) => {

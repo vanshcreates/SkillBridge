@@ -1,4 +1,4 @@
-import { Check, ClipboardList, MapPin, PackageCheck } from 'lucide-react'
+import { Check, CheckCircle2, ClipboardList, MapPin, PackageCheck, ShieldCheck } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 
@@ -7,6 +7,8 @@ const formatPrice = (price) => `₹${price.toLocaleString('en-IN')}`
 const OrderConfirmation = () => {
   const location = useLocation()
   const order = location.state?.order
+  const paymentSuccess = location.state?.paymentSuccess || order?.paymentStatus === 'paid'
+  const paymentId = location.state?.paymentId || order?.razorpayPaymentId
 
   return (
     <MarketplaceLayout>
@@ -18,26 +20,42 @@ const OrderConfirmation = () => {
                 <Check aria-hidden="true" className="h-7 w-7" />
               </span>
               <p className="mt-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/75">
-                Request received
+                {paymentSuccess ? 'Order confirmed & paid' : 'Request received'}
               </p>
               <h1 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">
-                Thank you, {order.customer.fullName}
+                Thank you, {order.customer?.fullName || 'Valued Customer'}
               </h1>
-              <p className="mt-3 text-sm text-white/80">
-                Your order request has been saved. The artisan will review it shortly.
+              <p className="mt-3 text-sm text-white/85">
+                {paymentSuccess
+                  ? 'Your test payment via Razorpay has been verified and your order is being processed.'
+                  : 'Your order request has been saved. The artisan will review it shortly.'}
               </p>
             </div>
 
             <div className="p-6 sm:p-10">
               <div className="flex flex-col justify-between gap-3 border-b border-border pb-5 sm:flex-row sm:items-center">
                 <div>
-                  <p className="text-sm text-text-muted">Request reference</p>
-                  <p className="mt-1 font-semibold text-text-main">{order.id}</p>
+                  <p className="text-sm text-text-muted">Order reference</p>
+                  <p className="mt-1 font-semibold text-text-main">
+                    {order.orderNumber || order.id || order._id}
+                  </p>
+                  {paymentId && (
+                    <p className="mt-1 text-xs text-text-muted">
+                      Razorpay Payment ID: <span className="font-mono text-text-secondary">{paymentId}</span>
+                    </p>
+                  )}
                 </div>
-                <span className="inline-flex w-fit items-center gap-2 rounded-full bg-surface-muted px-3 py-1.5 text-xs font-semibold text-text-secondary">
-                  <ClipboardList aria-hidden="true" className="h-4 w-4" />
-                  Payment pending
-                </span>
+                {paymentSuccess ? (
+                  <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-green-50 px-3.5 py-1.5 text-xs font-semibold text-success">
+                    <CheckCircle2 aria-hidden="true" className="h-4 w-4" />
+                    Paid via Razorpay (Test)
+                  </span>
+                ) : (
+                  <span className="inline-flex w-fit items-center gap-2 rounded-full bg-surface-muted px-3 py-1.5 text-xs font-semibold text-text-secondary">
+                    <ClipboardList aria-hidden="true" className="h-4 w-4" />
+                    Payment pending
+                  </span>
+                )}
               </div>
 
               <div className="mt-6">
@@ -45,15 +63,15 @@ const OrderConfirmation = () => {
                   Order items
                 </h2>
                 <ul className="mt-4 divide-y divide-border">
-                  {order.items.map((item) => (
+                  {(order.items || []).map((item) => (
                     <li
                       className="flex items-center justify-between gap-4 py-3"
-                      key={item.name}
+                      key={item.name || item.title || item.id}
                     >
                       <div>
-                        <p className="font-medium text-text-main">{item.name}</p>
+                        <p className="font-medium text-text-main">{item.name || item.title}</p>
                         <p className="mt-1 text-sm text-text-muted">
-                          Qty {item.quantity} · {item.artisan}
+                          Qty {item.quantity} · {item.artisanName || item.artisan || 'Artisan'}
                         </p>
                       </div>
                       <p className="shrink-0 font-semibold text-text-main">
@@ -69,8 +87,10 @@ const OrderConfirmation = () => {
                 <div className="text-sm leading-6 text-text-secondary">
                   <p className="font-semibold text-text-main">Delivery address</p>
                   <p>
-                    {order.customer.address}, {order.customer.city},{' '}
-                    {order.customer.state} {order.customer.postalCode}
+                    {order.customer?.address || order.shippingAddress?.address},{' '}
+                    {order.customer?.city || order.shippingAddress?.city},{' '}
+                    {order.customer?.state || order.shippingAddress?.state}{' '}
+                    {order.customer?.postalCode || order.shippingAddress?.postalCode}
                   </p>
                 </div>
               </div>
@@ -78,21 +98,27 @@ const OrderConfirmation = () => {
               <div className="mt-6 space-y-2 border-t border-border pt-5 text-sm">
                 <div className="flex justify-between text-text-secondary">
                   <span>Subtotal</span>
-                  <span>{formatPrice(order.subtotal)}</span>
+                  <span>{formatPrice(order.subtotal ?? 0)}</span>
                 </div>
                 <div className="flex justify-between text-text-secondary">
                   <span>Delivery</span>
                   <span>{order.shipping ? formatPrice(order.shipping) : 'Free'}</span>
                 </div>
                 <div className="flex justify-between pt-2 text-base font-bold text-text-main">
-                  <span>Estimated total</span>
-                  <span>{formatPrice(order.total)}</span>
+                  <span>Total paid</span>
+                  <span className="text-primary">{formatPrice(order.total ?? order.totalAmount ?? 0)}</span>
                 </div>
               </div>
 
-              <p className="mt-6 rounded-lg border border-border bg-background p-4 text-sm leading-6 text-text-muted">
-                Your request is stored in SkillBridge. Payment is not processed at this stage.
-              </p>
+              <div className="mt-6 rounded-xl border border-border bg-background p-4 text-sm leading-6 text-text-muted flex items-start gap-3">
+                <ShieldCheck className="h-5 w-5 shrink-0 text-success mt-0.5" />
+                <div>
+                  <p className="font-medium text-text-main">Secure Payment Completed</p>
+                  <p className="mt-0.5 text-xs text-text-muted">
+                    This order was processed securely using Razorpay in Test Mode. The artisan has been notified to begin preparing your handcrafted order.
+                  </p>
+                </div>
+              </div>
 
               <Link
                 className="mt-6 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
@@ -106,10 +132,10 @@ const OrderConfirmation = () => {
         ) : (
           <section className="rounded-2xl border border-border bg-surface px-6 py-16 text-center">
             <h1 className="font-serif text-2xl font-semibold text-text-main">
-              No recent order request
+              No recent order found
             </h1>
             <p className="mt-2 text-sm text-text-secondary">
-              Add products to your bag and submit an order request to see the summary.
+              Add products to your bag and complete checkout to see your order confirmation.
             </p>
             <Link
               className="mt-6 inline-flex rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary-hover"
