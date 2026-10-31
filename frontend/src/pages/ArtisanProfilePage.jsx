@@ -38,6 +38,18 @@ import {
 } from '../utils/order-storage'
 import { getExpertCourses } from '../utils/training-storage'
 import { baseCourses } from '../data/training-courses'
+import {
+  getArtisanDashboardApi,
+  getArtisanShopApi,
+  saveArtisanShopApi,
+  getArtisanListingsApi,
+  createArtisanListingApi,
+  publishArtisanListingApi,
+  getArtisanOrdersApi,
+  updateArtisanOrderStatusApi,
+  getArtisanCoursesApi,
+  getArtisanPaymentsApi,
+} from '../services/artisan-api'
 
 const sections = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -142,6 +154,7 @@ const ArtisanProfilePage = () => {
   const [ordersError, setOrdersError] = useState('')
   const [orderNotice, setOrderNotice] = useState('')
   const [orderNoticeIsError, setOrderNoticeIsError] = useState(false)
+  const [paymentsData, setPaymentsData] = useState(null)
   const [savedListingState, setSavedListingState] = useState(() =>
     currentUser
       ? loadArtisanListingsState(currentUser)
@@ -153,6 +166,54 @@ const ArtisanProfilePage = () => {
   )
   const { shop, error: shopStorageError } = savedShopState
   const shopName = shop?.name
+
+  useEffect(() => {
+    let isMounted = true
+
+    getArtisanShopApi()
+      .then((res) => {
+        if (isMounted && res?.shop) {
+          setSavedShopState({ shop: res.shop, error: '' })
+        }
+      })
+      .catch((e) => console.warn('Artisan shop API:', e.message))
+
+    getArtisanListingsApi()
+      .then((res) => {
+        if (isMounted && Array.isArray(res?.listings)) {
+          setSavedListingState({ listings: res.listings, error: '' })
+        }
+      })
+      .catch((e) => console.warn('Artisan listings API:', e.message))
+
+    getArtisanOrdersApi()
+      .then((res) => {
+        if (isMounted && Array.isArray(res?.orders)) {
+          setArtisanOrders(res.orders)
+        }
+      })
+      .catch((e) => console.warn('Artisan orders API:', e.message))
+
+    getArtisanCoursesApi()
+      .then((res) => {
+        if (isMounted && Array.isArray(res?.courses) && res.courses.length > 0) {
+          setPublishedCourseState({ courses: res.courses, error: '' })
+        }
+      })
+      .catch((e) => console.warn('Artisan courses API:', e.message))
+
+    getArtisanPaymentsApi()
+      .then((res) => {
+        if (isMounted && res?.summary) {
+          setPaymentsData(res)
+        }
+      })
+      .catch((e) => console.warn('Artisan payments API:', e.message))
+
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser])
 
   useEffect(() => {
     const refreshOrders = () => {
@@ -215,19 +276,31 @@ const ArtisanProfilePage = () => {
     return matchesSearch && matchesCategory
   })
 
-  const handleSaveShop = (event) => {
+  const handleSaveShop = async (event) => {
     event.preventDefault()
     setShopNotice('')
     setShopError(false)
     const formData = new FormData(event.currentTarget)
+    const payload = {
+      name: formData.get('shopName'),
+      category: formData.get('shopCategory'),
+      location: formData.get('shopLocation'),
+      description: formData.get('shopDescription'),
+    }
 
     try {
-      const savedShop = saveArtisanShop(currentUser, {
-        name: formData.get('shopName'),
-        category: formData.get('shopCategory'),
-        location: formData.get('shopLocation'),
-        description: formData.get('shopDescription'),
-      })
+      let savedShop
+      try {
+        const res = await saveArtisanShopApi(payload)
+        savedShop = res?.shop
+      } catch (apiErr) {
+        console.warn('Backend shop save error, falling back:', apiErr.message)
+      }
+      if (!savedShop) {
+        savedShop = saveArtisanShop(currentUser, payload)
+      } else {
+        saveArtisanShop(currentUser, payload)
+      }
       setSavedShopState({ shop: savedShop, error: '' })
       setShopFormOpen(false)
       setShopNotice('Your shop details have been saved.')
@@ -237,17 +310,28 @@ const ArtisanProfilePage = () => {
     }
   }
 
-  const handleOrderStatusChange = (orderId, status) => {
+  const handleOrderStatusChange = async (orderId, status) => {
     setOrderNotice('')
     setOrderNoticeIsError(false)
     try {
-      const updatedOrder = updateArtisanOrderStatus(
-        { ...currentUser, shopName },
-        orderId,
-        status,
-      )
+      let updatedOrder
+      try {
+        const res = await updateArtisanOrderStatusApi(orderId, status)
+        updatedOrder = res?.order
+      } catch (apiErr) {
+        console.warn('Backend order status update error:', apiErr.message)
+      }
+      if (!updatedOrder) {
+        updatedOrder = updateArtisanOrderStatus(
+          { ...currentUser, shopName },
+          orderId,
+          status,
+        )
+      }
       setArtisanOrders((orders) =>
-        orders.map((order) => (order.id === orderId ? updatedOrder : order)),
+        orders.map((order) =>
+          order.id === orderId || order._id === orderId ? (updatedOrder || { ...order, status }) : order
+        ),
       )
       setOrderNotice(`Order ${orderId} marked ${status.toLowerCase()}.`)
     } catch (error) {
@@ -257,7 +341,7 @@ const ArtisanProfilePage = () => {
     }
   }
 
-  const handleCreateListing = (event) => {
+  const handleCreateListing = async (event) => {
     event.preventDefault()
     setListingNotice('')
     setListingError(false)
@@ -266,21 +350,34 @@ const ArtisanProfilePage = () => {
       setListingError(true)
       return
     }
-    const formData = new FormData(event.currentTarget)
+    const formElement = event.currentTarget
+    const formData = new FormData(formElement)
+    const payload = {
+      title: formData.get('title'),
+      category: formData.get('category'),
+      description: formData.get('description'),
+      price: formData.get('price'),
+      stock: formData.get('stock'),
+      materialCost: formData.get('materialCost'),
+      laborHours: formData.get('laborHours'),
+      hourlyRate: formData.get('hourlyRate'),
+      packagingCost: formData.get('packagingCost'),
+      image: formData.get('image'),
+    }
 
     try {
-      const listing = saveArtisanListing(currentUser, {
-        title: formData.get('title'),
-        category: formData.get('category'),
-        description: formData.get('description'),
-        price: formData.get('price'),
-        stock: formData.get('stock'),
-        materialCost: formData.get('materialCost'),
-        laborHours: formData.get('laborHours'),
-        hourlyRate: formData.get('hourlyRate'),
-        packagingCost: formData.get('packagingCost'),
-        image: formData.get('image'),
-      })
+      let listing
+      try {
+        const res = await createArtisanListingApi(payload)
+        listing = res?.listing
+      } catch (apiErr) {
+        console.warn('Backend listing create error, using local fallback:', apiErr.message)
+      }
+      if (!listing) {
+        listing = saveArtisanListing(currentUser, payload)
+      } else {
+        saveArtisanListing(currentUser, payload)
+      }
       setSavedListingState((existingState) => ({
         listings: [listing, ...existingState.listings],
         error: '',
@@ -294,21 +391,32 @@ const ArtisanProfilePage = () => {
       })
       setListingPrice('')
       setListingNotice('Your product was saved as a draft. Publish it when it is ready for buyers.')
-      event.currentTarget.reset()
+      formElement.reset()
     } catch (error) {
       setListingNotice(error.message || 'Unable to save this listing.')
       setListingError(true)
     }
   }
 
-  const handlePublishListing = (listingId) => {
+  const handlePublishListing = async (listingId) => {
     setListingNotice('')
     setListingError(false)
     try {
-      const updatedListing = publishArtisanListing(currentUser, listingId)
+      let updatedListing
+      try {
+        const res = await publishArtisanListingApi(listingId)
+        updatedListing = res?.listing
+      } catch (apiErr) {
+        console.warn('Backend publish error:', apiErr.message)
+      }
+      if (!updatedListing) {
+        updatedListing = publishArtisanListing(currentUser, listingId)
+      } else {
+        try { publishArtisanListing(currentUser, listingId) } catch {}
+      }
       setSavedListingState((state) => ({
         listings: state.listings.map((listing) =>
-          listing.id === listingId ? updatedListing : listing,
+          (listing.id === listingId || listing._id === listingId) ? updatedListing : listing,
         ),
         error: '',
       }))
@@ -1325,15 +1433,77 @@ const ArtisanProfilePage = () => {
           )}
 
           {activeSection === 'payments' && (
-            <div className="rounded-xl border border-dashed border-border-strong bg-background px-5 py-10 text-center">
-              <WalletCards aria-hidden="true" className="mx-auto h-9 w-9 text-secondary" />
-              <h3 className="mt-3 font-serif text-xl font-semibold text-text-main">
-                Your payouts will show here
-              </h3>
-              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-text-secondary">
-                Payment records and artisan earnings will be listed here when
-                checkout and payouts are connected. This demo does not process payments.
-              </p>
+            <div>
+              <div className="grid gap-4 sm:grid-cols-3 mb-6">
+                <div className="rounded-xl border border-border bg-background p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-secondary">Total Earnings</p>
+                  <p className="mt-2 font-serif text-2xl font-bold text-success">
+                    ₹{(paymentsData?.summary?.totalEarnings ?? 0).toLocaleString('en-IN')}
+                  </p>
+                  <p className="mt-1 text-xs text-text-muted">From fulfilled customer orders</p>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-secondary">Pending Payouts</p>
+                  <p className="mt-2 font-serif text-2xl font-bold text-secondary">
+                    ₹{(paymentsData?.summary?.pendingPayout ?? 0).toLocaleString('en-IN')}
+                  </p>
+                  <p className="mt-1 text-xs text-text-muted">In processing or in transit</p>
+                </div>
+                <div className="rounded-xl border border-border bg-background p-5">
+                  <p className="text-xs font-semibold uppercase tracking-[0.1em] text-text-secondary">Orders Settled</p>
+                  <p className="mt-2 font-serif text-2xl font-bold text-text-main">
+                    {paymentsData?.summary?.payoutsCount ?? 0}
+                  </p>
+                  <p className="mt-1 text-xs text-text-muted">Completed order settlements</p>
+                </div>
+              </div>
+
+              {paymentsData?.payouts?.length ? (
+                <div className="overflow-x-auto rounded-xl border border-border">
+                  <table className="w-full min-w-[36rem] text-left text-sm">
+                    <thead className="bg-background text-text-muted">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold">Order</th>
+                        <th className="px-4 py-3 font-semibold">Date</th>
+                        <th className="px-4 py-3 font-semibold">Customer</th>
+                        <th className="px-4 py-3 font-semibold">Items</th>
+                        <th className="px-4 py-3 font-semibold">Amount</th>
+                        <th className="px-4 py-3 font-semibold">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                      {paymentsData.payouts.map((p) => (
+                        <tr key={p.orderId}>
+                          <td className="px-4 py-3 font-medium text-text-main">{p.orderId}</td>
+                          <td className="px-4 py-3 text-text-secondary">
+                            {new Date(p.date).toLocaleDateString()}
+                          </td>
+                          <td className="px-4 py-3 text-text-secondary">{p.customerName}</td>
+                          <td className="px-4 py-3 text-text-secondary">{p.itemsCount}</td>
+                          <td className="px-4 py-3 font-semibold text-text-main">
+                            ₹{p.amount.toLocaleString('en-IN')}
+                          </td>
+                          <td className="px-4 py-3">
+                            <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-success">
+                              {p.paymentStatus}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-border-strong bg-background px-5 py-10 text-center">
+                  <WalletCards aria-hidden="true" className="mx-auto h-9 w-9 text-secondary" />
+                  <h3 className="mt-3 font-serif text-xl font-semibold text-text-main">
+                    Your payouts will show here
+                  </h3>
+                  <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-text-secondary">
+                    As customers place orders and you mark them as completed, your earnings and payout breakdown will automatically appear here.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </section>

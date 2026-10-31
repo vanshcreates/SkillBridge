@@ -31,7 +31,7 @@ export function clearAuthToken() {
   }
 }
 
-async function apiRequest(endpoint, options = {}) {
+export async function apiRequest(endpoint, options = {}) {
   const token = getAuthToken()
   const headers = {
     'Content-Type': 'application/json',

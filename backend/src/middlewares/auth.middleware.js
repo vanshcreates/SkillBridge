@@ -23,7 +23,7 @@ export const verifyJWT = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "Unauthorized: No authentication token provided",
+        message: "Unauthorized: No authentication token provided. Please log in.",
       });
     }
 
@@ -61,3 +61,35 @@ export const verifyJWT = async (req, res, next) => {
     });
   }
 };
+
+/**
+ * Middleware factory to restrict access to specific user roles
+ * @param  {...string} allowedRoles - E.g. "customer", "artisan", "expert", "industry"
+ */
+export const requireRoles = (...allowedRoles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized: Please log in first.",
+      });
+    }
+
+    const userRole = req.user.accountType || "customer";
+
+    if (!allowedRoles.includes(userRole)) {
+      return res.status(403).json({
+        success: false,
+        message: `Access denied. This section is restricted to ${allowedRoles.join(" or ")} accounts only. Your account type is "${userRole}".`,
+      });
+    }
+
+    next();
+  };
+};
+
+// Role-specific convenience guards
+export const requireCustomer = requireRoles("customer");
+export const requireArtisan = requireRoles("artisan");
+export const requireExpert = requireRoles("expert");
+export const requireIndustry = requireRoles("industry");
