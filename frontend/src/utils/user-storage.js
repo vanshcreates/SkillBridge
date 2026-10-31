@@ -329,7 +329,7 @@ export async function authenticateUser(email, password, accountType) {
     }
   } catch (apiError) {
     // If it's an authentication error (401, 400), throw immediately
-    if (apiError.status === 400 || apiError.status === 401) {
+    if (apiError.status >= 400 && apiError.status < 500) {
       throw apiError
     }
 
@@ -438,7 +438,7 @@ export async function saveRegisteredUser(profile) {
     }
   } catch (apiError) {
     // If server returned a business logic error (e.g. email already exists), throw it
-    if (apiError.status === 409 || apiError.status === 400) {
+    if (apiError.status >= 400 && apiError.status < 500) {
       throw apiError
     }
 

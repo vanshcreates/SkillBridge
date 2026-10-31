@@ -1,5 +1,8 @@
 import { User } from "../models/user.model.js";
 
+const sanitizeString = (val) =>
+  typeof val === "string" ? val.trim() : val != null ? String(val).trim() : "";
+
 const getCookieOptions = () => ({
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -27,24 +30,34 @@ export const signup = async (req, res) => {
       contactName,
       industry,
       companyAddress,
-    } = req.body;
+    } = req.body || {};
 
-    if (!name || !email || !password) {
+    const trimmedName = sanitizeString(name);
+    const trimmedEmail = sanitizeString(email).toLowerCase();
+
+    if (!trimmedName || !trimmedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Full name, email, and password are required.",
       });
     }
 
-    if (password.length < 6) {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(trimmedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address.",
+      });
+    }
+
+    if (typeof password !== "string" || password.length < 6) {
       return res.status(400).json({
         success: false,
         message: "Password must be at least 6 characters long.",
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const existingUser = await User.findOne({ email: normalizedEmail });
+    const existingUser = await User.findOne({ email: trimmedEmail });
 
     if (existingUser) {
       return res.status(409).json({
@@ -59,20 +72,20 @@ export const signup = async (req, res) => {
       : "customer";
 
     const user = await User.create({
-      name: name.trim(),
-      email: normalizedEmail,
+      name: trimmedName,
+      email: trimmedEmail,
       password,
       accountType: normalizedRole,
-      phone: phone?.trim() || "",
-      city: city?.trim() || "",
-      state: state?.trim() || "",
-      bio: bio?.trim() || "",
-      artCategory: artCategory?.trim() || "",
-      experience: experience?.trim() || "",
-      expertise: expertise?.trim() || "",
-      contactName: contactName?.trim() || "",
-      industry: industry?.trim() || "",
-      companyAddress: companyAddress?.trim() || "",
+      phone: sanitizeString(phone),
+      city: sanitizeString(city),
+      state: sanitizeString(state),
+      bio: sanitizeString(bio),
+      artCategory: sanitizeString(artCategory),
+      experience: sanitizeString(experience),
+      expertise: sanitizeString(expertise),
+      contactName: sanitizeString(contactName),
+      industry: sanitizeString(industry),
+      companyAddress: sanitizeString(companyAddress),
     });
 
     const token = user.generateAccessToken();
@@ -86,6 +99,22 @@ export const signup = async (req, res) => {
     });
   } catch (error) {
     console.error("Signup error:", error);
+
+    if (error.code === 11000) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists. Please log in instead.",
+      });
+    }
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors || {}).map((e) => e.message);
+      return res.status(400).json({
+        success: false,
+        message: messages.join(", ") || "Validation failed.",
+      });
+    }
+
     return res.status(500).json({
       success: false,
       message: error.message || "Failed to create account. Please try again.",
@@ -98,17 +127,18 @@ export const signup = async (req, res) => {
 // @access  Public
 export const login = async (req, res) => {
   try {
-    const { email, password, accountType } = req.body;
+    const { email, password, accountType } = req.body || {};
 
-    if (!email || !password) {
+    const trimmedEmail = sanitizeString(email).toLowerCase();
+
+    if (!trimmedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Both email and password are required.",
       });
     }
 
-    const normalizedEmail = email.trim().toLowerCase();
-    const user = await User.findOne({ email: normalizedEmail });
+    const user = await User.findOne({ email: trimmedEmail });
 
     if (!user) {
       return res.status(401).json({
@@ -175,7 +205,7 @@ export const verify = async (req, res) => {
 // @access  Public / Private
 export const verifyAccount = async (req, res) => {
   try {
-    const { email, token } = req.body;
+    const { email, token } = req.body || {};
 
     if (!email && !token) {
       return res.status(400).json({
@@ -188,7 +218,7 @@ export const verifyAccount = async (req, res) => {
     if (token) {
       user = await User.findOne({ verificationToken: token });
     } else if (email) {
-      user = await User.findOne({ email: email.trim().toLowerCase() });
+      user = await User.findOne({ email: sanitizeString(email).toLowerCase() });
     }
 
     if (!user) {
@@ -252,4 +282,3 @@ export const getArtisans = async (req, res) => {
     });
   }
 };
-

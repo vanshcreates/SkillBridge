@@ -19,7 +19,6 @@ const userSchema = new mongoose.Schema(
         /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
         "Please provide a valid email address",
       ],
-      index: true,
     },
     password: {
       type: String,
@@ -158,4 +157,3 @@ userSchema.methods.toSafeObject = function () {
 };
 
 export const User = mongoose.model("User", userSchema);
-

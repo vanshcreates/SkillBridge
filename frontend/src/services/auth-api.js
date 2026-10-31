@@ -42,6 +42,7 @@ async function apiRequest(endpoint, options = {}) {
   let response
   try {
     response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      credentials: 'include',
       ...options,
       headers,
     })
@@ -156,4 +157,3 @@ export async function verifyAccountApi(payload) {
   })
   return result
 }
-
