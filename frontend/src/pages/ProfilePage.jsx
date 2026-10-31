@@ -2,6 +2,7 @@ import { ArrowLeft, LogOut, MapPin, UserRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import OrderHistorySection from '../components/profile/OrderHistorySection'
+import ProfileImageControl from '../components/profile/ProfileImageControl'
 import SavedAddressesSection from '../components/profile/SavedAddressesSection'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { useCart } from '../hooks/useCart'
@@ -66,9 +67,11 @@ const ProfilePage = () => {
           <div className="h-32 bg-primary sm:h-44" />
           <div className="px-5 pb-7 sm:px-9 sm:pb-9">
             <div className="-mt-12 flex flex-col justify-between gap-4 sm:-mt-14 sm:flex-row sm:items-end">
-              <div className="inline-flex h-24 w-24 items-center justify-center rounded-full border-4 border-surface bg-surface-muted text-primary sm:h-28 sm:w-28">
-                <UserRound aria-hidden="true" className="h-12 w-12 sm:h-14 sm:w-14" />
-              </div>
+              <ProfileImageControl
+                className="h-24 w-24 border-4 border-surface text-3xl sm:h-28 sm:w-28"
+                size="large"
+                user={currentUser}
+              />
               <button
                 className="inline-flex w-fit items-center gap-2 rounded-lg border border-border-strong px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
                 onClick={logout}

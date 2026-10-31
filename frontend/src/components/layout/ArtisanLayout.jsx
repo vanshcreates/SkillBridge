@@ -1,5 +1,6 @@
-import { BriefcaseBusiness, LogOut, Store } from 'lucide-react'
+import { BriefcaseBusiness, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import ProfileImageControl from '../profile/ProfileImageControl'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
 
 const ArtisanLayout = ({ children }) => {
@@ -36,6 +37,7 @@ const ArtisanLayout = ({ children }) => {
           <div className="flex items-center gap-3 sm:gap-5">
             {currentUser?.accountType === 'artisan' && (
               <>
+                <ProfileImageControl user={currentUser} size="small" />
                 <div className="hidden text-right sm:block">
                   <p className="max-w-40 truncate text-sm font-semibold text-text-main">
                     {currentUser.name}
@@ -52,13 +54,6 @@ const ArtisanLayout = ({ children }) => {
                 </button>
               </>
             )}
-            <Link
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 sm:px-4"
-              to="/marketplace"
-            >
-              <Store aria-hidden="true" className="h-4 w-4" />
-              <span className="hidden sm:inline">Marketplace</span>
-            </Link>
           </div>
         </div>
       </header>

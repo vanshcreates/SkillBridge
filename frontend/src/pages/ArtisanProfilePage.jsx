@@ -23,6 +23,7 @@ import {
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
+import ProfileImageControl from '../components/profile/ProfileImageControl'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import {
   getArtisanShop,
@@ -343,9 +344,16 @@ const ArtisanProfilePage = () => {
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-white/70">
                   Artisan workspace
                 </p>
-                <h1 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">
-                  Good to see you, {currentUser.name}
-                </h1>
+                <div className="mt-2 flex items-center gap-4">
+                  <ProfileImageControl
+                    className="border-2 border-white/60 bg-white/10 text-white"
+                    size="hero"
+                    user={currentUser}
+                  />
+                  <h1 className="font-serif text-3xl font-semibold sm:text-4xl">
+                    Good to see you, {currentUser.name}
+                  </h1>
+                </div>
                 <p className="mt-2 text-sm text-white/75 sm:text-base">
                   Build your creative practice, learn from experts, and grow your shop.
                 </p>
@@ -1278,6 +1286,23 @@ const ArtisanProfilePage = () => {
 
           {activeSection === 'profile' && (
             <div className="grid gap-4 sm:grid-cols-2">
+              <section className="rounded-xl border border-border bg-background p-5 sm:col-span-2">
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                  <ProfileImageControl size="large" user={currentUser} />
+                  <div>
+                    <h3 className="font-serif text-xl font-semibold text-text-main">
+                      Profile photo
+                    </h3>
+                    <p className="mt-1 text-sm leading-6 text-text-secondary">
+                      Add a photo so people can recognize the artisan behind your work.
+                      JPG, PNG, or WebP, up to 2 MB.
+                    </p>
+                    <p className="mt-3 text-sm font-semibold text-primary">
+                      Click your photo to view or change it.
+                    </p>
+                  </div>
+                </div>
+              </section>
               {[
                 { label: 'Full name', value: currentUser.name },
                 { label: 'Email address', value: currentUser.email },
@@ -1296,9 +1321,6 @@ const ArtisanProfilePage = () => {
                   {currentUser.bio || 'No description added yet.'}
                 </p>
               </div>
-              <p className="text-sm text-text-muted sm:col-span-2">
-                Profile edits are not available in this demo.
-              </p>
             </div>
           )}
 

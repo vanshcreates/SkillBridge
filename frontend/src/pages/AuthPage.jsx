@@ -9,10 +9,15 @@ import {
   ShoppingBasket,
   X,
 } from 'lucide-react'
+import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'
 import {
   authenticateUser,
   saveRegisteredUser,
 } from '../utils/user-storage'
+import {
+  readProfileImageFile,
+  saveProfileImage,
+} from '../utils/artisan-profile-storage'
 
 const inputClass =
   'mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-3 text-text-main outline-none transition placeholder:text-text-muted focus:border-secondary focus:ring-2 focus:ring-secondary/25'
@@ -77,12 +82,16 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
         if (password !== formData.get('confirmPassword')) {
           throw new Error('The passwords do not match.')
         }
+        const profileImage = await readProfileImageFile(
+          formData.get('profileImage'),
+        )
         const user = await saveRegisteredUser({
           name: formData.get('name'),
           email: formData.get('email'),
           password,
           accountType: 'customer',
         })
+        if (profileImage) saveProfileImage(user, profileImage)
         onAuthenticate(user)
         navigate('/profile', { replace: true })
         return
@@ -211,6 +220,8 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
               />
             </label>
           )}
+
+          {isSignup && <ProfileImageSignupField />}
 
           <label className="block text-sm font-medium text-text-main">
             Email address

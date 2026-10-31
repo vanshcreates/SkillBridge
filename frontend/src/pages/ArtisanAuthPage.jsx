@@ -2,12 +2,17 @@ import { useState } from 'react'
 import { BriefcaseBusiness, ShieldCheck } from 'lucide-react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
+import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getAccountHomePath } from '../utils/account-routing'
 import {
   authenticateUser,
   saveRegisteredUser,
 } from '../utils/user-storage'
+import {
+  readProfileImageFile,
+  saveProfileImage,
+} from '../utils/artisan-profile-storage'
 
 const inputClass =
   'mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-3 text-text-main outline-none transition placeholder:text-text-muted focus:border-secondary focus:ring-2 focus:ring-secondary/25'
@@ -40,6 +45,9 @@ const ArtisanAuthPage = () => {
         if (password !== formData.get('confirmPassword')) {
           throw new Error('The passwords do not match.')
         }
+        const profileImage = await readProfileImageFile(
+          formData.get('profileImage'),
+        )
         user = await saveRegisteredUser({
           accountType: 'artisan',
           name: formData.get('name'),
@@ -50,6 +58,7 @@ const ArtisanAuthPage = () => {
           bio: formData.get('bio'),
           password,
         })
+        if (profileImage) saveProfileImage(user, profileImage)
       } else {
         user = await authenticateUser(
           formData.get('email'),
@@ -166,6 +175,8 @@ const ArtisanAuthPage = () => {
                   type="email"
                 />
               </label>
+
+              {isSignup && <ProfileImageSignupField className="sm:col-span-2" />}
 
               {isSignup && (
                 <>
