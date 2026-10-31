@@ -7,7 +7,7 @@ import {
   ShoppingBag,
   Trash2,
 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { useCart } from '../hooks/useCart'
@@ -26,6 +26,12 @@ const OrderSummary = () => {
   const [addressLoadComplete, setAddressLoadComplete] = useState(false)
   const [formError, setFormError] = useState('')
   const shipping = subtotal === 0 || subtotal >= 1500 ? 0 : 99
+  if (currentUser && currentUser.accountType !== 'customer') {
+    if (currentUser.accountType === 'artisan') return <Navigate replace to="/artisan/profile" />
+    if (currentUser.accountType === 'expert') return <Navigate replace to="/expert/dashboard" />
+    if (currentUser.accountType === 'industry') return <Navigate replace to="/industry/dashboard" />
+  }
+
   const isCustomer =
     currentUser && (currentUser.accountType ?? 'customer') === 'customer'
 

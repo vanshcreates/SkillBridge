@@ -1,11 +1,17 @@
 import { ArrowLeft } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import { Link, Navigate } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import OrderHistorySection from '../components/profile/OrderHistorySection'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 
 const OrderHistory = () => {
   const { currentUser } = useAuthDialog()
+
+  if (currentUser && currentUser.accountType !== 'customer') {
+    if (currentUser.accountType === 'artisan') return <Navigate replace to="/artisan/profile" />
+    if (currentUser.accountType === 'expert') return <Navigate replace to="/expert/dashboard" />
+    if (currentUser.accountType === 'industry') return <Navigate replace to="/industry/dashboard" />
+  }
 
   return (
     <MarketplaceLayout>

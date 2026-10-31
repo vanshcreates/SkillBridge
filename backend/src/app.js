@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes.js";
+import artisanRoutes from "./routes/artisan.routes.js";
+import marketplaceRoutes from "./routes/marketplace.routes.js";
 
 const app = express();
 
@@ -31,11 +33,11 @@ app.use(express.json({ limit: "16kb" }));
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(cookieParser());
 
-// Health check endpoint
+// Health check endpoints
 app.get("/", (req, res) => {
   res.json({
     status: "online",
-    message: "Byteforce API is running smoothly",
+    message: "SkillBridge API is running smoothly",
     timestamp: new Date().toISOString(),
   });
 });
@@ -48,9 +50,15 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// Auth routes
+// Main API Routes
 app.use("/api/auth", authRoutes);
 app.use("/api/v1/auth", authRoutes);
+
+app.use("/api/artisan", artisanRoutes);
+app.use("/api/v1/artisan", artisanRoutes);
+
+app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/v1/marketplace", marketplaceRoutes);
 
 // 404 handler
 app.use((req, res) => {

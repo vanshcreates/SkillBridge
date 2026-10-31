@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { ArrowLeft, MapPin, Minus, Plus, ShoppingBag, Star } from 'lucide-react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import { useCart } from '../hooks/useCart'
 import { useAuthDialog } from '../hooks/useAuthDialog'
@@ -19,6 +19,12 @@ const ProductDetail = () => {
   const navigate = useNavigate()
   const { addToCart, items } = useCart()
   const { currentUser } = useAuthDialog()
+  if (currentUser && currentUser.accountType !== 'customer') {
+    if (currentUser.accountType === 'artisan') return <Navigate replace to="/artisan/profile" />
+    if (currentUser.accountType === 'expert') return <Navigate replace to="/expert/dashboard" />
+    if (currentUser.accountType === 'industry') return <Navigate replace to="/industry/dashboard" />
+  }
+
   const isCustomer = currentUser && (currentUser.accountType ?? 'customer') === 'customer'
   const [artisanProducts] = useState(() => {
     try {
