@@ -16,7 +16,7 @@ export async function getExpertDashboardApi() {
  */
 export async function getExpertCoursesApi(params = {}) {
   const cleanParams = Object.fromEntries(
-    Object.entries(params).filter(([_, v]) => v !== undefined && v !== null && v !== '')
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
   )
   const queryString = new URLSearchParams(cleanParams).toString()
   return await apiRequest(`/expert/courses${queryString ? `?${queryString}` : ''}`, {

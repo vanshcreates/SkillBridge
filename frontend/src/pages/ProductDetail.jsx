@@ -29,15 +29,11 @@ const ProductDetail = () => {
   const { addToCart, items } = useCart()
   const { currentUser } = useAuthDialog()
 
-  if (currentUser && currentUser.accountType !== 'customer') {
-    if (currentUser.accountType === 'artisan') return <Navigate replace to="/artisan/profile" />
-    if (currentUser.accountType === 'expert') return <Navigate replace to="/expert/dashboard" />
-    if (currentUser.accountType === 'industry') return <Navigate replace to="/industry/dashboard" />
-  }
-
-  const isCustomer = currentUser && (currentUser.accountType ?? 'customer') === 'customer'
   const [backendProducts, setBackendProducts] = useState([])
   const [singleProduct, setSingleProduct] = useState(null)
+  const [quantity, setQuantity] = useState(1)
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
+  const [imageUnavailable, setImageUnavailable] = useState(false)
 
   useEffect(() => {
     getMarketplaceProductByIdApi(slug)
@@ -75,12 +71,6 @@ const ProductDetail = () => {
       String(item.id || item._id) === slug,
   )
 
-  const cartQuantity =
-    items.find((item) => item.name === product?.name)?.quantity ?? 0
-  const [quantity, setQuantity] = useState(1)
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0)
-  const [imageUnavailable, setImageUnavailable] = useState(false)
-
   // Extract all images for the product (supports multiple images or single image)
   const allImages = useMemo(() => {
     if (!product) return []
@@ -98,6 +88,16 @@ const ProductDetail = () => {
     setSelectedImageIndex(0)
     setImageUnavailable(false)
   }, [product])
+
+  if (currentUser && currentUser.accountType !== 'customer') {
+    if (currentUser.accountType === 'artisan') return <Navigate replace to="/artisan/profile" />
+    if (currentUser.accountType === 'expert') return <Navigate replace to="/expert/dashboard" />
+    if (currentUser.accountType === 'industry') return <Navigate replace to="/industry/dashboard" />
+  }
+
+  const isCustomer = currentUser && (currentUser.accountType ?? 'customer') === 'customer'
+  const cartQuantity =
+    items.find((item) => item.name === product?.name)?.quantity ?? 0
 
   if (!product) {
     return (

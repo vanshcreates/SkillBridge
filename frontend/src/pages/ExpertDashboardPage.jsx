@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
   BookOpenCheck,
@@ -134,7 +134,7 @@ const ExpertDashboardPage = () => {
   }
 
   // 1. Fetch dashboard data & courses from backend
-  const loadDashboardData = async (targetPage = coursePage) => {
+  const loadDashboardData = useCallback(async (targetPage = 1) => {
     setIsLoading(true)
     try {
       // Fetch live metrics
@@ -166,13 +166,13 @@ const ExpertDashboardPage = () => {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [searchQuery, selectedCategory])
 
   useEffect(() => {
     if (currentUser?.accountType === 'expert') {
       loadDashboardData(1)
     }
-  }, [currentUser, searchQuery, selectedCategory])
+  }, [currentUser, loadDashboardData])
 
   if (!currentUser) {
     return <Navigate replace to="/expert/auth" />

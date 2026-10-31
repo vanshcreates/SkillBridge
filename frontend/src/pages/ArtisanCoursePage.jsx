@@ -1,4 +1,4 @@
-import { createElement, useEffect, useMemo, useState } from 'react'
+import { createElement, useEffect, useState } from 'react'
 import {
   ArrowLeft,
   BookOpenCheck,
@@ -11,11 +11,7 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import CourseVideo from '../components/training/CourseVideo'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
-<<<<<<< HEAD
-=======
 import { getAccountHomePath } from '../utils/account-routing'
-import { getExpertCourses } from '../utils/training-storage'
->>>>>>> 7c8c0d86dd75d0e65e512f87c7d99f506219c90e
 import { baseCourses } from '../data/training-courses'
 import { getArtisanCourseByIdApi } from '../services/artisan-api'
 

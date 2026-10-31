@@ -17,22 +17,13 @@ import {
 } from 'lucide-react'
 import IndustryLayout from '../components/layout/IndustryLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
-<<<<<<< HEAD
 import { getArtisansApi } from '../services/auth-api'
-=======
 import { getAccountHomePath } from '../utils/account-routing'
-import {
-  getIndustryOrderHistory,
-  saveOrderHistoryEntry,
-} from '../utils/order-storage'
-import { getRegisteredArtisans } from '../utils/user-storage'
->>>>>>> 7c8c0d86dd75d0e65e512f87c7d99f506219c90e
 import {
   analyzeProjectApi,
   createIndustryProjectApi,
   getAvailableArtisansForIndustryApi,
   getIndustryDashboardApi,
-  getIndustryNotificationsApi,
   markAllNotificationsReadApi,
   markNotificationReadApi,
 } from '../services/industry-api'

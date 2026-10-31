@@ -30,7 +30,6 @@ import ProfileImageControl from '../components/profile/ProfileImageControl'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getAccountHomePath } from '../utils/account-routing'
 import {
-  getArtisanDashboardApi,
   getArtisanShopApi,
   saveArtisanShopApi,
   getArtisanListingsApi,
@@ -63,7 +62,7 @@ function getStatusStyle(status) {
 }
 
 const ArtisanProfilePage = () => {
-  const { currentUser } = useAuthDialog()
+  const { currentUser, authenticate } = useAuthDialog()
   const [activeSection, setActiveSection] = useState('dashboard')
   const [publishedCourseState, setPublishedCourseState] = useState({
     courses: [],
@@ -107,7 +106,6 @@ const ArtisanProfilePage = () => {
     error: '',
   })
   const { shop, error: shopStorageError } = savedShopState
-  const shopName = shop?.name
 
   useEffect(() => {
     let isMounted = true
@@ -361,7 +359,7 @@ const ArtisanProfilePage = () => {
       }
       setProfileNotice('Profile details updated successfully.')
       setProfileModalOpen(false)
-    } catch (err) {
+    } catch {
       authenticate({ ...currentUser, ...updatePayload })
       setProfileNotice('Profile updated locally.')
       setProfileModalOpen(false)
@@ -1413,22 +1411,44 @@ const ArtisanProfilePage = () => {
           {activeSection === 'profile' && (
             <div className="grid gap-4 sm:grid-cols-2">
               <section className="rounded-xl border border-border bg-background p-5 sm:col-span-2">
-                <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
-                  <ProfileImageControl size="large" user={currentUser} />
-                  <div>
-                    <h3 className="font-serif text-xl font-semibold text-text-main">
-                      Profile photo
-                    </h3>
-                    <p className="mt-1 text-sm leading-6 text-text-secondary">
-                      Add a photo so people can recognize the artisan behind your work.
-                      JPG, PNG, or WebP, up to 5 MB. Synced with your account.
-                    </p>
-                    <p className="mt-3 text-sm font-semibold text-primary">
-                      Click your photo to view or change it.
-                    </p>
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-center justify-between">
+                  <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+                    <ProfileImageControl size="large" user={currentUser} />
+                    <div>
+                      <h3 className="font-serif text-xl font-semibold text-text-main">
+                        Profile photo
+                      </h3>
+                      <p className="mt-1 text-sm leading-6 text-text-secondary">
+                        Add a photo so people can recognize the artisan behind your work.
+                        JPG, PNG, or WebP, up to 5 MB. Synced with your account.
+                      </p>
+                      <p className="mt-3 text-sm font-semibold text-primary">
+                        Click your photo to view or change it.
+                      </p>
+                    </div>
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => setProfileModalOpen(true)}
+                    className="inline-flex items-center gap-2 self-start rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    Edit profile
+                  </button>
                 </div>
               </section>
+
+              {profileNotice && (
+                <div
+                  className={`rounded-xl border p-4 sm:col-span-2 ${
+                    profileNoticeIsError
+                      ? 'border-error/40 bg-red-50 text-error'
+                      : 'border-success/40 bg-green-50 text-success'
+                  }`}
+                >
+                  <p className="text-sm font-semibold">{profileNotice}</p>
+                </div>
+              )}
               {[
                 { label: 'Full name', value: currentUser.name },
                 { label: 'Email address', value: currentUser.email },
@@ -1451,6 +1471,101 @@ const ArtisanProfilePage = () => {
                   {currentUser.bio || 'No description added yet.'}
                 </p>
               </div>
+              {profileModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+                  <div className="relative w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-border bg-surface p-6 shadow-xl">
+                    <button
+                      type="button"
+                      onClick={() => setProfileModalOpen(false)}
+                      className="absolute right-4 top-4 rounded-lg p-1 text-text-muted hover:bg-surface-muted hover:text-text-main"
+                    >
+                      <X className="h-5 w-5" />
+                    </button>
+                    <h3 className="font-serif text-2xl font-bold text-text-main">
+                      Edit Artisan Profile
+                    </h3>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      Update your artisan details, hourly rate, and crafts showcase.
+                    </p>
+                    <form className="mt-5 space-y-4" onSubmit={handleSaveProfile}>
+                      <div>
+                        <label className="block text-sm font-semibold text-text-main">Full Name</label>
+                        <input
+                          name="name"
+                          defaultValue={currentUser.name || ''}
+                          required
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-text-main">Phone Number</label>
+                        <input
+                          name="phone"
+                          defaultValue={currentUser.phone || ''}
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-semibold text-text-main">Craft Category</label>
+                          <input
+                            name="artCategory"
+                            defaultValue={currentUser.artCategory || ''}
+                            placeholder="e.g. Pottery, Woodwork"
+                            className={inputClass}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-text-main">Experience</label>
+                          <input
+                            name="experience"
+                            defaultValue={currentUser.experience || ''}
+                            placeholder="e.g. 5+ years"
+                            className={inputClass}
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-text-main">Hourly Rate (₹)</label>
+                        <input
+                          type="number"
+                          name="hourlyRate"
+                          min="0"
+                          defaultValue={currentUser.hourlyRate || ''}
+                          placeholder="e.g. 350"
+                          className={inputClass}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-text-main">About Your Work (Bio)</label>
+                        <textarea
+                          name="bio"
+                          rows="4"
+                          defaultValue={currentUser.bio || ''}
+                          className={inputClass}
+                        />
+                      </div>
+                      <div className="flex justify-end gap-3 pt-3">
+                        <button
+                          type="button"
+                          onClick={() => setProfileModalOpen(false)}
+                          className="rounded-lg border border-border-strong px-4 py-2 font-semibold text-text-main hover:bg-surface-muted"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={profileSaving}
+                          className="inline-flex items-center gap-2 rounded-lg bg-primary px-5 py-2 font-semibold text-white hover:bg-primary-hover disabled:opacity-50"
+                        >
+                          {profileSaving && <Loader2 className="h-4 w-4 animate-spin" />}
+                          {profileSaving ? 'Saving...' : 'Save Profile'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

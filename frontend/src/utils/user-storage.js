@@ -48,7 +48,7 @@ export function readSessionUser() {
   if (!token) {
     try {
       window.localStorage.removeItem(SESSION_USER_KEY)
-    } catch {}
+    } catch { /* ignore */ }
     return null
   }
 
@@ -60,7 +60,7 @@ export function readSessionUser() {
     console.error('The current user session is invalid.', error)
     try {
       window.localStorage.removeItem(SESSION_USER_KEY)
-    } catch {}
+    } catch { /* ignore */ }
     return null
   }
 }
@@ -83,7 +83,7 @@ export function clearSessionUser() {
   clearAuthToken()
   try {
     window.localStorage.removeItem(SESSION_USER_KEY)
-  } catch {}
+  } catch { /* ignore */ }
 }
 
 /**

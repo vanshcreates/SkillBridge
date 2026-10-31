@@ -143,14 +143,7 @@ const FindArtisansPage = () => {
             </p>
           </div>
 
-          {artisanProductState.error && (
-            <p
-              className="mb-6 rounded-lg border border-error/30 bg-red-50 px-4 py-3 text-sm text-error"
-              role="alert"
-            >
-              {artisanProductState.error}
-            </p>
-          )}
+          
 
           {visibleArtisans.length ? (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

@@ -20,57 +20,6 @@ const Marketplace = () => {
   const [backendProducts, setBackendProducts] = useState([])
   const { addToCart, itemCount, items } = useCart()
 
-  // STRICT ACCESS CONTROL: Only customers can access the marketplace
-  if (currentUser && currentUser.accountType !== 'customer') {
-    if (currentUser.accountType === 'artisan') {
-      return <Navigate replace to="/artisan/profile" />
-    }
-    if (currentUser.accountType === 'expert') {
-      return <Navigate replace to="/expert/dashboard" />
-    }
-    if (currentUser.accountType === 'industry') {
-      return <Navigate replace to="/industry/dashboard" />
-    }
-    return <Navigate replace to="/" />
-  }
-
-  if (!currentUser) {
-    return (
-      <MarketplaceLayout>
-        <div className="mx-auto max-w-xl px-4 py-20 text-center">
-          <div className="rounded-2xl border border-border bg-surface p-8 shadow-card sm:p-10">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <ShoppingBag className="h-6 w-6" />
-            </span>
-            <h2 className="mt-4 font-serif text-2xl font-bold text-text-main sm:text-3xl">
-              Customer Access Only
-            </h2>
-            <p className="mt-3 text-sm leading-6 text-text-secondary sm:text-base">
-              The SkillBridge marketplace is exclusively reserved for customers.
-              Please sign in with your customer account or create one to explore handmade artisan crafts.
-            </p>
-            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
-              <button
-                className="rounded-lg bg-primary px-6 py-2.5 font-semibold text-white transition hover:bg-primary-hover"
-                onClick={() => openAuth('login')}
-                type="button"
-              >
-                Sign in as customer
-              </button>
-              <button
-                className="rounded-lg border border-border-strong px-6 py-2.5 font-semibold text-text-main transition hover:bg-surface-muted"
-                onClick={() => openAuth('signup')}
-                type="button"
-              >
-                Create an account
-              </button>
-            </div>
-          </div>
-        </div>
-      </MarketplaceLayout>
-    )
-  }
-
   // Fetch backend marketplace products on mount
   useEffect(() => {
     getMarketplaceProductsApi()
@@ -125,6 +74,59 @@ const Marketplace = () => {
     return filtered
   }, [activeCategory, products, search, sortOrder])
 
+  // STRICT ACCESS CONTROL: Only customers can access the marketplace
+  if (currentUser && currentUser.accountType !== 'customer') {
+    if (currentUser.accountType === 'artisan') {
+      return <Navigate replace to="/artisan/profile" />
+    }
+    if (currentUser.accountType === 'expert') {
+      return <Navigate replace to="/expert/dashboard" />
+    }
+    if (currentUser.accountType === 'industry') {
+      return <Navigate replace to="/industry/dashboard" />
+    }
+    return <Navigate replace to="/" />
+  }
+
+  if (!currentUser) {
+    return (
+      <MarketplaceLayout>
+        <div className="mx-auto max-w-xl px-4 py-20 text-center">
+          <div className="rounded-2xl border border-border bg-surface p-8 shadow-card sm:p-10">
+            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <ShoppingBag className="h-6 w-6" />
+            </span>
+            <h2 className="mt-4 font-serif text-2xl font-bold text-text-main sm:text-3xl">
+              Customer Access Only
+            </h2>
+            <p className="mt-3 text-sm leading-6 text-text-secondary sm:text-base">
+              The SkillBridge marketplace is exclusively reserved for customers.
+              Please sign in with your customer account or create one to explore handmade artisan crafts.
+            </p>
+            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+              <button
+                className="rounded-lg bg-primary px-6 py-2.5 font-semibold text-white transition hover:bg-primary-hover"
+                onClick={() => openAuth('login')}
+                type="button"
+              >
+                Sign in as customer
+              </button>
+              <button
+                className="rounded-lg border border-border-strong px-6 py-2.5 font-semibold text-text-main transition hover:bg-surface-muted"
+                onClick={() => openAuth('signup')}
+                type="button"
+              >
+                Create an account
+              </button>
+            </div>
+          </div>
+        </div>
+      </MarketplaceLayout>
+    )
+  }
+
+  
+
   const resetFilters = () => {
     setSearch('')
     setActiveCategory('All crafts')
@@ -143,14 +145,7 @@ const Marketplace = () => {
             products={featuredProducts}
           />
         )}
-        {artisanProductState.error && (
-          <p
-            className="mx-auto mt-6 max-w-7xl rounded-lg border border-error/30 bg-red-50 px-4 py-3 text-sm text-error"
-            role="alert"
-          >
-            {artisanProductState.error}
-          </p>
-        )}
+        
         <MarketplaceProducts
           activeCategory={activeCategory}
           bagCount={itemCount}
