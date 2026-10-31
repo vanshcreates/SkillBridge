@@ -9,7 +9,6 @@ import {
   Heart,
   ShieldCheck,
   Sparkles,
-  Users,
 } from 'lucide-react'
 import { Button } from '../ui/Button'
 

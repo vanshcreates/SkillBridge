@@ -4,6 +4,7 @@ import AuthDialogProvider from './context/AuthDialogProvider'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { useAuthDialog } from './hooks/useAuthDialog'
 import { getAccountHomePath } from './utils/account-routing'
+import FloatingRobotWidget from './components/voice/FloatingRobotWidget'
 
 const Home = lazy(() => import('./pages/Home'))
 const Marketplace = lazy(() => import('./pages/Marketplace'))
@@ -105,6 +106,9 @@ const App = () => {
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
+
+          {/* Global AI Robot Mascot & Voice Assistant (always at right corner) */}
+          <FloatingRobotWidget />
         </CartProvider>
       </AuthDialogProvider>
     </BrowserRouter>

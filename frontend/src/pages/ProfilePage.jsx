@@ -321,7 +321,10 @@ const ProfilePage = () => {
               { label: 'Active Orders', value: stats.activeOrders ?? 0, icon: ShoppingBag },
               { label: 'Wishlist Finds', value: stats.wishlistCount ?? 0, icon: Sparkles },
               { label: 'Saved Addresses', value: stats.addressCount ?? 0, icon: MapPin },
-            ].map(({ label, value, icon: Icon }) => (
+            ].map((item) => {
+              const Icon = item.icon;
+              const { label, value } = item;
+              return (
               <div
                 className="rounded-2xl border border-border/80 bg-surface p-4 text-center shadow-xs transition-all hover:border-secondary/30"
                 key={label}
@@ -330,7 +333,8 @@ const ProfilePage = () => {
                 <p className="text-2xl font-extrabold text-primary">{value}</p>
                 <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-wider text-text-muted">{label}</p>
               </div>
-            ))}
+            );
+            })}
           </section>
         )}
 

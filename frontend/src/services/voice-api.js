@@ -59,3 +59,22 @@ export async function registerArtisanVoiceApi({ answers = {}, language = 'pa' })
   return result
 }
 
+/**
+ * Send natural voice command to Artisan AI Assistant (Profile, Products, Orders, Payments, Industry)
+ */
+export async function sendVoiceAssistantMessageApi({
+  message,
+  conversationHistory = [],
+  pendingAction = null,
+  language = 'pa',
+}) {
+  return await apiRequest('/voice/assistant', {
+    method: 'POST',
+    body: JSON.stringify({
+      message,
+      conversationHistory,
+      pendingAction,
+      language,
+    }),
+  })
+}
