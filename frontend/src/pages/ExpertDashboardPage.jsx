@@ -11,6 +11,7 @@ import {
   EyeOff,
   GraduationCap,
   Loader2,
+  Pencil,
   Play,
   Plus,
   Search,
@@ -27,6 +28,7 @@ import {
   getExpertDashboardApi,
   getExpertCoursesApi,
   createExpertCourseApi,
+  updateExpertCourseApi,
   toggleCoursePublishApi,
   deleteExpertCourseApi,
   addCourseLessonApi,
@@ -34,8 +36,10 @@ import {
   uploadCourseVideoApi,
 } from '../services/expert-api'
 import {
+  calculateTotalCourseDuration,
   formatDuration,
   getVideoDuration,
+  parseDurationToSeconds,
 } from '../utils/course-video'
 import {
   getExpertCourses,
@@ -50,8 +54,15 @@ const LESSONS_PER_PAGE = 3
 const ExpertDashboardPage = () => {
   const { currentUser } = useAuthDialog()
   const [courseFormOpen, setCourseFormOpen] = useState(false)
+  const [editingCourseId, setEditingCourseId] = useState(null)
+
+  // Controlled form states
+  const [formTitle, setFormTitle] = useState('')
+  const [formCategory, setFormCategory] = useState('')
+  const [formLevel, setFormLevel] = useState('Beginner')
+  const [formDescription, setFormDescription] = useState('')
+  const [formOutcomes, setFormOutcomes] = useState('')
   const [courseDuration, setCourseDuration] = useState('')
-  const [isAutoDuration, setIsAutoDuration] = useState(true)
 
   const [lessonDrafts, setLessonDrafts] = useState([
     {
@@ -67,6 +78,8 @@ const ExpertDashboardPage = () => {
     },
   ])
   const nextLessonId = useRef(2)
+  const formRef = useRef(null)
+
   const [notice, setNotice] = useState('')
   const [noticeIsError, setNoticeIsError] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -98,17 +111,42 @@ const ExpertDashboardPage = () => {
   const [newLessonModal, setNewLessonModal] = useState(null)
   const [isAddingLesson, setIsAddingLesson] = useState(false)
 
+  // Reset form to default blank creation state
+  const resetForm = () => {
+    setEditingCourseId(null)
+    setFormTitle('')
+    setFormCategory('')
+    setFormLevel('Beginner')
+    setFormDescription('')
+    setFormOutcomes('')
+    setCourseDuration('')
+    setLessonDrafts([
+      {
+        id: 1,
+        title: '',
+        videoUrl: '',
+        fileName: '',
+        isUploading: false,
+        uploadError: '',
+        useUrlInput: false,
+        duration: '',
+        durationSeconds: 0,
+      },
+    ])
+    nextLessonId.current = 2
+  }
+
   // 1. Fetch dashboard data & courses from backend
   const loadDashboardData = async (targetPage = coursePage) => {
     setIsLoading(true)
     try {
-      // 1. Fetch live metrics
+      // Fetch live metrics
       const dashboardRes = await getExpertDashboardApi().catch(() => null)
       if (dashboardRes?.success && dashboardRes.stats) {
         setStats(dashboardRes.stats)
       }
 
-      // 2. Fetch live paginated courses
+      // Fetch live paginated courses
       const coursesRes = await getExpertCoursesApi({
         page: targetPage,
         limit: 6,
@@ -123,7 +161,7 @@ const ExpertDashboardPage = () => {
           setCoursePage(coursesRes.pagination.page || 1)
         }
       } else {
-        // Fallback to local storage if backend call returned no data
+        // Fallback to local storage if backend returned no data
         const localCourses = getExpertCourses().filter(
           (c) => c.expertId === currentUser?.id || c.expertId === currentUser?._id
         )
@@ -158,13 +196,78 @@ const ExpertDashboardPage = () => {
     return <Navigate replace to="/marketplace" />
   }
 
-  // Handle uploading video file for a specific lesson draft and calculate duration
+  // Start editing an existing course
+  const handleStartEditCourse = (course) => {
+    setNotice('')
+    setNoticeIsError(false)
+    setEditingCourseId(course.id || course._id)
+    setFormTitle(course.title || '')
+    setFormCategory(course.category || '')
+    setFormLevel(course.level || 'Beginner')
+    setFormDescription(course.description || '')
+    setFormOutcomes(
+      Array.isArray(course.outcomes)
+        ? course.outcomes.join('\n')
+        : course.outcomes || ''
+    )
+
+    const existingLessons = (course.lessons || []).map((l, idx) => {
+      const title = typeof l === 'string' ? l : l.title || ''
+      const videoUrl = typeof l === 'string' ? '' : l.videoUrl || ''
+      const duration = typeof l === 'string' ? '' : l.duration || ''
+      const durationSeconds = parseDurationToSeconds(duration)
+      return {
+        id: l.id || l._id || idx + 1,
+        title,
+        videoUrl,
+        fileName: '',
+        isUploading: false,
+        uploadError: '',
+        useUrlInput: Boolean(videoUrl && !videoUrl.includes('cloudinary')),
+        duration,
+        durationSeconds,
+      }
+    })
+
+    const initialDrafts =
+      existingLessons.length > 0
+        ? existingLessons
+        : [
+            {
+              id: 1,
+              title: '',
+              videoUrl: '',
+              fileName: '',
+              isUploading: false,
+              uploadError: '',
+              useUrlInput: false,
+              duration: '',
+              durationSeconds: 0,
+            },
+          ]
+
+    setLessonDrafts(initialDrafts)
+    nextLessonId.current = initialDrafts.length + 1
+
+    // Automatically calculate total course duration as the sum of all lesson video times
+    const computedTotal = calculateTotalCourseDuration(initialDrafts)
+    setCourseDuration(computedTotal || course.duration || '0 sec')
+
+    setCourseFormOpen(true)
+
+    // Smooth scroll to form
+    setTimeout(() => {
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
+  // Handle uploading video file for a specific lesson draft and update duration
   const handleLessonFileChange = async (lessonId, file) => {
     if (!file) return
 
     const localPreviewUrl = URL.createObjectURL(file)
 
-    // Calculate duration on its own in the browser immediately
+    // Calculate duration immediately in the browser
     let calculatedSecs = 0
     let formattedDurationStr = ''
     try {
@@ -189,16 +292,9 @@ const ExpertDashboardPage = () => {
           : entry
       )
 
-      // Auto-calculate the total course duration from all lesson videos
-      if (isAutoDuration) {
-        const totalSecs = updated.reduce(
-          (sum, l) => sum + (l.durationSeconds || 0),
-          0
-        )
-        if (totalSecs > 0) {
-          setCourseDuration(formatDuration(totalSecs))
-        }
-      }
+      // Total course duration is equal to the sum of all videos
+      const totalCourseTime = calculateTotalCourseDuration(updated)
+      setCourseDuration(totalCourseTime || '0 sec')
 
       return updated
     })
@@ -206,8 +302,8 @@ const ExpertDashboardPage = () => {
     try {
       const uploadRes = await uploadCourseVideoApi(file)
       if (uploadRes?.url) {
-        setLessonDrafts((drafts) =>
-          drafts.map((entry) =>
+        setLessonDrafts((drafts) => {
+          const updated = drafts.map((entry) =>
             entry.id === lessonId
               ? {
                   ...entry,
@@ -219,7 +315,10 @@ const ExpertDashboardPage = () => {
                 }
               : entry
           )
-        )
+          const totalCourseTime = calculateTotalCourseDuration(updated)
+          setCourseDuration(totalCourseTime || '0 sec')
+          return updated
+        })
       }
     } catch (err) {
       console.error('Video upload failed:', err)
@@ -241,13 +340,8 @@ const ExpertDashboardPage = () => {
   const handleRemoveLesson = (lessonId) => {
     setLessonDrafts((drafts) => {
       const updated = drafts.filter((entry) => entry.id !== lessonId)
-      if (isAutoDuration) {
-        const totalSecs = updated.reduce(
-          (sum, l) => sum + (l.durationSeconds || 0),
-          0
-        )
-        setCourseDuration(totalSecs > 0 ? formatDuration(totalSecs) : '')
-      }
+      const totalCourseTime = calculateTotalCourseDuration(updated)
+      setCourseDuration(totalCourseTime || '0 sec')
       return updated
     })
   }
@@ -258,7 +352,6 @@ const ExpertDashboardPage = () => {
 
     const localPreviewUrl = URL.createObjectURL(file)
 
-    // Calculate duration on its own in the browser immediately
     let calculatedSecs = 0
     let formattedDurationStr = ''
     try {
@@ -298,28 +391,18 @@ const ExpertDashboardPage = () => {
     }
   }
 
-  // 2. Publish new course
-  const handlePublishCourse = async (event) => {
+  // 2. Publish new course or Update existing course
+  const handleSaveCourse = async (event) => {
     event.preventDefault()
     setNotice('')
     setNoticeIsError(false)
 
-    // Check if any video is still uploading
+    // Check if any video is currently uploading
     if (lessonDrafts.some((l) => l.isUploading)) {
-      setNotice('Please wait for video upload to complete before publishing.')
+      setNotice('Please wait for video upload to complete before saving.')
       setNoticeIsError(true)
       return
     }
-
-    setIsSubmitting(true)
-
-    const formData = new FormData(event.currentTarget)
-    const title = formData.get('title')
-    const category = formData.get('category')
-    const description = formData.get('description')
-    const duration = courseDuration.trim() || formData.get('duration') || 'Flexible'
-    const level = formData.get('level')
-    const outcomesRaw = formData.get('outcomes') || ''
 
     const validLessons = lessonDrafts
       .filter((l) => l.title.trim())
@@ -332,67 +415,97 @@ const ExpertDashboardPage = () => {
     if (!validLessons.length) {
       setNotice('Please provide at least one lesson title.')
       setNoticeIsError(true)
-      setIsSubmitting(false)
       return
     }
 
-    try {
-      // Create via backend API
-      const response = await createExpertCourseApi({
-        title,
-        category,
-        description,
-        duration,
-        level,
-        lessons: validLessons,
-        outcomes: outcomesRaw,
-      })
+    // Exact course duration calculated from the total time of all videos
+    const totalTime =
+      calculateTotalCourseDuration(validLessons) || courseDuration || 'Flexible'
 
-      if (response?.success && response.course) {
-        setCourses((prev) => [response.course, ...prev])
-        setStats((prev) => ({
-          ...prev,
-          totalCourses: prev.totalCourses + 1,
-          publishedCourses: prev.publishedCourses + 1,
-          totalLessons: prev.totalLessons + validLessons.length,
-        }))
-        setNotice('Your course has been published to the artisan training library.')
-      } else {
-        // Fallback local save
-        const savedLocal = saveExpertCourse(currentUser, {
-          title,
-          category,
-          description,
-          duration,
-          level,
+    setIsSubmitting(true)
+
+    try {
+      if (editingCourseId) {
+        // UPDATE existing course
+        const response = await updateExpertCourseApi(editingCourseId, {
+          title: formTitle.trim(),
+          category: formCategory.trim(),
+          description: formDescription.trim(),
+          duration: totalTime,
+          level: formLevel,
           lessons: validLessons,
-          outcomes: outcomesRaw,
+          outcomes: formOutcomes,
         })
-        setCourses((prev) => [savedLocal, ...prev])
-        setNotice('Course saved to your workspace.')
+
+        if (response?.success && response.course) {
+          setCourses((prev) =>
+            prev.map((c) =>
+              c.id === editingCourseId || c._id === editingCourseId
+                ? response.course
+                : c
+            )
+          )
+          setNotice(`"${formTitle.trim()}" updated successfully with duration ${totalTime}.`)
+        } else {
+          setCourses((prev) =>
+            prev.map((c) =>
+              c.id === editingCourseId || c._id === editingCourseId
+                ? {
+                    ...c,
+                    title: formTitle.trim(),
+                    category: formCategory.trim(),
+                    description: formDescription.trim(),
+                    duration: totalTime,
+                    level: formLevel,
+                    lessons: validLessons,
+                    outcomes: formOutcomes.split(/\r?\n/).filter(Boolean),
+                  }
+                : c
+            )
+          )
+          setNotice('Course updated in workspace.')
+        }
+      } else {
+        // CREATE new course
+        const response = await createExpertCourseApi({
+          title: formTitle.trim(),
+          category: formCategory.trim(),
+          description: formDescription.trim(),
+          duration: totalTime,
+          level: formLevel,
+          lessons: validLessons,
+          outcomes: formOutcomes,
+        })
+
+        if (response?.success && response.course) {
+          setCourses((prev) => [response.course, ...prev])
+          setStats((prev) => ({
+            ...prev,
+            totalCourses: prev.totalCourses + 1,
+            publishedCourses: prev.publishedCourses + 1,
+            totalLessons: prev.totalLessons + validLessons.length,
+          }))
+          setNotice(`Your course has been published with total duration ${totalTime}.`)
+        } else {
+          const savedLocal = saveExpertCourse(currentUser, {
+            title: formTitle.trim(),
+            category: formCategory.trim(),
+            description: formDescription.trim(),
+            duration: totalTime,
+            level: formLevel,
+            lessons: validLessons,
+            outcomes: formOutcomes,
+          })
+          setCourses((prev) => [savedLocal, ...prev])
+          setNotice('Course saved to your workspace.')
+        }
       }
 
       setCourseFormOpen(false)
-      setCourseDuration('')
-      setIsAutoDuration(true)
-      setLessonDrafts([
-        {
-          id: 1,
-          title: '',
-          videoUrl: '',
-          fileName: '',
-          isUploading: false,
-          uploadError: '',
-          useUrlInput: false,
-          duration: '',
-          durationSeconds: 0,
-        },
-      ])
-      nextLessonId.current = 2
-      event.currentTarget.reset()
+      resetForm()
     } catch (error) {
-      console.error('Course publish error:', error)
-      setNotice(error.message || 'Unable to publish your course. Please try again.')
+      console.error('Save course error:', error)
+      setNotice(error.message || 'Unable to save course. Please try again.')
       setNoticeIsError(true)
     } finally {
       setIsSubmitting(false)
@@ -451,6 +564,10 @@ const ExpertDashboardPage = () => {
         }))
         setNotice(`"${courseTitle}" has been deleted.`)
         setNoticeIsError(false)
+        if (editingCourseId === courseId) {
+          setCourseFormOpen(false)
+          resetForm()
+        }
       }
     } catch (err) {
       setNotice(err.message || 'Failed to delete course.')
@@ -489,7 +606,9 @@ const ExpertDashboardPage = () => {
           ...prev,
           totalLessons: prev.totalLessons + 1,
         }))
-        setNotice('New video lesson added to course.')
+        setNotice(
+          `New video lesson added. Course total duration updated to ${res.course.duration}.`
+        )
         setNoticeIsError(false)
         setNewLessonModal(null)
       }
@@ -517,7 +636,9 @@ const ExpertDashboardPage = () => {
           ...prev,
           totalLessons: Math.max(0, prev.totalLessons - 1),
         }))
-        setNotice(`Lesson "${lessonTitle}" removed.`)
+        setNotice(
+          `Lesson "${lessonTitle}" removed. Course total duration updated to ${res.course.duration}.`
+        )
         setNoticeIsError(false)
       }
     } catch (err) {
@@ -577,12 +698,17 @@ const ExpertDashboardPage = () => {
               className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
               onClick={() => {
                 setNotice('')
-                setCourseFormOpen((isOpen) => !isOpen)
+                if (courseFormOpen && !editingCourseId) {
+                  setCourseFormOpen(false)
+                } else {
+                  resetForm()
+                  setCourseFormOpen(true)
+                }
               }}
               type="button"
             >
               <Plus aria-hidden="true" className="h-4 w-4" />
-              {courseFormOpen ? 'Close course form' : 'Add a course'}
+              {courseFormOpen && !editingCourseId ? 'Close form' : 'Add a course'}
             </button>
           </div>
         </section>
@@ -616,84 +742,112 @@ const ExpertDashboardPage = () => {
           </div>
         </section>
 
-        {/* Course Form */}
+        {/* Course Form (Supports Create and Edit) */}
         {courseFormOpen && (
-          <section className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-card sm:p-8">
+          <section
+            className="mt-6 rounded-2xl border border-border bg-surface p-5 shadow-card sm:p-8"
+            ref={formRef}
+          >
             <form
               className="grid gap-4 rounded-xl border border-border bg-background p-5 sm:grid-cols-2 sm:p-6"
-              onSubmit={handlePublishCourse}
+              onSubmit={handleSaveCourse}
             >
-              <div className="sm:col-span-2">
-                <h3 className="font-serif text-xl font-semibold text-text-main">
-                  Create a Course
-                </h3>
-                <p className="mt-1 text-sm leading-6 text-text-secondary">
-                  Add a structured outline and upload videos so artisans can learn step-by-step.
-                </p>
+              <div className="sm:col-span-2 flex items-center justify-between">
+                <div>
+                  <h3 className="font-serif text-xl font-semibold text-text-main">
+                    {editingCourseId ? 'Edit Course' : 'Create a Course'}
+                  </h3>
+                  <p className="mt-1 text-sm leading-6 text-text-secondary">
+                    {editingCourseId
+                      ? 'Update course information, videos, and modules.'
+                      : 'Add a structured outline and upload videos so artisans can learn step-by-step.'}
+                  </p>
+                </div>
+                {editingCourseId && (
+                  <span className="rounded-full bg-secondary/10 px-3 py-1 text-xs font-semibold text-secondary">
+                    Editing Mode
+                  </span>
+                )}
               </div>
+
               <label className="text-sm font-medium text-text-main">
                 Course title
                 <input
                   className={fieldClass}
                   maxLength={100}
                   name="title"
+                  onChange={(e) => setFormTitle(e.target.value)}
                   placeholder="e.g. Natural dyeing with local plants"
                   required
+                  value={formTitle}
                 />
               </label>
+
               <label className="text-sm font-medium text-text-main">
                 Craft or topic
                 <input
                   className={fieldClass}
                   maxLength={60}
                   name="category"
+                  onChange={(e) => setFormCategory(e.target.value)}
                   placeholder="e.g. Textile arts"
                   required
+                  value={formCategory}
                 />
               </label>
 
-              {/* COURSE DURATION WITH AUTO-CALCULATION */}
+              {/* COURSE DURATION: AUTO-CALCULATED AS TOTAL TIME OF ALL VIDEOS */}
               <label className="text-sm font-medium text-text-main">
                 <div className="flex items-center justify-between">
-                  <span>Duration</span>
-                  {courseDuration && (
-                    <span className="text-xs font-normal text-secondary">
-                      Auto-calculated from videos
-                    </span>
-                  )}
+                  <span>Course Duration</span>
+                  <span className="text-xs font-semibold text-secondary">
+                    Auto-calculated from all videos
+                  </span>
                 </div>
-                <input
-                  className={fieldClass}
-                  maxLength={40}
-                  name="duration"
-                  onChange={(e) => {
-                    setCourseDuration(e.target.value)
-                    setIsAutoDuration(false)
-                  }}
-                  placeholder="e.g. 1 hr 20 min (or auto from videos)"
-                  required
-                  value={courseDuration}
-                />
+                <div className="relative mt-1.5">
+                  <input
+                    className={`${fieldClass} pr-24 font-medium bg-surface/60`}
+                    name="duration"
+                    readOnly
+                    placeholder="Upload videos to calculate total duration"
+                    value={courseDuration || '0 sec'}
+                  />
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center gap-1 text-xs text-text-muted">
+                    <Clock3 className="h-3.5 w-3.5 text-secondary" />
+                    <span>Total time</span>
+                  </div>
+                </div>
+                <p className="mt-1 text-[0.72rem] text-text-secondary">
+                  Automatically calculated as the exact sum of all lesson video times.
+                </p>
               </label>
 
               <label className="text-sm font-medium text-text-main">
                 Learner level
-                <select className={fieldClass} defaultValue="Beginner" name="level">
+                <select
+                  className={fieldClass}
+                  name="level"
+                  onChange={(e) => setFormLevel(e.target.value)}
+                  value={formLevel}
+                >
                   <option>Beginner</option>
                   <option>Intermediate</option>
                   <option>Advanced</option>
                   <option>All levels</option>
                 </select>
               </label>
+
               <label className="text-sm font-medium text-text-main sm:col-span-2">
                 Course description
                 <textarea
                   className={fieldClass}
                   maxLength={500}
                   name="description"
+                  onChange={(e) => setFormDescription(e.target.value)}
                   placeholder="What does this course teach, and who is it for?"
                   required
                   rows="3"
+                  value={formDescription}
                 />
               </label>
 
@@ -703,7 +857,7 @@ const ExpertDashboardPage = () => {
                   Course video lessons
                 </legend>
                 <p className="-mt-2 text-sm leading-6 text-text-secondary">
-                  Add each lesson with a title and upload a video file. Duration will be calculated automatically.
+                  Add each lesson with a title and upload a video file. Course duration sums the time of all videos automatically.
                 </p>
                 {lessonDrafts.map((lesson, index) => (
                   <div
@@ -805,7 +959,7 @@ const ExpertDashboardPage = () => {
                               </span>
                             ) : (
                               <span className="text-xs text-text-muted">
-                                No video chosen (MP4, WebM, MOV)
+                                {lesson.videoUrl ? 'Video attached' : 'No video chosen (MP4, WebM, MOV)'}
                               </span>
                             )}
 
@@ -828,8 +982,9 @@ const ExpertDashboardPage = () => {
                           {lesson.duration && (
                             <div className="mt-1.5 flex items-center gap-1 text-xs text-text-secondary">
                               <Clock3 aria-hidden="true" className="h-3.5 w-3.5 text-secondary" />
-                              <span>Duration: <strong className="text-text-main">{lesson.duration}</strong></span>
-                              <span className="text-[0.68rem] text-text-muted">(auto-calculated)</span>
+                              <span>
+                                Video length: <strong className="text-text-main">{lesson.duration}</strong>
+                              </span>
                             </div>
                           )}
 
@@ -873,8 +1028,10 @@ const ExpertDashboardPage = () => {
                   className={fieldClass}
                   maxLength={800}
                   name="outcomes"
+                  onChange={(e) => setFormOutcomes(e.target.value)}
                   placeholder={'Choose the right materials\nPractice the core technique\nBuild your first motif'}
                   rows="3"
+                  value={formOutcomes}
                 />
               </label>
 
@@ -884,11 +1041,18 @@ const ExpertDashboardPage = () => {
                   disabled={isSubmitting}
                   type="submit"
                 >
-                  {isSubmitting ? 'Publishing...' : 'Publish Course'}
+                  {isSubmitting
+                    ? 'Saving...'
+                    : editingCourseId
+                      ? 'Save Changes'
+                      : 'Publish Course'}
                 </button>
                 <button
                   className="min-h-11 rounded-lg border border-border px-5 py-2.5 font-semibold text-text-secondary hover:bg-surface"
-                  onClick={() => setCourseFormOpen(false)}
+                  onClick={() => {
+                    setCourseFormOpen(false)
+                    resetForm()
+                  }}
                   type="button"
                 >
                   Cancel
@@ -987,14 +1151,14 @@ const ExpertDashboardPage = () => {
                       className="flex h-full flex-col rounded-xl border border-border bg-background p-5 shadow-sm transition hover:border-secondary/50"
                       key={courseId}
                     >
-                      {/* Course Header */}
+                      {/* Course Header with Edit, Status, and Delete */}
                       <div className="flex items-start justify-between gap-3">
                         <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-surface-muted text-secondary">
                           <BookOpenCheck aria-hidden="true" className="h-5 w-5" />
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-1.5">
                           <button
-                            className={`inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold transition ${
+                            className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition ${
                               isPublished
                                 ? 'bg-green-50 text-success hover:bg-green-100'
                                 : 'bg-amber-50 text-amber-700 hover:bg-amber-100'
@@ -1015,10 +1179,24 @@ const ExpertDashboardPage = () => {
                               </>
                             )}
                           </button>
+
+                          {/* EDIT COURSE BUTTON */}
+                          <button
+                            aria-label={`Edit course ${course.title}`}
+                            className="rounded p-1 text-text-muted hover:bg-surface-muted hover:text-primary transition"
+                            onClick={() => handleStartEditCourse(course)}
+                            title="Edit course details & modules"
+                            type="button"
+                          >
+                            <Pencil aria-hidden="true" className="h-4 w-4" />
+                          </button>
+
+                          {/* DELETE COURSE BUTTON */}
                           <button
                             aria-label={`Delete course ${course.title}`}
-                            className="rounded p-1 text-text-muted hover:bg-red-50 hover:text-error"
+                            className="rounded p-1 text-text-muted hover:bg-red-50 hover:text-error transition"
                             onClick={() => handleDeleteCourse(courseId, course.title)}
+                            title="Delete this course"
                             type="button"
                           >
                             <Trash2 aria-hidden="true" className="h-4 w-4" />
@@ -1036,10 +1214,13 @@ const ExpertDashboardPage = () => {
                         {course.description}
                       </p>
 
-                      {/* Course Metadata */}
+                      {/* Course Metadata: Total duration equal to sum of all videos */}
                       <div className="mt-4 flex flex-wrap gap-4 border-t border-border pt-3 text-xs text-text-muted">
-                        <span className="inline-flex items-center gap-1">
-                          <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
+                        <span
+                          className="inline-flex items-center gap-1 font-medium text-text-main"
+                          title="Total duration of all lesson videos"
+                        >
+                          <Clock3 aria-hidden="true" className="h-3.5 w-3.5 text-secondary" />
                           {course.duration || 'Flexible'}
                         </span>
                         <span className="inline-flex items-center gap-1">
@@ -1244,6 +1425,7 @@ const ExpertDashboardPage = () => {
                   onClick={() => {
                     setSearchQuery('')
                     setSelectedCategory('All')
+                    resetForm()
                     setCourseFormOpen(true)
                   }}
                   type="button"
@@ -1388,7 +1570,7 @@ const ExpertDashboardPage = () => {
                           </span>
                         ) : (
                           <span className="text-xs text-text-muted">
-                            No video chosen (MP4, WebM, MOV)
+                            {newLessonModal.videoUrl ? 'Video attached' : 'No video chosen (MP4, WebM, MOV)'}
                           </span>
                         )}
 

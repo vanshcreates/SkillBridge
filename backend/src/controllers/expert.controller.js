@@ -205,6 +205,11 @@ export const createExpertCourse = async (req, res) => {
     const validLevels = ["Beginner", "Intermediate", "Advanced", "All levels"];
     const sanitizedLevel = validLevels.includes(level) ? level : "Beginner";
 
+    const calculatedDuration =
+      calculateTotalDurationFromLessons(sanitizedLessons) ||
+      duration?.trim() ||
+      "Flexible";
+
     const course = await Course.create({
       expert: expert._id,
       instructor: expert.name,
@@ -212,7 +217,7 @@ export const createExpertCourse = async (req, res) => {
       title: title.trim(),
       category: category.trim(),
       description: description.trim(),
-      duration: duration?.trim() || "4 weeks",
+      duration: calculatedDuration,
       level: sanitizedLevel,
       thumbnail: thumbnailUrl,
       iconName: req.body.iconName || "GraduationCap",
@@ -292,6 +297,9 @@ export const updateExpertCourse = async (req, res) => {
           description: (l.description || "").trim(),
         }));
       }
+      course.duration = duration?.trim() || calculateTotalDurationFromLessons(course.lessons);
+    } else if (duration?.trim()) {
+      course.duration = duration.trim();
     }
 
     if (outcomes !== undefined) {
@@ -454,6 +462,37 @@ export const getCourseLessons = async (req, res) => {
   }
 };
 
+export const parseDurationToSeconds = (str) => {
+  if (!str || typeof str !== "string") return 0;
+  const s = str.toLowerCase().trim();
+  let total = 0;
+  const hrMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:hr|hour|h)/);
+  if (hrMatch) total += parseFloat(hrMatch[1]) * 3600;
+
+  const minMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:min|minute|m)(?!s)/);
+  if (minMatch) total += parseFloat(minMatch[1]) * 60;
+
+  const secMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:sec|second|s)(?!e)/);
+  if (secMatch) total += parseFloat(secMatch[1]);
+
+  if (total === 0) {
+    const num = parseFloat(s);
+    if (!isNaN(num) && num > 0) total = num;
+  }
+  return Math.round(total);
+};
+
+export const calculateTotalDurationFromLessons = (lessons) => {
+  if (!Array.isArray(lessons) || lessons.length === 0) return "Flexible";
+  let totalSecs = 0;
+  for (const l of lessons) {
+    if (l && l.duration) {
+      totalSecs += parseDurationToSeconds(l.duration);
+    }
+  }
+  return totalSecs > 0 ? formatDuration(totalSecs) : "Flexible";
+};
+
 export const formatDuration = (seconds) => {
   if (!seconds || isNaN(seconds) || Number(seconds) <= 0) return "";
   const totalSecs = Math.round(Number(seconds));
@@ -557,6 +596,7 @@ export const addCourseLesson = async (req, res) => {
       description: (description || "").trim(),
     });
 
+    course.duration = calculateTotalDurationFromLessons(course.lessons);
     await course.save();
 
     return res.status(201).json({
@@ -610,6 +650,7 @@ export const updateCourseLesson = async (req, res) => {
     if (duration !== undefined) lesson.duration = duration.trim();
     if (description !== undefined) lesson.description = description.trim();
 
+    course.duration = calculateTotalDurationFromLessons(course.lessons);
     await course.save();
 
     return res.status(200).json({
@@ -653,6 +694,7 @@ export const deleteCourseLesson = async (req, res) => {
       });
     }
 
+    course.duration = calculateTotalDurationFromLessons(course.lessons);
     await course.save();
 
     return res.status(200).json({

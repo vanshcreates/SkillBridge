@@ -99,6 +99,33 @@ export function getVideoDuration(file) {
 }
 
 /**
+ * Parses duration string (e.g. "1 hr 20 min", "15 min", "45 sec", "750s") into total seconds
+ * @param {string} str
+ * @returns {number} seconds
+ */
+export function parseDurationToSeconds(str) {
+  if (!str || typeof str !== 'string') return 0
+  const s = str.toLowerCase().trim()
+  let total = 0
+
+  const hrMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:hr|hour|h)/)
+  if (hrMatch) total += parseFloat(hrMatch[1]) * 3600
+
+  const minMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:min|minute|m)(?!s)/)
+  if (minMatch) total += parseFloat(minMatch[1]) * 60
+
+  const secMatch = s.match(/(\d+(?:\.\d+)?)\s*(?:sec|second|s)(?!e)/)
+  if (secMatch) total += parseFloat(secMatch[1])
+
+  if (total === 0) {
+    const num = parseFloat(s)
+    if (!isNaN(num) && num > 0) total = num
+  }
+
+  return Math.round(total)
+}
+
+/**
  * Formats duration in seconds into a friendly string: "45 sec", "12 min", "1 hr 15 min"
  * @param {number|string} seconds
  * @returns {string}
@@ -117,4 +144,22 @@ export function formatDuration(seconds) {
     return secs > 10 ? `${mins} min ${secs} sec` : `${mins} min`
   }
   return `${secs} sec`
+}
+
+/**
+ * Calculates total course duration from an array of lessons
+ * @param {Array} lessons
+ * @returns {string} formatted total duration
+ */
+export function calculateTotalCourseDuration(lessons) {
+  if (!Array.isArray(lessons) || lessons.length === 0) return ''
+  let totalSecs = 0
+  for (const lesson of lessons) {
+    if (lesson?.durationSeconds && lesson.durationSeconds > 0) {
+      totalSecs += Number(lesson.durationSeconds)
+    } else if (lesson?.duration) {
+      totalSecs += parseDurationToSeconds(lesson.duration)
+    }
+  }
+  return totalSecs > 0 ? formatDuration(totalSecs) : ''
 }
