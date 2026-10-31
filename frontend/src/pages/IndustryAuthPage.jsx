@@ -3,6 +3,7 @@ import { BellRing, Building2 } from 'lucide-react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import IndustryLayout from '../components/layout/IndustryLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
+import { getAccountHomePath } from '../utils/account-routing'
 import {
   authenticateUser,
   saveRegisteredUser,
@@ -22,8 +23,8 @@ const IndustryAuthPage = () => {
   const navigate = useNavigate()
   const isSignup = mode === 'signup'
 
-  if (currentUser?.accountType === 'industry') {
-    return <Navigate replace to="/industry/dashboard" />
+  if (currentUser) {
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   const handleSubmit = async (event) => {

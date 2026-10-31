@@ -46,7 +46,12 @@ const AuthDialogProvider = ({ children }) => {
     }
   }, [])
 
-  const openAuth = useCallback((authMode) => setMode(authMode), [])
+  const openAuth = useCallback(
+    (authMode) => {
+      if (!currentUser) setMode(authMode)
+    },
+    [currentUser],
+  )
   const closeAuth = useCallback(() => setMode(null), [])
   const authenticate = useCallback((user) => {
     saveSessionUser(user)
@@ -56,6 +61,7 @@ const AuthDialogProvider = ({ children }) => {
   const logout = useCallback(() => {
     clearSessionUser()
     setCurrentUser(null)
+    setMode(null)
   }, [])
 
   const value = useMemo(
@@ -66,7 +72,7 @@ const AuthDialogProvider = ({ children }) => {
   return (
     <AuthDialogContext.Provider value={value}>
       {children}
-      {mode && (
+      {mode && !currentUser && (
         <AuthPage
           key={mode}
           mode={mode}

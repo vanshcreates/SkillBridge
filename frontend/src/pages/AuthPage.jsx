@@ -84,6 +84,7 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
           accountType: 'customer',
         })
         onAuthenticate(user)
+        navigate('/profile', { replace: true })
         return
       }
 
@@ -96,6 +97,7 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
         throw new Error('Email or password is incorrect.')
       }
       onAuthenticate(user)
+      navigate('/profile', { replace: true })
     } catch (error) {
       setNotice(error.message || 'Unable to authenticate. Please try again.')
       setNoticeIsError(true)

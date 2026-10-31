@@ -1,19 +1,13 @@
 import React from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
+import { getAccountHomePath } from '../../utils/account-routing'
 import { Button } from '../ui/Button'
 
 
 const Nav = ({ variant = 'home', cartCount = 0 }) => {
   const { openAuth, currentUser, logout } = useAuthDialog()
-  const profilePath =
-    currentUser?.accountType === 'artisan'
-      ? '/artisan/profile'
-      : currentUser?.accountType === 'expert'
-        ? '/expert/dashboard'
-        : currentUser?.accountType === 'industry'
-          ? '/industry/dashboard'
-          : '/profile'
+  const profilePath = getAccountHomePath(currentUser)
 
   if (variant === 'marketplace') {
     return (

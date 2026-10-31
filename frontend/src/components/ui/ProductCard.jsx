@@ -7,6 +7,7 @@ import { useAuthDialog } from '../../hooks/useAuthDialog'
 const ProductCard = ({ product, onAddToCart }) => {
   const { currentUser } = useAuthDialog()
   const isCustomer = currentUser && (currentUser.accountType ?? 'customer') === 'customer'
+  const isAnotherAccountType = currentUser && !isCustomer
   const [saved, setSaved] = useState(false)
   const [imageUnavailable, setImageUnavailable] = useState(false)
   const productUrl = `/marketplace/products/${getProductSlug(product.name)}`
@@ -93,6 +94,7 @@ const ProductCard = ({ product, onAddToCart }) => {
             aria-label={`Add ${product.name} to bag`}
             className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-primary px-3 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
             disabled={
+              isAnotherAccountType ||
               product.stock === 0 ||
               (Number.isFinite(product.stock) &&
                 product.cartQuantity >= product.stock)
@@ -101,6 +103,8 @@ const ProductCard = ({ product, onAddToCart }) => {
             title={
               product.stock === 0
                 ? 'This product is out of stock'
+                : isAnotherAccountType
+                  ? 'Log out before switching to a customer account'
                 : product.cartQuantity >= product.stock
                   ? 'You have added all available items to your bag'
                   : undefined
@@ -110,6 +114,8 @@ const ProductCard = ({ product, onAddToCart }) => {
             <ShoppingBag aria-hidden="true" className="h-4 w-4" />
             {product.stock === 0
               ? 'Out of stock'
+              : isAnotherAccountType
+                ? 'Customer account only'
               : Number.isFinite(product.stock) &&
                   product.cartQuantity >= product.stock
                 ? 'All in bag'
