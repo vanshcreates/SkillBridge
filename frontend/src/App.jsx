@@ -12,6 +12,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const OrderHistory = lazy(() => import('./pages/OrderHistory'))
 const ArtisanAuthPage = lazy(() => import('./pages/ArtisanAuthPage'))
 const ArtisanProfilePage = lazy(() => import('./pages/ArtisanProfilePage'))
+const ArtisanCoursePage = lazy(() => import('./pages/ArtisanCoursePage'))
 const ExpertAuthPage = lazy(() => import('./pages/ExpertAuthPage'))
 const ExpertDashboardPage = lazy(() => import('./pages/ExpertDashboardPage'))
 const IndustryAuthPage = lazy(() => import('./pages/IndustryAuthPage'))
@@ -34,6 +35,10 @@ const App = () => {
               <Route path="/story-of-art" element={<StoryOfArtPage />} />
               <Route path="/artisan/auth" element={<ArtisanAuthPage />} />
               <Route path="/artisan/profile" element={<ArtisanProfilePage />} />
+              <Route
+                path="/artisan/courses/:courseId"
+                element={<ArtisanCoursePage />}
+              />
               <Route path="/expert/auth" element={<ExpertAuthPage />} />
               <Route path="/expert/dashboard" element={<ExpertDashboardPage />} />
               <Route path="/industry/auth" element={<IndustryAuthPage />} />
