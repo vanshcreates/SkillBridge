@@ -24,6 +24,7 @@ import {
 import ExpertLayout from '../components/layout/ExpertLayout'
 import CourseVideo from '../components/training/CourseVideo'
 import { useAuthDialog } from '../hooks/useAuthDialog'
+import { getAccountHomePath } from '../utils/account-routing'
 import {
   getExpertDashboardApi,
   getExpertCoursesApi,
@@ -177,7 +178,7 @@ const ExpertDashboardPage = () => {
     return <Navigate replace to="/expert/auth" />
   }
   if (currentUser.accountType !== 'expert') {
-    return <Navigate replace to="/marketplace" />
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   // Start editing an existing course

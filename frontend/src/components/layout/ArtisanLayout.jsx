@@ -2,10 +2,14 @@ import { BriefcaseBusiness, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import ProfileImageControl from '../profile/ProfileImageControl'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
+import { usePreventBack } from '../../hooks/usePreventBack'
 
 const ArtisanLayout = ({ children }) => {
   const { currentUser, logout } = useAuthDialog()
   const navigate = useNavigate()
+
+  // Prevent browser back button from navigating out of the artisan workspace
+  usePreventBack(Boolean(currentUser && currentUser.accountType === 'artisan'))
 
   const handleLogout = () => {
     logout()

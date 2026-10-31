@@ -28,6 +28,7 @@ import { Link } from 'react-router-dom'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import ProfileImageControl from '../components/profile/ProfileImageControl'
 import { useAuthDialog } from '../hooks/useAuthDialog'
+import { getAccountHomePath } from '../utils/account-routing'
 import {
   getArtisanDashboardApi,
   getArtisanShopApi,
@@ -185,7 +186,7 @@ const ArtisanProfilePage = () => {
     return <Navigate replace to="/artisan/auth" />
   }
   if (currentUser.accountType !== 'artisan') {
-    return <Navigate replace to="/marketplace" />
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
   }
 
   const activeSectionInfo = sections.find(

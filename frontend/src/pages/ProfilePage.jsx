@@ -1,6 +1,12 @@
+<<<<<<< HEAD
 import { useEffect, useState } from 'react'
 import { ArrowLeft, CheckCircle, Edit2, LogOut, MapPin, Save, UserRound, X } from 'lucide-react'
 import { Link } from 'react-router-dom'
+=======
+import { ArrowLeft, LogOut, MapPin, UserRound } from 'lucide-react'
+import { Link, Navigate } from 'react-router-dom'
+import { getAccountHomePath } from '../utils/account-routing'
+>>>>>>> 7c8c0d86dd75d0e65e512f87c7d99f506219c90e
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import OrderHistorySection from '../components/profile/OrderHistorySection'
 import ProfileImageControl from '../components/profile/ProfileImageControl'
@@ -85,6 +91,7 @@ const ProfilePage = () => {
     )
   }
 
+<<<<<<< HEAD
   const location = [displayUser?.city, displayUser?.state].filter(Boolean).join(', ')
 
   const handleEditSubmit = async (e) => {
@@ -115,6 +122,13 @@ const ProfilePage = () => {
       setSaving(false)
     }
   }
+=======
+  if (currentUser.accountType !== 'customer') {
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
+  }
+
+  const location = [currentUser.city, currentUser.state].filter(Boolean).join(', ')
+>>>>>>> 7c8c0d86dd75d0e65e512f87c7d99f506219c90e
 
   return (
     <MarketplaceLayout>

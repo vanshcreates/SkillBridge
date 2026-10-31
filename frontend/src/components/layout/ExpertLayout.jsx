@@ -2,10 +2,14 @@ import { GraduationCap, LayoutDashboard, LogOut } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import ProfileImageControl from '../profile/ProfileImageControl'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
+import { usePreventBack } from '../../hooks/usePreventBack'
 
 const ExpertLayout = ({ children }) => {
   const { currentUser, logout } = useAuthDialog()
   const navigate = useNavigate()
+
+  // Prevent browser back button from navigating out of the expert studio
+  usePreventBack(Boolean(currentUser && currentUser.accountType === 'expert'))
 
   const handleLogout = () => {
     logout()
@@ -54,13 +58,6 @@ const ExpertLayout = ({ children }) => {
                 </button>
               </>
             )}
-            <Link
-              className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2 sm:px-4"
-              to="/expert/dashboard"
-            >
-              <LayoutDashboard aria-hidden="true" className="h-4 w-4" />
-              <span className="hidden sm:inline">Studio</span>
-            </Link>
           </div>
         </div>
       </header>

@@ -1,7 +1,9 @@
 import { lazy, Suspense } from 'react'
 import { CartProvider } from './context/CartContext'
 import AuthDialogProvider from './context/AuthDialogProvider'
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { useAuthDialog } from './hooks/useAuthDialog'
+import { getAccountHomePath } from './utils/account-routing'
 
 const Home = lazy(() => import('./pages/Home'))
 const Marketplace = lazy(() => import('./pages/Marketplace'))
@@ -22,6 +24,18 @@ const FindArtisansPage = lazy(() => import('./pages/FindArtisansPage'))
 const StoryOfArtPage = lazy(() => import('./pages/StoryOfArtPage'))
 const AboutUsPage = lazy(() => import('./pages/AboutUsPage'))
 
+/**
+ * Route guard that redirects logged-in users directly to their active role's dashboard.
+ * Prevents authenticated users from returning to public marketing or authentication pages.
+ */
+const GuestOnlyRoute = ({ children }) => {
+  const { currentUser } = useAuthDialog()
+  if (currentUser) {
+    return <Navigate replace to={getAccountHomePath(currentUser)} />
+  }
+  return children
+}
+
 const App = () => {
   return (
     <BrowserRouter>
@@ -31,20 +45,80 @@ const App = () => {
             fallback={<p className="p-8 text-center" role="status">Loading page…</p>}
           >
             <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/artisans" element={<FindArtisansPage />} />
-              <Route path="/story-of-art" element={<StoryOfArtPage />} />
-              <Route path="/about-us" element={<AboutUsPage />} />
-              <Route path="/artisan/auth" element={<ArtisanAuthPage />} />
+              {/* Public & marketing routes - guarded from authenticated users */}
+              <Route
+                path="/"
+                element={
+                  <GuestOnlyRoute>
+                    <Home />
+                  </GuestOnlyRoute>
+                }
+              />
+              <Route
+                path="/artisans"
+                element={
+                  <GuestOnlyRoute>
+                    <FindArtisansPage />
+                  </GuestOnlyRoute>
+                }
+              />
+              <Route
+                path="/story-of-art"
+                element={
+                  <GuestOnlyRoute>
+                    <StoryOfArtPage />
+                  </GuestOnlyRoute>
+                }
+              />
+              <Route
+                path="/about-us"
+                element={
+                  <GuestOnlyRoute>
+                    <AboutUsPage />
+                  </GuestOnlyRoute>
+                }
+              />
+
+              {/* Role Auth Pages - guarded from already logged-in users */}
+              <Route
+                path="/artisan/auth"
+                element={
+                  <GuestOnlyRoute>
+                    <ArtisanAuthPage />
+                  </GuestOnlyRoute>
+                }
+              />
+              <Route
+                path="/expert/auth"
+                element={
+                  <GuestOnlyRoute>
+                    <ExpertAuthPage />
+                  </GuestOnlyRoute>
+                }
+              />
+              <Route
+                path="/industry/auth"
+                element={
+                  <GuestOnlyRoute>
+                    <IndustryAuthPage />
+                  </GuestOnlyRoute>
+                }
+              />
+
+              {/* Artisan Workspace */}
               <Route path="/artisan/profile" element={<ArtisanProfilePage />} />
               <Route
                 path="/artisan/courses/:courseId"
                 element={<ArtisanCoursePage />}
               />
-              <Route path="/expert/auth" element={<ExpertAuthPage />} />
+
+              {/* Expert Workspace */}
               <Route path="/expert/dashboard" element={<ExpertDashboardPage />} />
-              <Route path="/industry/auth" element={<IndustryAuthPage />} />
+
+              {/* Industry Workspace */}
               <Route path="/industry/dashboard" element={<IndustryDashboardPage />} />
+
+              {/* Customer Marketplace & Orders */}
               <Route path="/marketplace" element={<Marketplace />} />
               <Route path="/marketplace/products/:slug" element={<ProductDetail />} />
               <Route path="/marketplace/order-summary" element={<OrderSummary />} />
@@ -54,6 +128,8 @@ const App = () => {
                 path="/marketplace/order-confirmation"
                 element={<OrderConfirmation />}
               />
+
+              {/* 404 Catch-All */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
           </Suspense>
