@@ -1,5 +1,6 @@
 import { Building2, LogOut, Store } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import ProfileImageControl from '../profile/ProfileImageControl'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
 
 const IndustryLayout = ({ children }) => {
@@ -36,6 +37,7 @@ const IndustryLayout = ({ children }) => {
           <div className="flex items-center gap-3 sm:gap-5">
             {currentUser?.accountType === 'industry' && (
               <>
+                <ProfileImageControl user={currentUser} size="small" />
                 <div className="hidden text-right sm:block">
                   <p className="max-w-40 truncate text-sm font-semibold text-text-main">
                     {currentUser.name}

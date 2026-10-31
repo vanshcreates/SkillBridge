@@ -2,12 +2,17 @@ import { useState } from 'react'
 import { BellRing, Building2 } from 'lucide-react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import IndustryLayout from '../components/layout/IndustryLayout'
+import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getAccountHomePath } from '../utils/account-routing'
 import {
   authenticateUser,
   saveRegisteredUser,
 } from '../utils/user-storage'
+import {
+  readProfileImageFile,
+  saveProfileImage,
+} from '../utils/artisan-profile-storage'
 
 const inputClass =
   'mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-3 text-text-main outline-none transition placeholder:text-text-muted focus:border-secondary focus:ring-2 focus:ring-secondary/25'
@@ -40,6 +45,9 @@ const IndustryAuthPage = () => {
         if (password !== formData.get('confirmPassword')) {
           throw new Error('The passwords do not match.')
         }
+        const profileImage = await readProfileImageFile(
+          formData.get('profileImage'),
+        )
         user = await saveRegisteredUser({
           accountType: 'industry',
           name: formData.get('companyName'),
@@ -50,6 +58,7 @@ const IndustryAuthPage = () => {
           companyAddress: formData.get('companyAddress'),
           password,
         })
+        if (profileImage) saveProfileImage(user, profileImage)
       } else {
         user = await authenticateUser(
           formData.get('email'),
@@ -185,6 +194,7 @@ const IndustryAuthPage = () => {
                   type="email"
                 />
               </label>
+              {isSignup && <ProfileImageSignupField className="sm:col-span-2" />}
               {isSignup && (
                 <label className="block text-sm font-medium text-text-main sm:col-span-2">
                   Organization location
