@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   ArrowLeft,
   Bot,
@@ -38,6 +38,33 @@ const ArtisanAuthPage = () => {
   const { currentUser, authenticate } = useAuthDialog()
   const navigate = useNavigate()
   const isSignup = mode === 'signup'
+  useEffect(() => {
+    const handleVoiceSignup = () => {
+      setMode('signup')
+      setRegistrationMethod('voice')
+    }
+    const handleLoginSwitch = () => {
+      setMode('login')
+    }
+    window.addEventListener('open-voice-signup', handleVoiceSignup)
+    window.addEventListener('switch-to-artisan-login', handleLoginSwitch)
+    return () => {
+      window.removeEventListener('open-voice-signup', handleVoiceSignup)
+      window.removeEventListener('switch-to-artisan-login', handleLoginSwitch)
+    }
+  }, [])
+
+  useEffect(() => {
+    const urlMode = searchParams.get('mode')
+    if (urlMode === 'login' || urlMode === 'signup') {
+      setMode(urlMode)
+    }
+    const urlMethod = searchParams.get('method')
+    if (urlMethod === 'voice' || urlMethod === 'form') {
+      setRegistrationMethod(urlMethod)
+    }
+  }, [searchParams])
+
 
   if (currentUser) {
     return <Navigate replace to={getAccountHomePath(currentUser)} />

@@ -57,7 +57,10 @@ SUPPORTED INTENTS:
 21. HELP: Help on features ("How to add product?", "How do payments work?")
 22. AFFIRMATION: Confirmation ("Yes", "Haan", "Confirm", "Sahi hai", "Theek hai", "ਹਾਂ")
 23. NEGATION: Rejection / cancellation ("No", "Cancel", "Nahi", "Mat karo", "ਰੱਦ ਕਰੋ", "ਨਹੀਂ")
-24. UNKNOWN: Unrelated or general conversation.
+24. LOGIN_HELP: Help with logging in ("How to login", "Artisan login", "Customer login", "ਲੌਗਇਨ ਕਰੋ") - Entities: { role?: "artisan" | "customer" | "expert" | "industry" }
+25. SIGNUP_HELP: Help registering or starting voice registration ("Register as artisan", "Voice signup", "ਰਜਿਸਟਰ ਕਰੋ", "Account banana hai") - Entities: { role?: "artisan" | "customer" | "expert" | "industry", isVoice?: boolean }
+26. NAVIGATE: Navigate across platform ("Go to marketplace", "Craft courses", "About us", "ਮਾਰਕੀਟਪਲੇਸ") - Entities: { destination?: "marketplace" | "courses" | "about" | "artisans" }
+27. UNKNOWN: Unrelated or general conversation.
 
 RETURN JSON SCHEMA ONLY:
 {
@@ -187,7 +190,88 @@ export function deterministicIntentMatcher(message = "") {
     return { intent: "NEGATION", entities: {}, detectedLanguage, confidence: 0.99 };
   }
 
-  // 1. EARNINGS & PAYMENTS (earn, earned, earnings, kamai, kamaya, payout, payment, paise)
+  // 1. LOGIN & SIGNUP (Checked first so 'Industry login' or 'Account banana' are recognized correctly)
+  if (
+    lower.includes("login") ||
+    lower.includes("log in") ||
+    lower.includes("sign in") ||
+    lower.includes("signin") ||
+    raw.includes("ਲੌਗਇਨ") ||
+    raw.includes("लॉगिन")
+  ) {
+    const role = lower.includes("artisan") || raw.includes("ਦਸਤਕਾਰ") || raw.includes("ਕਾਰੀਗਰ")
+      ? "artisan"
+      : lower.includes("industry") || lower.includes("factory") || raw.includes("ਉਦਯੋਗ")
+      ? "industry"
+      : lower.includes("expert") || raw.includes("ਮਾਹਿਰ")
+      ? "expert"
+      : "customer";
+
+    return {
+      intent: "LOGIN_HELP",
+      entities: { role },
+      detectedLanguage,
+      confidence: 0.95,
+    };
+  }
+
+  if (
+    lower.includes("register") ||
+    lower.includes("signup") ||
+    lower.includes("sign up") ||
+    lower.includes("account banana") ||
+    lower.includes("create account") ||
+    lower.includes("new account") ||
+    lower.includes("registration") ||
+    lower.includes("voice signup") ||
+    raw.includes("ਰਜਿਸਟਰ") ||
+    raw.includes("ਰਜਿਸਟ੍ਰੇਸ਼ਨ") ||
+    raw.includes("रजिस्टर")
+  ) {
+    const role = lower.includes("industry") || raw.includes("ਉਦਯੋਗ")
+      ? "industry"
+      : lower.includes("expert") || raw.includes("ਮਾਹਿਰ")
+      ? "expert"
+      : lower.includes("customer")
+      ? "customer"
+      : "artisan";
+
+    const isVoice = lower.includes("voice") || lower.includes("bol") || raw.includes("ਬੋਲ") || raw.includes("बोल");
+
+    return {
+      intent: "SIGNUP_HELP",
+      entities: { role, isVoice },
+      detectedLanguage,
+      confidence: 0.95,
+    };
+  }
+
+  // 2. NAVIGATION
+  if (
+    lower.includes("marketplace") ||
+    lower.includes("shop page") ||
+    lower.includes("courses") ||
+    lower.includes("about us") ||
+    lower.includes("meet artisans") ||
+    raw.includes("ਮਾਰਕੀਟਪਲੇਸ")
+  ) {
+    const destination = lower.includes("course")
+      ? "courses"
+      : lower.includes("about")
+      ? "about"
+      : lower.includes("artisan")
+      ? "artisans"
+      : "marketplace";
+
+    return {
+      intent: "NAVIGATE",
+      entities: { destination },
+      detectedLanguage,
+      confidence: 0.92,
+    };
+  }
+
+  // 3. EARNINGS & PAYMENTS (earn, earned, earnings, kamai, kamaya, payout, payment, paise)
   if (
     lower.includes("earn") ||
     lower.includes("kamai") ||
@@ -457,7 +541,7 @@ export function deterministicIntentMatcher(message = "") {
     return { intent: "NOTIFICATIONS_GET", entities: {}, detectedLanguage, confidence: 0.95 };
   }
 
-  // 9. HELP
+  // 10. HELP
   if (lower.includes("help") || lower.includes("madad") || lower.includes("kaise") || lower.includes("how to") || raw.includes("ਮਦਦ")) {
     return { intent: "HELP", entities: {}, detectedLanguage, confidence: 0.9 };
   }

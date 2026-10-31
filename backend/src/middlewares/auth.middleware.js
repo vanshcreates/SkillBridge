@@ -93,3 +93,50 @@ export const requireCustomer = requireRoles("customer");
 export const requireArtisan = requireRoles("artisan");
 export const requireExpert = requireRoles("expert");
 export const requireIndustry = requireRoles("industry");
+
+/**
+ * Optional JWT authentication middleware
+ * Attaches req.user if a valid token is provided; otherwise leaves req.user = null and continues.
+ */
+export const optionalJWT = async (req, res, next) => {
+  try {
+    const authHeader = req.header("Authorization") || req.header("authorization");
+    let token = null;
+
+    if (authHeader && authHeader.startsWith("Bearer ")) {
+      token = authHeader.replace("Bearer ", "").trim();
+    } else if (authHeader) {
+      token = authHeader.trim();
+    } else if (req.cookies?.token) {
+      token = req.cookies.token;
+    } else if (req.cookies?.accessToken) {
+      token = req.cookies.accessToken;
+    } else if (req.body?.token) {
+      token = req.body.token;
+    } else if (req.query?.token) {
+      token = req.query.token;
+    }
+
+    if (!token) {
+      req.user = null;
+      return next();
+    }
+
+    const secret = process.env.JWT_SECRET || "byteforce_super_secret_jwt_key_2026";
+    let decoded;
+    try {
+      decoded = jwt.verify(token, secret);
+    } catch {
+      req.user = null;
+      return next();
+    }
+
+    const userId = decoded._id || decoded.id;
+    const user = await User.findById(userId);
+    req.user = user || null;
+    next();
+  } catch {
+    req.user = null;
+    next();
+  }
+};

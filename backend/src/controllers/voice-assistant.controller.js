@@ -26,7 +26,7 @@ function cleanForSpeech(text = "") {
 export const handleVoiceAssistantMessage = async (req, res) => {
   try {
     const { message, conversationHistory = [], pendingAction = null, language = "pa" } = req.body || {};
-    const artisanUser = req.user;
+    const artisanUser = req.user && req.user.accountType === "artisan" ? req.user : null;
 
     if (!message || typeof message !== "string" || !message.trim()) {
       return res.status(400).json({
@@ -37,14 +37,14 @@ export const handleVoiceAssistantMessage = async (req, res) => {
 
     const trimmedMsg = message.trim();
 
-    // Fetch current artisan shop for context
-    const shop = await Shop.findOne({ artisan: artisanUser._id });
+    // Fetch current artisan shop for context if logged in as artisan
+    const shop = artisanUser ? await Shop.findOne({ artisan: artisanUser._id }) : null;
 
     // Step 1: Check if there is an active pendingAction awaiting confirmation or cancellation
     if (pendingAction && pendingAction.type) {
       const intentCheck = await parseArtisanIntent(trimmedMsg, {
-        name: artisanUser.name,
-        id: artisanUser._id.toString(),
+        name: artisanUser?.name || "Guest",
+        id: artisanUser?._id ? artisanUser._id.toString() : "",
         shopName: shop?.name || "",
       });
 
@@ -89,8 +89,8 @@ export const handleVoiceAssistantMessage = async (req, res) => {
 
     // Step 2: Parse Intent & Entities from message
     const parsed = await parseArtisanIntent(trimmedMsg, {
-      name: artisanUser.name,
-      id: artisanUser._id.toString(),
+      name: artisanUser?.name || "Guest",
+      id: artisanUser?._id ? artisanUser._id.toString() : "",
       shopName: shop?.name || "",
     });
 
@@ -101,6 +101,26 @@ export const handleVoiceAssistantMessage = async (req, res) => {
     switch (parsed.intent) {
       // --- A. PROFILE MANAGEMENT ---
       case "PROFILE_GET": {
+        if (!artisanUser) {
+          const reqLogin =
+            lang === "pa"
+              ? "ਇਹ ਜਾਣਕਾਰੀ ਦੇਖਣ ਲਈ ਤੁਹਾਨੂੰ ਪਹਿਲਾਂ ਆਪਣੇ ਦਸਤਕਾਰ ਖਾਤੇ ਵਿੱਚ ਲੌਗਇਨ ਕਰਨਾ ਪਵੇਗਾ। ਕੀ ਮੈਂ ਤੁਹਾਨੂੰ ਲੌਗਇਨ ਪੇਜ 'ਤੇ ਲੈ ਜਾਵਾਂ?"
+              : lang === "hi"
+              ? "यह जानकारी देखने के लिए कृपया पहले कारीगर खाते में लॉगिन करें। क्या आप लॉगिन पेज पर जाना चाहते हैं?"
+              : "To view your profile and manage products, please log in to your artisan account first.";
+
+          return res.status(200).json({
+            success: true,
+            reply: reqLogin,
+            speechText: cleanForSpeech(reqLogin),
+            actionData: {
+              navigation: {
+                label: "Go to Artisan Login (ਲੌਗਇਨ ਕਰੋ)",
+                path: "/artisan/auth?mode=login",
+              },
+            },
+          });
+        }
         const profileReply =
           lang === "pa"
             ? `ਤੁਹਾਡਾ ਨਾਂ ${artisanUser.name} ਹੈ। ਫੋਨ ਨੰਬਰ: ${artisanUser.phone || "ਨਹੀਂ ਦੱਸਿਆ"}। ਸ਼ਹਿਰ: ${artisanUser.city || "ਪੰਜਾਬ"}। ਹੁਨਰ: ${artisanUser.artCategory || "ਦਸਤਕਾਰੀ"}। ਦੁਕਾਨ ਦਾ ਨਾਂ: ${shop?.name || "ਮੇਰੀ ਦੁਕਾਨ"}।`
@@ -169,6 +189,27 @@ export const handleVoiceAssistantMessage = async (req, res) => {
 
       // --- B. PRODUCT MANAGEMENT ---
       case "PRODUCT_ADD": {
+        if (!artisanUser) {
+          const addLogin =
+            lang === "pa"
+              ? "ਉਤਪਾਦ ਜੋੜਨ ਲਈ ਤੁਹਾਨੂੰ ਪਹਿਲਾਂ ਆਪਣੇ ਦਸਤਕਾਰ ਖਾਤੇ ਵਿੱਚ ਲੌਗਇਨ ਜਾਂ ਰਜਿਸਟਰ ਕਰਨਾ ਪਵੇਗਾ। ਕੀ ਤੁਸੀਂ ਰਜਿਸਟਰ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ?"
+              : lang === "hi"
+              ? "उत्पाद लिस्ट करने के लिए कृपया पहले कारीगर के रूप में लॉगिन या रजिस्टर करें।"
+              : "To add products, please log in or register as an artisan first.";
+
+          return res.status(200).json({
+            success: true,
+            reply: addLogin,
+            speechText: cleanForSpeech(addLogin),
+            actionData: {
+              navigation: {
+                label: "Voice Register as Artisan (ਬੋਲ ਕੇ ਰਜਿਸਟਰ ਕਰੋ)",
+                path: "/artisan/auth?mode=signup&method=voice",
+                triggerVoiceSignup: true,
+              },
+            },
+          });
+        }
         const initialData = {
           title: entities.title || "",
           price: entities.price,
@@ -181,6 +222,23 @@ export const handleVoiceAssistantMessage = async (req, res) => {
       }
 
       case "PRODUCT_LIST": {
+        if (!artisanUser) {
+          const allProds = await Product.find({ isPublished: true }).limit(6);
+          const listReply =
+            lang === "pa"
+              ? `ਸਕਿੱਲਬ੍ਰਿਜ 'ਤੇ ਉਪਲਬਧ ਉਤਪਾਦ: ${allProds.slice(0, 3).map((p) => p.title).join(", ")}। ਮਾਰਕੀਟਪਲੇਸ ਵਿੱਚ ਹੋਰ ਦੇਖੋ।`
+              : `Here are featured crafts on SkillBridge: ${allProds.slice(0, 3).map((p) => p.title).join(", ")}. Explore marketplace for more.`;
+
+          return res.status(200).json({
+            success: true,
+            reply: listReply,
+            speechText: cleanForSpeech(listReply),
+            actionData: {
+              products: allProds.map((p) => p.toSafeObject()),
+              navigation: { label: "Explore Marketplace", path: "/marketplace" },
+            },
+          });
+        }
         const products = await Product.find({ artisan: artisanUser._id }).sort({ createdAt: -1 });
 
         if (products.length === 0) {
@@ -343,6 +401,26 @@ export const handleVoiceAssistantMessage = async (req, res) => {
 
       // --- C. ORDER MANAGEMENT ---
       case "ORDER_LIST": {
+        if (!artisanUser) {
+          const reqLogin =
+            lang === "pa"
+              ? "ਇਹ ਜਾਣਕਾਰੀ ਦੇਖਣ ਲਈ ਤੁਹਾਨੂੰ ਪਹਿਲਾਂ ਆਪਣੇ ਦਸਤਕਾਰ ਖਾਤੇ ਵਿੱਚ ਲੌਗਇਨ ਕਰਨਾ ਪਵੇਗਾ। ਕੀ ਮੈਂ ਤੁਹਾਨੂੰ ਲੌਗਇਨ ਪੇਜ 'ਤੇ ਲੈ ਜਾਵਾਂ?"
+              : lang === "hi"
+              ? "यह जानकारी देखने के लिए कृपया पहले कारीगर खाते में लॉगिन करें। क्या आप लॉगिन पेज पर जाना चाहते हैं?"
+              : "To view your profile and manage products, please log in to your artisan account first.";
+
+          return res.status(200).json({
+            success: true,
+            reply: reqLogin,
+            speechText: cleanForSpeech(reqLogin),
+            actionData: {
+              navigation: {
+                label: "Go to Artisan Login (ਲੌਗਇਨ ਕਰੋ)",
+                path: "/artisan/auth?mode=login",
+              },
+            },
+          });
+        }
         const filter = { "items.artisanId": artisanUser._id };
         const orders = await Order.find(filter).sort({ createdAt: -1 });
         const formatted = orders.map((o) => o.toArtisanOrder(artisanUser._id));
@@ -485,6 +563,26 @@ export const handleVoiceAssistantMessage = async (req, res) => {
       case "PAYMENT_SUMMARY":
       case "PAYMENT_PENDING":
       case "PAYMENT_HISTORY": {
+        if (!artisanUser) {
+          const reqLogin =
+            lang === "pa"
+              ? "ਇਹ ਜਾਣਕਾਰੀ ਦੇਖਣ ਲਈ ਤੁਹਾਨੂੰ ਪਹਿਲਾਂ ਆਪਣੇ ਦਸਤਕਾਰ ਖਾਤੇ ਵਿੱਚ ਲੌਗਇਨ ਕਰਨਾ ਪਵੇਗਾ। ਕੀ ਮੈਂ ਤੁਹਾਨੂੰ ਲੌਗਇਨ ਪੇਜ 'ਤੇ ਲੈ ਜਾਵਾਂ?"
+              : lang === "hi"
+              ? "यह जानकारी देखने के लिए कृपया पहले कारीगर खाते में लॉगिन करें। क्या आप लॉगिन पेज पर जाना चाहते हैं?"
+              : "To view your profile and manage products, please log in to your artisan account first.";
+
+          return res.status(200).json({
+            success: true,
+            reply: reqLogin,
+            speechText: cleanForSpeech(reqLogin),
+            actionData: {
+              navigation: {
+                label: "Go to Artisan Login (ਲੌਗਇਨ ਕਰੋ)",
+                path: "/artisan/auth?mode=login",
+              },
+            },
+          });
+        }
         const orders = await Order.find({ "items.artisanId": artisanUser._id });
         const formattedOrders = orders.map((o) => o.toArtisanOrder(artisanUser._id));
 
@@ -537,6 +635,26 @@ export const handleVoiceAssistantMessage = async (req, res) => {
 
       // --- E. DASHBOARD & BUSINESS SUMMARY ---
       case "DASHBOARD_SUMMARY": {
+        if (!artisanUser) {
+          const reqLogin =
+            lang === "pa"
+              ? "ਇਹ ਜਾਣਕਾਰੀ ਦੇਖਣ ਲਈ ਤੁਹਾਨੂੰ ਪਹਿਲਾਂ ਆਪਣੇ ਦਸਤਕਾਰ ਖਾਤੇ ਵਿੱਚ ਲੌਗਇਨ ਕਰਨਾ ਪਵੇਗਾ। ਕੀ ਮੈਂ ਤੁਹਾਨੂੰ ਲੌਗਇਨ ਪੇਜ 'ਤੇ ਲੈ ਜਾਵਾਂ?"
+              : lang === "hi"
+              ? "यह जानकारी देखने के लिए कृपया पहले कारीगर खाते में लॉगिन करें। क्या आप लॉगिन पेज पर जाना चाहते हैं?"
+              : "To view your profile and manage products, please log in to your artisan account first.";
+
+          return res.status(200).json({
+            success: true,
+            reply: reqLogin,
+            speechText: cleanForSpeech(reqLogin),
+            actionData: {
+              navigation: {
+                label: "Go to Artisan Login (ਲੌਗਇਨ ਕਰੋ)",
+                path: "/artisan/auth?mode=login",
+              },
+            },
+          });
+        }
         const [totalProducts, orders, projects] = await Promise.all([
           Product.countDocuments({ artisan: artisanUser._id }),
           Order.find({ "items.artisanId": artisanUser._id }),
@@ -646,6 +764,112 @@ export const handleVoiceAssistantMessage = async (req, res) => {
           reply: replyN,
           speechText: cleanForSpeech(replyN),
           actionData: { notifications: notifs },
+        });
+      }      // --- LOGIN, SIGNUP & NAVIGATION ---
+      case "LOGIN_HELP": {
+        const role = entities.role || "artisan";
+        let targetUrl = "/artisan/auth?mode=login";
+        let roleLabel = "Artisan (ਦਸਤਕਾਰ)";
+        if (role === "industry") {
+          targetUrl = "/industry/auth?mode=login";
+          roleLabel = "Industry Partner (ਉਦਯੋਗ)";
+        } else if (role === "expert") {
+          targetUrl = "/expert/auth?mode=login";
+          roleLabel = "Expert (ਮਾਹਿਰ)";
+        } else if (role === "customer") {
+          targetUrl = "/marketplace";
+          roleLabel = "Customer";
+        }
+
+        const reply =
+          lang === "pa"
+            ? `${roleLabel} ਲੌਗਇਨ ਲਈ ਮੈਂ ਤੁਹਾਨੂੰ ਲੌਗਇਨ ਪੇਜ 'ਤੇ ਲੈ ਜਾਂਦਾ ਹਾਂ। ਹੇਠਾਂ ਦਿੱਤੇ ਬਟਨ 'ਤੇ ਕਲਿੱਕ ਕਰੋ।`
+            : lang === "hi"
+            ? `${roleLabel} लॉगिन के लिए मैं आपको लॉगिन पेज पर ले चलता हूँ।`
+            : `To log in as ${roleLabel}, click the button below.`;
+
+        return res.status(200).json({
+          success: true,
+          reply,
+          speechText: cleanForSpeech(reply),
+          pendingAction: null,
+          actionData: {
+            navigation: {
+              label: `${roleLabel} Login`,
+              path: targetUrl,
+              openAuth: role === "customer" ? "login" : undefined,
+            },
+          },
+        });
+      }
+
+      case "SIGNUP_HELP": {
+        const role = entities.role || "artisan";
+
+        if (role === "artisan") {
+          const reply =
+            lang === "pa"
+              ? "ਦਸਤਕਾਰ ਵਜੋਂ ਤੁਸੀਂ ਸਿਰਫ਼ ਬੋਲ ਕੇ ਰਜਿਸਟਰ ਕਰ ਸਕਦੇ ਹੋ! ਮੈਂ ਵਾਇਸ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਸਹਾਇਕ ਖੋਲ੍ਹ ਰਿਹਾ ਹਾਂ।"
+              : lang === "hi"
+              ? "कारीगर के रूप में आप सीधे बोलकर रजिस्ट्रेशन कर सकते हैं! मैं वॉइस रजिस्ट्रेशन शुरू कर रहा हूँ।"
+              : "As an artisan, you can register simply by speaking! Launching voice registration assistant.";
+
+          return res.status(200).json({
+            success: true,
+            reply,
+            speechText: cleanForSpeech(reply),
+            pendingAction: null,
+            actionData: {
+              navigation: {
+                label: "Voice Registration (ਬੋਲ ਕੇ ਰਜਿਸਟਰ ਕਰੋ)",
+                path: "/artisan/auth?mode=signup&method=voice",
+                triggerVoiceSignup: true,
+              },
+            },
+          });
+        }
+
+        const targetUrl = role === "industry" ? "/industry/auth?mode=signup" : role === "expert" ? "/expert/auth?mode=signup" : "/marketplace";
+        const roleLabel = role === "industry" ? "Industry" : role === "expert" ? "Expert" : "Customer";
+        const reply = `Navigating to ${roleLabel} registration.`;
+
+        return res.status(200).json({
+          success: true,
+          reply,
+          speechText: cleanForSpeech(reply),
+          actionData: {
+            navigation: {
+              label: `${roleLabel} Signup`,
+              path: targetUrl,
+              openAuth: role === "customer" ? "signup" : undefined,
+            },
+          },
+        });
+      }
+
+      case "NAVIGATE": {
+        const dest = entities.destination || "marketplace";
+        let targetUrl = "/marketplace";
+        let label = "Explore Marketplace (ਮਾਰਕੀਟਪਲੇਸ)";
+        if (dest === "courses") {
+          targetUrl = "/artisan/courses/all";
+          label = "Craft Courses (ਕੋਰਸ)";
+        } else if (dest === "about") {
+          targetUrl = "/about-us";
+          label = "About SkillBridge (ਸਾਡੇ ਬਾਰੇ)";
+        } else if (dest === "artisans") {
+          targetUrl = "/artisans";
+          label = "Meet Artisans (ਦਸਤਕਾਰਾਂ ਨੂੰ ਮਿਲੋ)";
+        }
+
+        const reply = lang === "pa" ? `ਮੈਂ ਤੁਹਾਨੂੰ ${label} ਪੇਜ 'ਤੇ ਲੈ ਚੱਲਦਾ ਹਾਂ।` : `Navigating to ${label}.`;
+        return res.status(200).json({
+          success: true,
+          reply,
+          speechText: cleanForSpeech(reply),
+          actionData: {
+            navigation: { label, path: targetUrl },
+          },
         });
       }
 

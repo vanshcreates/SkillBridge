@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   AlertCircle,
   ArrowRight,
@@ -21,6 +21,8 @@ import {
 import RobotAvatar from './RobotAvatar'
 import VoiceWaveform from './VoiceWaveform'
 import { sendVoiceAssistantMessageApi } from '../../services/voice-api'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { useAuthDialog } from '../../hooks/useAuthDialog'
 
 const LANGUAGE_LOCALES = {
   pa: 'pa-IN',
@@ -34,20 +36,93 @@ const LANGUAGES = [
   { code: 'en', name: 'English', label: 'English', flag: '🇬🇧' },
 ]
 
-const ArtisanVoiceAssistantDrawer = ({ isOpen, onClose, user }) => {
+function getWelcomeContent(lang, activeUser, path = '') {
+  if (activeUser?.accountType === 'artisan') {
+    return {
+      text:
+        lang === 'pa'
+          ? `ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ${activeUser.name} ਜੀ! ਮੈਂ ਤੁਹਾਡਾ ਸਕਿੱਲਬ੍ਰਿਜ ਸਹਾਇਕ ਹਾਂ। ਤੁਸੀਂ ਮੈਨੂੰ ਆਵਾਜ਼ ਵਿੱਚ ਕਹਿ ਸਕਦੇ ਹੋ: 'ਨਵਾਂ ਉਤਪਾਦ ਜੋੜੋ', 'ਪੈਂਡਿੰਗ ਆਰਡਰ ਦਿਖਾਓ', 'ਕਮਾਈ ਚੈੱਕ ਕਰੋ', ਜਾਂ 'ਉਦਯੋਗ ਪ੍ਰੋਜੈਕਟ ਲੱਭੋ'!`
+          : lang === 'hi'
+          ? `नमस्ते ${activeUser.name} जी! मैं आपका सहायक हूँ। आप बोल सकते हैं: 'नया उत्पाद जोड़ो', 'पेंडिंग ऑर्डर बताओ', 'कमाई चेक करो', या 'उद्योग प्रोजेक्ट ढूँढो'!`
+          : `Hello ${activeUser.name}! I am your assistant. You can speak commands like 'Add product', 'Check pending orders', 'What are my earnings?', or 'Find industrialists'!`,
+      speechText:
+        lang === 'pa'
+          ? `ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ${activeUser.name} ਜੀ! ਮੈਂ ਤੁਹਾਡਾ ਸਕਿੱਲਬ੍ਰਿਜ ਸਹਾਇਕ ਹਾਂ। ਤੁਸੀਂ ਮੈਨੂੰ ਉਤਪਾਦ ਜੋੜਨ, ਆਰਡਰ ਦੇਖਣ ਜਾਂ ਕਮਾਈ ਚੈੱਕ ਕਰਨ ਲਈ ਕਹਿ ਸਕਦੇ ਹੋ।`
+          : `Hello ${activeUser.name}! I am your assistant. How can I help you today?`,
+    }
+  }
+
+  if (path.includes('/artisan/auth')) {
+    return {
+      text:
+        lang === 'pa'
+          ? "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਜੀ! ਮੈਂ ਤੁਹਾਡਾ ਸਕਿੱਲਬ੍ਰਿਜ ਮੈਸਕੌਟ ਤੇ ਸਹਾਇਕ ਹਾਂ। ਕੀ ਤੁਸੀਂ ਦਸਤਕਾਰ ਵਜੋਂ ਬੋਲ ਕੇ ਰਜਿਸਟਰ ਕਰਨਾ ਜਾਂ ਲੌਗਇਨ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ? ਮੈਂ ਤੁਹਾਡੀ ਹਰ ਕੰਮ ਵਿੱਚ ਮਦਦ ਕਰਾਂਗਾ।"
+          : lang === 'hi'
+          ? "नमस्ते जी! मैं आपका स्किलब्रिज सहायक हूँ। क्या आप बोलकर रजिस्ट्रेशन या लॉगिन करना चाहते हैं? मैं आपकी पूरी मदद करूँगा।"
+          : "Hello! Welcome to Artisan Onboarding. You can register hands-free simply by speaking, or ask for login assistance.",
+      speechText:
+        lang === 'pa'
+          ? "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਜੀ! ਕੀ ਤੁਸੀਂ ਦਸਤਕਾਰ ਵਜੋਂ ਰਜਿਸਟਰ ਕਰਨਾ ਜਾਂ ਲੌਗਇਨ ਕਰਨਾ ਚਾਹੁੰਦੇ ਹੋ? ਮੈਂ ਤੁਹਾਡੀ ਮਦਦ ਕਰਾਂਗਾ।"
+          : "Hello! Need help logging in or registering by voice? Talk to me directly.",
+    }
+  }
+
+  if (path.includes('/industry/auth')) {
+    return {
+      text:
+        lang === 'pa'
+          ? "ਜੀ ਆਇਆਂ ਨੂੰ! ਉਦਯੋਗਿਕ ਭਾਈਵਾਲੀ, ਬਲਕ ਆਰਡਰਾਂ ਜਾਂ ਲੌਗਇਨ ਬਾਰੇ ਕੁਝ ਵੀ ਪੁੱਛੋ।"
+          : "Welcome Industry Partners! Ask me about B2B collaborations, bulk artisan contracts, or logging in.",
+      speechText: "Welcome! How can I assist you with industrial partnerships today?",
+    }
+  }
+
+  if (path.includes('/expert/auth')) {
+    return {
+      text:
+        lang === 'pa'
+          ? "ਜੀ ਆਇਆਂ ਨੂੰ! ਮਾਹਿਰ ਰਜਿਸਟ੍ਰੇਸ਼ਨ ਜਾਂ ਲੌਗਇਨ ਵਿੱਚ ਮਦਦ ਲਈ ਮੈਨੂੰ ਪੁੱਛੋ।"
+          : "Welcome to Expert Onboarding! Ask me anything about registering, logging in, or sharing your craft courses.",
+      speechText: "Welcome! Ask me for help registering or logging in as an expert.",
+    }
+  }
+
+  return {
+    text:
+      lang === 'pa'
+        ? "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਜੀ! ਮੈਂ ਸਕਿੱਲਬ੍ਰਿਜ ਸਹਾਇਕ ਹਾਂ। ਤੁਸੀਂ ਮੈਨੂੰ ਲੌਗਇਨ, ਰਜਿਸਟ੍ਰੇਸ਼ਨ, ਮਾਰਕੀਟਪਲੇਸ ਜਾਂ ਦਸਤਕਾਰਾਂ ਬਾਰੇ ਪੁੱਛ ਸਕਦੇ ਹੋ।"
+        : lang === 'hi'
+        ? "नमस्ते जी! मैं स्किलब्रिज सहायक हूँ। आप मुझसे लॉगिन, रजिस्ट्रेशन, मार्केटप्लेस या किसी भी काम के बारे में पूछ सकते हैं।"
+        : "Hello! I am your SkillBridge mascot & assistant. Ask me how to log in, register as an artisan, explore products, or connect with industries!",
+    speechText:
+      lang === 'pa'
+        ? "ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ਜੀ! ਮੈਂ ਸਕਿੱਲਬ੍ਰਿਜ ਸਹਾਇਕ ਹਾਂ। ਮੈਂ ਤੁਹਾਡੀ ਹਰ ਕੰਮ ਵਿੱਚ ਮਦਦ ਕਰਾਂਗਾ।"
+        : "Hello! I am your SkillBridge assistant. I can help you with anything across the platform.",
+  }
+}
+
+
+const ArtisanVoiceAssistantDrawer = ({ isOpen, onClose, user: propUser }) => {
   const [language, setLanguage] = useState('pa')
-  const [messages, setMessages] = useState([
-    {
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { openAuth, currentUser } = useAuthDialog()
+
+  const activeUser = propUser || currentUser
+  const pathname = location?.pathname || ''
+
+  const initialWelcome = useMemo(() => {
+    const welcome = getWelcomeContent(language, activeUser, pathname)
+    return {
       id: 'welcome',
       sender: 'assistant',
-      text:
-        language === 'pa'
-          ? `ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ${user?.name || ''} ਜੀ! ਮੈਂ ਤੁਹਾਡਾ ਸਕਿੱਲਬ੍ਰਿਜ ਸਹਾਇਕ ਹਾਂ। ਤੁਸੀਂ ਮੈਨੂੰ ਆਵਾਜ਼ ਵਿੱਚ ਕਹਿ ਸਕਦੇ ਹੋ: 'ਮੇਰੇ ਉਤਪਾਦ ਦਿਖਾਓ', 'ਪੈਂਡਿੰਗ ਆਰਡਰ ਦਿਖਾਓ', 'ਕਮਾਈ ਚੈੱਕ ਕਰੋ', ਜਾਂ 'ਨਵਾਂ ਉਤਪਾਦ ਜੋੜੋ'!`
-          : `नमस्ते ${user?.name || ''} जी! मैं आपका सहायक हूँ। आप बोल सकते हैं: 'मेरे उत्पाद दिखाओ', 'पेंडिंग ऑर्डर बताओ', 'कमाई चेक करो', या 'नया उत्पाद जोड़ो'।`,
-      speechText: `ਸਤਿ ਸ੍ਰੀ ਅਕਾਲ ${user?.name || ''} ਜੀ! ਮੈਂ ਤੁਹਾਡਾ ਸਕਿੱਲਬ੍ਰਿਜ ਸਹਾਇਕ ਹਾਂ। ਤੁਸੀਂ ਮੈਨੂੰ ਉਤਪਾਦ ਜੋੜਨ, ਆਰਡਰ ਦੇਖਣ ਜਾਂ ਕਮਾਈ ਚੈੱਕ ਕਰਨ ਲਈ ਕਹਿ ਸਕਦੇ ਹੋ।`,
+      text: welcome.text,
+      speechText: welcome.speechText,
       actionData: null,
-    },
-  ])
+    }
+  }, [language, activeUser, pathname])
+
+  const [messages, setMessages] = useState([initialWelcome])
 
   const [inputMessage, setInputMessage] = useState('')
   const [liveTranscript, setLiveTranscript] = useState('')
@@ -57,6 +132,28 @@ const ArtisanVoiceAssistantDrawer = ({ isOpen, onClose, user }) => {
   const [lastSpokenText, setLastSpokenText] = useState('')
   const [micError, setMicError] = useState('')
   const [isMuted, setIsMuted] = useState(false)
+
+  // Refresh welcome message if opened on a new page or language changed
+  useEffect(() => {
+    if (isOpen) {
+      setMessages((prev) => {
+        if (prev.length <= 1) {
+          const fresh = getWelcomeContent(language, activeUser, pathname)
+          return [
+            {
+              id: 'welcome',
+              sender: 'assistant',
+              text: fresh.text,
+              speechText: fresh.speechText,
+              actionData: null,
+            },
+          ]
+        }
+        return prev
+      })
+    }
+  }, [isOpen, language, activeUser, pathname])
+
 
   const chatBottomRef = useRef(null)
   const recognitionRef = useRef(null)
@@ -309,6 +406,70 @@ const ArtisanVoiceAssistantDrawer = ({ isOpen, onClose, user }) => {
     }
   }, [language, robotState, stopAudio, handleSendMessage])
 
+  
+  const handleNavigationAction = useCallback(
+    (nav) => {
+      if (!nav) return
+      stopAudio()
+      onClose()
+
+      if (nav.triggerVoiceSignup) {
+        if (pathname.includes('/artisan/auth')) {
+          window.dispatchEvent(new CustomEvent('open-voice-signup'))
+        } else {
+          navigate('/artisan/auth?mode=signup&method=voice')
+        }
+        return
+      }
+
+      if (nav.openAuth && openAuth) {
+        openAuth(nav.openAuth)
+        return
+      }
+
+      if (nav.path) {
+        navigate(nav.path)
+      }
+    },
+    [stopAudio, onClose, pathname, navigate, openAuth]
+  )
+
+  const suggestionChips = useMemo(() => {
+    if (activeUser?.accountType === 'artisan') {
+      return [
+        { label: '📦 ਨਵਾਂ ਉਤਪਾਦ (Add Product)', command: 'Add a new product' },
+        { label: '📋 ਪੈਂਡਿੰਗ ਆਰਡਰ (Pending Orders)', command: 'Show my pending orders' },
+        { label: '💰 ਕੁੱਲ ਕਮਾਈ (Earnings)', command: 'How much have I earned?' },
+        { label: '🏭 ਉਦਯੋਗ ਪ੍ਰੋਜੈਕਟ (Industries)', command: 'Find industrialists' },
+      ]
+    }
+    if (pathname.includes('/artisan/auth')) {
+      return [
+        { label: '🎙️ ਬੋਲ ਕੇ ਰਜਿਸਟਰ ਕਰੋ (Voice Register)', command: 'I want to register as an artisan with voice' },
+        { label: '🔑 ਲੌਗਇਨ ਕਰੋ (Artisan Login)', command: 'I want to log in as an artisan' },
+        { label: 'ℹ️ ਸਕਿੱਲਬ੍ਰਿਜ ਕੀ ਹੈ? (What is SkillBridge?)', command: 'What is SkillBridge?' },
+      ]
+    }
+    if (pathname.includes('/industry/auth')) {
+      return [
+        { label: '🏭 B2B ਪ੍ਰੋਜੈਕਟ (Projects)', command: 'Find open industrial projects' },
+        { label: '🔑 ਲੌਗਇਨ (Industry Login)', command: 'Industry login help' },
+      ]
+    }
+    if (pathname.includes('/expert/auth')) {
+      return [
+        { label: '🎓 ਕੋਰਸ ਸਿਖਾਓ (Teach Craft)', command: 'How to teach craft courses?' },
+        { label: '🔑 ਲੌਗਇਨ (Expert Login)', command: 'Expert login' },
+      ]
+    }
+    return [
+      { label: '👩‍🎨 ਦਸਤਕਾਰ ਰਜਿਸਟ੍ਰੇਸ਼ਨ (Artisan Signup)', command: 'I want to register as an artisan' },
+      { label: '🛍️ ਮਾਰਕੀਟਪਲੇਸ (Marketplace)', command: 'Explore marketplace products' },
+      { label: '🏭 ਉਦਯੋਗ ਪ੍ਰੋਜੈਕਟ (Industry Hub)', command: 'Find industrialists' },
+      { label: '❓ ਮਦਦ (Help)', command: 'Help me with SkillBridge' },
+    ]
+  }, [activeUser, pathname])
+
   if (!isOpen) return null
 
   return (
@@ -491,6 +652,30 @@ const ArtisanVoiceAssistantDrawer = ({ isOpen, onClose, user }) => {
                   )}
 
                   {/* Earnings Summary Card */}
+                  
+                  {/* Action / Navigation Shortcut Card */}
+                  {msg.actionData.navigation && (
+                    <div className="mt-2.5 rounded-xl border border-primary/25 bg-primary/5 p-3 flex items-center justify-between gap-3 shadow-2xs">
+                      <div>
+                        <p className="text-xs font-bold text-text-main flex items-center gap-1.5">
+                          <Sparkles className="h-3.5 w-3.5 text-secondary" />
+                          <span>{msg.actionData.navigation.label}</span>
+                        </p>
+                        <p className="text-[11px] text-text-secondary mt-0.5">
+                          Click to open directly
+                        </p>
+                      </div>
+                      <button
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-primary-hover active:scale-95 transition cursor-pointer"
+                        onClick={() => handleNavigationAction(msg.actionData.navigation)}
+                        type="button"
+                      >
+                        <span>Open</span>
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
                   {msg.actionData.totalEarned !== undefined && (
                     <div className="grid grid-cols-2 gap-2 rounded-xl border border-emerald-300 bg-emerald-50/70 p-3 text-xs">
                       <div>
@@ -567,6 +752,21 @@ const ArtisanVoiceAssistantDrawer = ({ isOpen, onClose, user }) => {
         {/* 4. Footer Interactive Controls */}
         <div className="border-t border-border/80 bg-surface p-3 sm:p-4 space-y-2">
           {/* Quick Voice Controls: Big Mic Button & Replay */}
+          
+          {/* Quick Voice Suggestion Chips */}
+          <div className="flex flex-wrap gap-1.5 justify-center pb-1">
+            {suggestionChips.map((chip) => (
+              <button
+                key={chip.label}
+                className="inline-flex items-center gap-1 rounded-full border border-border/80 bg-surface-muted/80 px-2.5 py-1 text-[0.68rem] font-semibold text-text-secondary hover:text-primary hover:border-primary/50 transition cursor-pointer"
+                onClick={() => handleSendMessage(chip.command)}
+                type="button"
+              >
+                <span>{chip.label}</span>
+              </button>
+            ))}
+          </div>
+
           <div className="flex items-center justify-center gap-4">
             {/* Replay last audio button */}
             <button
