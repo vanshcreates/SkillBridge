@@ -11,7 +11,11 @@ import { Link, Navigate, useNavigate } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { useCart } from '../hooks/useCart'
-import { getLatestSavedAddress, saveDeliveryAddress } from '../utils/user-storage'
+import {
+  createMarketplaceOrderApi,
+  getCustomerAddressesApi,
+  addCustomerAddressApi,
+} from '../services/marketplace-api'
 
 const formatPrice = (price) => `₹${price.toLocaleString('en-IN')}`
 const fieldClass =
@@ -19,37 +23,70 @@ const fieldClass =
 
 const OrderSummary = () => {
   const navigate = useNavigate()
-  const { items, itemCount, subtotal, updateQuantity, removeFromCart, placeOrderRequest } =
-    useCart()
+  const {
+    items,
+    itemCount,
+    subtotal,
+    updateQuantity,
+    removeFromCart,
+    clearCart,
+  } = useCart()
   const { currentUser, openAuth } = useAuthDialog()
   const [savedAddress, setSavedAddress] = useState(null)
   const [addressLoadComplete, setAddressLoadComplete] = useState(false)
   const [formError, setFormError] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
   const shipping = subtotal === 0 || subtotal >= 1500 ? 0 : 99
+  const isCustomer =
+    currentUser && (currentUser.accountType ?? 'customer') === 'customer'
+
+  useEffect(() => {
+    let isMounted = true
+    setAddressLoadComplete(false)
+    if (!isCustomer) {
+      setSavedAddress(null)
+      setAddressLoadComplete(true)
+      return () => {
+        isMounted = false
+      }
+    }
+
+    const loadAddress = async () => {
+      try {
+        const response = await getCustomerAddressesApi()
+        if (response?.success && Array.isArray(response.addresses)) {
+          if (isMounted) {
+            setSavedAddress(
+              response.addresses.find((address) => address.isDefault) ||
+                response.addresses[0] ||
+                null,
+            )
+            setFormError('')
+          }
+        }
+      } catch (error) {
+        console.warn(
+          'Unable to load customer addresses from backend:',
+          error.message,
+        )
+      } finally {
+        if (isMounted) setAddressLoadComplete(true)
+      }
+    }
+
+    loadAddress()
+    return () => {
+      isMounted = false
+    }
+  }, [currentUser, isCustomer])
+
   if (currentUser && currentUser.accountType !== 'customer') {
     if (currentUser.accountType === 'artisan') return <Navigate replace to="/artisan/profile" />
     if (currentUser.accountType === 'expert') return <Navigate replace to="/expert/dashboard" />
     if (currentUser.accountType === 'industry') return <Navigate replace to="/industry/dashboard" />
   }
 
-  const isCustomer =
-    currentUser && (currentUser.accountType ?? 'customer') === 'customer'
-
-  useEffect(() => {
-    setAddressLoadComplete(false)
-    try {
-      setSavedAddress(getLatestSavedAddress(currentUser))
-      setFormError('')
-    } catch (error) {
-      console.error('Unable to load the saved delivery address.', error)
-      setSavedAddress(null)
-      setFormError(error.message)
-    } finally {
-      setAddressLoadComplete(true)
-    }
-  }, [currentUser])
-
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     if (!isCustomer) {
       openAuth('login')
@@ -59,13 +96,44 @@ const OrderSummary = () => {
     setFormError('')
     const formData = new FormData(event.currentTarget)
     const customer = Object.fromEntries(formData.entries())
+    setIsSubmitting(true)
     try {
-      saveDeliveryAddress(currentUser, customer)
-      const order = placeOrderRequest(customer, currentUser)
+      const databaseProductIdPattern = /^[0-9a-f]{24}$/i
+      const hasDatabaseProducts = items.every((item) =>
+        databaseProductIdPattern.test(item.id || item._id || ''),
+      )
+      if (!hasDatabaseProducts) {
+        throw new Error(
+          'Sample listings cannot be ordered. Remove them from your bag and choose published marketplace products.',
+        )
+      }
+
+      const response = await createMarketplaceOrderApi({
+        items: items.map((item) => ({
+          productId: item.id || item._id,
+          quantity: item.quantity,
+        })),
+        shippingAddress: customer,
+        note: customer.note,
+      })
+      if (!response?.success || !response.order) {
+        throw new Error(response?.message || 'Unable to place your order.')
+      }
+
+      const order = {
+        ...response.order,
+        customer: response.order.customer || customer,
+        total: response.order.total ?? response.order.totalAmount,
+      }
+      // Persist address to backend for customer profile if not already saved
+      addCustomerAddressApi(customer).catch(() => {})
+      clearCart()
       navigate('/marketplace/order-confirmation', { state: { order } })
     } catch (error) {
       console.error('Unable to save the order request.', error)
       setFormError(error.message)
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -358,18 +426,16 @@ const OrderSummary = () => {
                 </p>
               )}
               <p className="mt-5 rounded-lg border border-border bg-background p-3 text-xs leading-5 text-text-muted">
-                Demo only: sample prices and delivery estimate. Your order
-                request and delivery details are saved in this browser and can
-                be reviewed from the matching artisan profile on this device.
-                No remote notification or payment is sent.
+                Prices and delivery are confirmed when your request is placed.
+                No payment is taken at this stage.
               </p>
               <button
                 className="mt-5 inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
-                disabled={!addressLoadComplete}
+                disabled={!addressLoadComplete || isSubmitting}
                 type="submit"
               >
                 <ShoppingBag aria-hidden="true" className="h-4 w-4" />
-                Send order request
+                {isSubmitting ? 'Sending request…' : 'Send order request'}
               </button>
             </aside>
           </form>

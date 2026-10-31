@@ -9,10 +9,6 @@ import {
   authenticateUser,
   saveRegisteredUser,
 } from '../utils/user-storage'
-import {
-  readProfileImageFile,
-  saveProfileImage,
-} from '../utils/artisan-profile-storage'
 
 const inputClass =
   'mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-3 text-text-main outline-none transition placeholder:text-text-muted focus:border-secondary focus:ring-2 focus:ring-secondary/25'
@@ -59,7 +55,6 @@ const IndustryAuthPage = () => {
           signupPayload.append('avatar', profileImageFile)
         }
         user = await saveRegisteredUser(signupPayload)
-        if (user?.avatar) saveProfileImage(user, user.avatar)
       } else {
         user = await authenticateUser(
           formData.get('email'),

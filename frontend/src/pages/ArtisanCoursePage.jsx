@@ -11,44 +11,20 @@ import { Link, Navigate, useParams } from 'react-router-dom'
 import CourseVideo from '../components/training/CourseVideo'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
-import { getExpertCourses } from '../utils/training-storage'
 import { baseCourses } from '../data/training-courses'
 import { getArtisanCourseByIdApi } from '../services/artisan-api'
-
-function readCourses() {
-  try {
-    return {
-      courses: getExpertCourses().map((course) => ({
-        ...course,
-        lessons: (course.lessons ?? []).map((lesson) =>
-          typeof lesson === 'string'
-            ? { title: lesson, videoUrl: '' }
-            : lesson,
-        ),
-        outcomes: Array.isArray(course.outcomes) ? course.outcomes : [],
-      })),
-      error: '',
-    }
-  } catch (error) {
-    console.error('Unable to load training courses.', error)
-    return {
-      courses: [],
-      error: error.message || 'This course could not be loaded.',
-    }
-  }
-}
 
 const ArtisanCoursePage = () => {
   const { courseId } = useParams()
   const { currentUser } = useAuthDialog()
   const [selectedLessonIndex, setSelectedLessonIndex] = useState(0)
-  const { courses: localExpertCourses, error: localError } = useMemo(readCourses, [])
   const [liveCourse, setLiveCourse] = useState(null)
   const [isLoading, setIsLoading] = useState(false)
   const [apiError, setApiError] = useState('')
 
-  const courses = [...baseCourses, ...localExpertCourses]
-  const initialCourse = courses.find((entry) => entry.id === courseId || entry._id === courseId)
+  const initialCourse = baseCourses.find(
+    (entry) => entry.id === courseId || entry._id === courseId,
+  )
 
   useEffect(() => {
     let isMounted = true
@@ -97,7 +73,7 @@ const ArtisanCoursePage = () => {
             Course not found
           </h1>
           <p className="mt-3 leading-7 text-text-secondary">
-            {apiError || localError || 'This course may have been removed or its link may be incorrect.'}
+            {apiError || 'This course may have been removed or its link may be incorrect.'}
           </p>
           <Link
             className="mt-6 inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white hover:bg-primary-hover"

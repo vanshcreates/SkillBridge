@@ -2,6 +2,7 @@ import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
 import { User } from "../models/user.model.js";
 import { Shop } from "../models/shop.model.js";
+import mongoose from "mongoose";
 
 // @desc    Get published marketplace products (Customer only)
 // @route   GET /api/marketplace/products
@@ -98,70 +99,165 @@ export const getMarketplaceProductById = async (req, res) => {
 export const createMarketplaceOrder = async (req, res) => {
   try {
     const customer = req.user;
-    const { items, shippingAddress, subtotal, shipping, total, note } = req.body;
+    const { items, shippingAddress, note } = req.body;
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({
         success: false,
         message: "Your cart is empty. Please add items before placing an order.",
       });
     }
+    if (items.length > 50) {
+      return res.status(400).json({
+        success: false,
+        message: "An order cannot contain more than 50 products.",
+      });
+    }
+
+    const requiredAddressFields = [
+      "fullName",
+      "phone",
+      "email",
+      "address",
+      "city",
+      "state",
+      "postalCode",
+    ];
+    const normalizedAddress = {};
+    for (const field of requiredAddressFields) {
+      const value = shippingAddress?.[field];
+      if (typeof value !== "string" || !value.trim()) {
+        return res.status(400).json({
+          success: false,
+          message: `A valid ${field} is required for delivery.`,
+        });
+      }
+      normalizedAddress[field] = value.trim();
+    }
+
+    const quantitiesByProduct = new Map();
+    for (const item of items) {
+      const productId = item?.productId;
+      const quantity = Number(item?.quantity);
+      if (!mongoose.Types.ObjectId.isValid(productId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Your bag contains a product that is not available for online checkout.",
+        });
+      }
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 99) {
+        return res.status(400).json({
+          success: false,
+          message: "Each product quantity must be between 1 and 99.",
+        });
+      }
+      quantitiesByProduct.set(
+        productId,
+        (quantitiesByProduct.get(productId) || 0) + quantity,
+      );
+    }
 
     const orderItems = [];
-    for (const item of items) {
-      // Find matching product in DB if possible
-      let artisanId = item.artisanId;
-      if (!artisanId && item.productId && /^[0-9a-fA-F]{24}$/.test(item.productId)) {
-        const prod = await Product.findById(item.productId);
-        if (prod) artisanId = prod.artisan;
+    for (const [productId, quantity] of quantitiesByProduct) {
+      const product = await Product.findOne({
+        _id: productId,
+        $or: [{ status: "Published" }, { isPublished: true }],
+      })
+        .populate("artisan", "name")
+        .populate("shop", "location");
+
+      if (!product) {
+        return res.status(404).json({
+          success: false,
+          message: "A product in your bag is no longer available.",
+        });
+      }
+      if (product.stock < quantity) {
+        return res.status(409).json({
+          success: false,
+          message: `${product.title} has only ${product.stock} item(s) available.`,
+        });
+      }
+      if (!product.artisan?._id) {
+        return res.status(409).json({
+          success: false,
+          message: `${product.title} is not available for ordering right now.`,
+        });
       }
 
       orderItems.push({
-        product: item.productId && /^[0-9a-fA-F]{24}$/.test(item.productId) ? item.productId : null,
-        title: item.title || item.name || "Handmade Product",
-        name: item.name || item.title || "Handmade Product",
-        category: item.category || "Handmade",
-        price: Number(item.price) || 0,
-        quantity: Number(item.quantity) || 1,
-        image: item.image || "",
-        artisanId: artisanId || customer._id, // fallback
-        artisanName: item.artisan || "SkillBridge Artisan",
+        product: product._id,
+        title: product.title,
+        name: product.title,
+        category: product.category,
+        price: product.price,
+        quantity,
+        image: product.image || product.images?.[0] || "",
+        artisanId: product.artisan._id,
+        artisanName: product.artisan.name || "SkillBridge Artisan",
         itemStatus: "Awaiting response",
       });
     }
 
-    const totalAmount = Number(total) || Number(subtotal) + Number(shipping || 0);
+    const calculatedSubtotal = orderItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const calculatedShipping = calculatedSubtotal >= 1500 ? 0 : 99;
+    const totalAmount = calculatedSubtotal + calculatedShipping;
 
     const order = await Order.create({
       customer: customer._id,
-      customerName: shippingAddress?.fullName || customer.name,
-      customerEmail: shippingAddress?.email || customer.email,
-      customerPhone: shippingAddress?.phone || customer.phone || "",
+      customerName: normalizedAddress.fullName,
+      customerEmail: normalizedAddress.email,
+      customerPhone: normalizedAddress.phone,
       items: orderItems,
       shippingAddress: {
-        fullName: shippingAddress?.fullName || customer.name,
-        phone: shippingAddress?.phone || customer.phone || "",
-        email: shippingAddress?.email || customer.email,
-        address: shippingAddress?.address || "",
-        city: shippingAddress?.city || "",
-        state: shippingAddress?.state || "",
-        postalCode: shippingAddress?.postalCode || "",
-        note: note || "",
+        ...normalizedAddress,
+        note: typeof note === "string" ? note.trim() : "",
       },
-      subtotal: Number(subtotal) || 0,
-      shipping: Number(shipping) || 0,
+      subtotal: calculatedSubtotal,
+      shipping: calculatedShipping,
       totalAmount,
-      paymentStatus: "paid", // or pending depending on payment flow
+      paymentStatus: "pending",
       orderStatus: "Awaiting response",
       source: "marketplace",
-      note: note || "",
+      note: typeof note === "string" ? note.trim() : "",
     });
 
     return res.status(201).json({
       success: true,
       message: "Order placed successfully.",
       orderId: order.orderNumber,
-      order,
+      order: {
+        id: order.orderNumber || order._id.toString(),
+        _id: order._id.toString(),
+        orderNumber: order.orderNumber,
+        status: order.orderStatus,
+        totalAmount: order.totalAmount,
+        subtotal: order.subtotal,
+        shipping: order.shipping,
+        total: order.totalAmount,
+        paymentStatus: order.paymentStatus,
+        source: order.source,
+        items: order.items.map((item) => ({
+          id: item._id.toString(),
+          productId: item.product.toString(),
+          name: item.name,
+          title: item.title,
+          category: item.category,
+          price: item.price,
+          quantity: item.quantity,
+          image: item.image,
+          artisan: item.artisanName,
+          artisanName: item.artisanName,
+          itemStatus: item.itemStatus,
+        })),
+        customer: normalizedAddress,
+        shippingAddress: order.shippingAddress,
+        note: order.note,
+        createdAt: order.createdAt,
+      },
     });
   } catch (error) {
     console.error("Create order error:", error);
@@ -193,4 +289,3 @@ export const getCustomerOrders = async (req, res) => {
     });
   }
 };
-

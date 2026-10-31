@@ -1,18 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { Camera, Loader2, UserRound, X } from 'lucide-react'
-import {
-  getProfileImage,
-  PROFILE_IMAGE_CHANGED_EVENT,
-  readProfileImageFile,
-  removeProfileImage,
-  saveProfileImage,
-} from '../../utils/artisan-profile-storage'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
 import {
-  uploadArtisanProfilePhotoApi,
-  removeArtisanProfilePhotoApi,
-} from '../../services/artisan-api'
-import { getAuthToken } from '../../services/auth-api'
+  uploadProfilePhotoApi,
+  removeProfilePhotoApi,
+} from '../../services/auth-api'
 
 const sizes = {
   small: 'h-10 w-10 text-base',
@@ -21,22 +13,10 @@ const sizes = {
   large: 'h-24 w-24 text-3xl',
 }
 
-function loadImage(user) {
-  try {
-    if (typeof user?.avatar === 'string' && user.avatar.trim() !== '') {
-      return user.avatar.trim()
-    }
-    return getProfileImage(user) || ''
-  } catch (error) {
-    console.error('Unable to load profile photo.', error)
-    return ''
-  }
-}
-
 const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
   const { currentUser, authenticate } = useAuthDialog()
   const activeUser = user || currentUser
-  const [image, setImage] = useState(() => loadImage(activeUser))
+  const [image, setImage] = useState(activeUser?.avatar || '')
   const [isOpen, setIsOpen] = useState(false)
   const [notice, setNotice] = useState('')
   const [noticeIsError, setNoticeIsError] = useState(false)
@@ -46,12 +26,8 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
     activeUser?.name || activeUser?.contactName || activeUser?.email || 'Profile'
 
   useEffect(() => {
-    const refreshImage = () => setImage(loadImage(activeUser))
-    refreshImage()
-    window.addEventListener(PROFILE_IMAGE_CHANGED_EVENT, refreshImage)
-    return () =>
-      window.removeEventListener(PROFILE_IMAGE_CHANGED_EVENT, refreshImage)
-  }, [activeUser, currentUser])
+    setImage(activeUser?.avatar || '')
+  }, [activeUser?.avatar])
 
   useEffect(() => {
     if (!isOpen) return undefined
@@ -81,47 +57,22 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
     }
 
     setIsUploading(true)
-    const token = getAuthToken()
-    const isArtisan =
-      activeUser?.accountType === 'artisan' ||
-      currentUser?.accountType === 'artisan'
-
-    // Try cloud upload via artisan backend if logged in as artisan
-    if (token && isArtisan) {
-      try {
-        const response = await uploadArtisanProfilePhotoApi(file)
-        if (response?.avatar) {
-          setImage(response.avatar)
-          saveProfileImage(activeUser, response.avatar)
-          if (response.user && authenticate) {
-            authenticate(response.user)
-          } else if (currentUser && authenticate) {
-            authenticate({ ...currentUser, avatar: response.avatar })
-          }
-          setNotice('Profile photo uploaded and saved successfully.')
-          setNoticeIsError(false)
-          setIsUploading(false)
-          return
-        }
-      } catch (backendError) {
-        console.warn(
-          'Cloud upload failed, falling back to local storage:',
-          backendError,
-        )
-      }
-    }
-
-    // Local storage fallback if offline or non-artisan account
     try {
-      const imageData = await readProfileImageFile(file)
-      setImage(saveProfileImage(activeUser, imageData))
-      if (currentUser && authenticate) {
-        authenticate({ ...currentUser, avatar: imageData })
+      const response = await uploadProfilePhotoApi(file)
+      if (response?.avatar) {
+        setImage(response.avatar)
+        if (response.user && authenticate) {
+          authenticate(response.user)
+        } else if (currentUser && authenticate) {
+          authenticate({ ...currentUser, avatar: response.avatar })
+        }
+        setNotice('Profile photo uploaded and saved to your cloud profile.')
+        setNoticeIsError(false)
+      } else {
+        throw new Error(response?.message || 'The profile photo upload failed.')
       }
-      setNotice('Profile photo saved locally in this browser.')
-      setNoticeIsError(false)
-    } catch (error) {
-      setNotice(error.message || 'Unable to save your profile photo.')
+    } catch (backendError) {
+      setNotice(backendError.message || 'Profile photo upload failed.')
       setNoticeIsError(true)
     } finally {
       setIsUploading(false)
@@ -133,43 +84,20 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
     setNoticeIsError(false)
     setIsUploading(true)
 
-    const token = getAuthToken()
-    const isArtisan =
-      activeUser?.accountType === 'artisan' ||
-      currentUser?.accountType === 'artisan'
-
-    if (token && isArtisan) {
-      try {
-        const response = await removeArtisanProfilePhotoApi()
-        removeProfileImage(activeUser)
+    try {
+      const response = await removeProfilePhotoApi()
+      if (response?.success) {
         setImage('')
-        if (response?.user && authenticate) {
-          authenticate(response.user)
-        } else if (currentUser && authenticate) {
+        if (currentUser && authenticate) {
           authenticate({ ...currentUser, avatar: '' })
         }
-        setNotice('Profile photo removed successfully.')
+        setNotice('Profile photo removed from your cloud profile.')
         setNoticeIsError(false)
-        setIsUploading(false)
-        return
-      } catch (backendError) {
-        console.warn(
-          'Backend photo removal failed, removing locally:',
-          backendError,
-        )
+      } else {
+        throw new Error(response?.message || 'Could not remove profile photo.')
       }
-    }
-
-    try {
-      removeProfileImage(activeUser)
-      setImage('')
-      if (currentUser && authenticate) {
-        authenticate({ ...currentUser, avatar: '' })
-      }
-      setNotice('Your profile photo has been removed.')
-      setNoticeIsError(false)
-    } catch (error) {
-      setNotice(error.message || 'Unable to remove your profile photo.')
+    } catch (backendError) {
+      setNotice(backendError.message || 'Profile photo removal failed.')
       setNoticeIsError(true)
     } finally {
       setIsUploading(false)
@@ -179,8 +107,8 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
   return (
     <>
       <button
-        aria-label={`View ${displayName}'s profile photo`}
-        className={`inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface-muted text-secondary transition hover:ring-2 hover:ring-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${sizes[size] || sizes.medium} ${className}`}
+        aria-label={`Open ${displayName}'s profile photo`}
+        className={`group relative inline-flex items-center justify-center overflow-hidden rounded-full border border-border bg-surface-muted text-text-muted transition hover:ring-2 hover:ring-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary ${sizes[size] || sizes.medium} ${className}`}
         onClick={() => {
           setNotice('')
           setIsOpen(true)
@@ -244,7 +172,7 @@ const ProfileImageControl = ({ user, size = 'medium', className = '' }) => {
               )}
             </div>
             <p className="mt-3 text-sm text-text-muted">
-              JPG, PNG, or WebP up to 5 MB. Photos are synced with your cloud profile.
+              JPG, PNG, or WebP up to 5 MB. Photos are saved directly to your cloud profile.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button

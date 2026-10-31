@@ -1,14 +1,12 @@
 import { Check, ClipboardList, MapPin, PackageCheck } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
-import { useCart } from '../hooks/useCart'
 
 const formatPrice = (price) => `₹${price.toLocaleString('en-IN')}`
 
 const OrderConfirmation = () => {
   const location = useLocation()
-  const { latestOrder } = useCart()
-  const order = location.state?.order ?? latestOrder
+  const order = location.state?.order
 
   return (
     <MarketplaceLayout>
@@ -20,13 +18,13 @@ const OrderConfirmation = () => {
                 <Check aria-hidden="true" className="h-7 w-7" />
               </span>
               <p className="mt-4 text-sm font-semibold uppercase tracking-[0.14em] text-white/75">
-                Request saved
+                Request received
               </p>
               <h1 className="mt-2 font-serif text-3xl font-semibold sm:text-4xl">
                 Thank you, {order.customer.fullName}
               </h1>
               <p className="mt-3 text-sm text-white/80">
-                Your demo order request has been created for this session.
+                Your order request has been saved. The artisan will review it shortly.
               </p>
             </div>
 
@@ -38,7 +36,7 @@ const OrderConfirmation = () => {
                 </div>
                 <span className="inline-flex w-fit items-center gap-2 rounded-full bg-surface-muted px-3 py-1.5 text-xs font-semibold text-text-secondary">
                   <ClipboardList aria-hidden="true" className="h-4 w-4" />
-                  Demo request · no payment taken
+                  Payment pending
                 </span>
               </div>
 
@@ -93,11 +91,7 @@ const OrderConfirmation = () => {
               </div>
 
               <p className="mt-6 rounded-lg border border-border bg-background p-4 text-sm leading-6 text-text-muted">
-                This is a front-end demo. The request and delivery details are
-                saved in this browser and can be reviewed by the matching
-                artisan profile on this device. No remote notification or
-                payment is sent. Connect an order backend and payment provider
-                to accept real orders.
+                Your request is stored in SkillBridge. Payment is not processed at this stage.
               </p>
 
               <Link

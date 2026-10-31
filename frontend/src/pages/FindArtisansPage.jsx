@@ -5,40 +5,38 @@ import Footer from '../components/layout/Footer'
 import Navbar from '../components/layout/Navbar'
 import content from '../data/local-storage.json'
 import { getProductSlug } from '../utils/marketplace'
-import {
-  getPublishedArtisanListings,
-  toMarketplaceProduct,
-} from '../utils/artisan-storage'
+import { getMarketplaceProductsApi } from '../services/marketplace-api'
+import { getArtisansApi } from '../services/auth-api'
 
 const sampleProducts = content.marketplace.products
 
-function readArtisanProducts() {
-  try {
-    return {
-      products: getPublishedArtisanListings().map(toMarketplaceProduct),
-      error: '',
-    }
-  } catch (error) {
-    console.error('Unable to load artisan directory listings.', error)
-    return {
-      products: [],
-      error: error.message || 'Artisan listings could not be loaded.',
-    }
-  }
-}
-
-function buildArtisans(products) {
+function buildArtisans(products, registeredArtisans = []) {
   const artisans = new Map()
 
+  // First seed from registered artisans
+  for (const art of registeredArtisans) {
+    const key = art.name.trim().toLowerCase()
+    artisans.set(key, {
+      name: art.name,
+      location: [art.city, art.state].filter(Boolean).join(', ') || 'India',
+      crafts: new Set(art.artCategory ? [art.artCategory] : []),
+      products: [],
+      avatar: art.avatar || '',
+      experience: art.experience || '',
+    })
+  }
+
+  // Then add product items
   for (const product of products) {
-    const key = product.artisan.trim().toLowerCase()
+    const artisanName = product.artisan || product.artisanName || 'SkillBridge Artisan'
+    const key = artisanName.trim().toLowerCase()
     const artisan = artisans.get(key) ?? {
-      name: product.artisan,
-      location: product.location,
+      name: artisanName,
+      location: product.location || 'India',
       crafts: new Set(),
       products: [],
     }
-    artisan.crafts.add(product.category)
+    if (product.category) artisan.crafts.add(product.category)
     artisan.products.push(product)
     artisans.set(key, artisan)
   }
@@ -50,10 +48,34 @@ function buildArtisans(products) {
 
 const FindArtisansPage = () => {
   const [search, setSearch] = useState('')
-  const [artisanProductState, setArtisanProductState] = useState(readArtisanProducts)
+  const [backendProducts, setBackendProducts] = useState([])
+  const [backendArtisans, setBackendArtisans] = useState([])
+
+  useEffect(() => {
+    getMarketplaceProductsApi()
+      .then((res) => {
+        if (res?.success && Array.isArray(res.products) && res.products.length > 0) {
+          setBackendProducts(res.products)
+        }
+      })
+      .catch((err) => console.warn('Marketplace products fetch error:', err.message))
+
+    getArtisansApi()
+      .then((artisans) => {
+        if (Array.isArray(artisans) && artisans.length > 0) {
+          setBackendArtisans(artisans)
+        }
+      })
+      .catch((err) => console.warn('Artisans fetch error:', err.message))
+  }, [])
+
+  const allProducts = useMemo(
+    () => (backendProducts.length > 0 ? backendProducts : sampleProducts),
+    [backendProducts],
+  )
   const artisans = useMemo(
-    () => buildArtisans([...sampleProducts, ...artisanProductState.products]),
-    [artisanProductState.products],
+    () => buildArtisans(allProducts, backendArtisans),
+    [allProducts, backendArtisans],
   )
   const visibleArtisans = useMemo(() => {
     const query = search.trim().toLowerCase()
@@ -64,19 +86,13 @@ const FindArtisansPage = () => {
         artisan.name,
         artisan.location,
         ...artisan.crafts,
-        ...artisan.products.map((product) => product.name),
+        ...artisan.products.map((product) => product.name || product.title),
       ]
         .join(' ')
         .toLowerCase()
         .includes(query),
     )
   }, [artisans, search])
-
-  useEffect(() => {
-    const refreshListings = () => setArtisanProductState(readArtisanProducts())
-    window.addEventListener('storage', refreshListings)
-    return () => window.removeEventListener('storage', refreshListings)
-  }, [])
 
   return (
     <div className="min-h-screen bg-background">

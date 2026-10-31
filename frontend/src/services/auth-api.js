@@ -166,3 +166,52 @@ export async function verifyAccountApi(payload) {
   })
   return result
 }
+
+/**
+ * Fetch current authenticated user's profile from backend
+ */
+export async function getUserProfileApi() {
+  return await apiRequest('/auth/profile', {
+    method: 'GET',
+  })
+}
+
+/**
+ * Update current authenticated user's profile on backend
+ * @param {Object} profileData
+ */
+export async function updateUserProfileApi(profileData) {
+  return await apiRequest('/auth/profile', {
+    method: 'PUT',
+    body: JSON.stringify(profileData),
+  })
+}
+
+/**
+ * Upload profile photo to backend (supports File object or base64 string)
+ * Stores in Cloudinary and saves URL to MongoDB User document
+ */
+export async function uploadProfilePhotoApi(fileOrBase64) {
+  if (typeof fileOrBase64 === 'string') {
+    return await apiRequest('/auth/profile/photo', {
+      method: 'POST',
+      body: JSON.stringify({ imageBase64: fileOrBase64 }),
+    })
+  }
+
+  const formData = new FormData()
+  formData.append('avatar', fileOrBase64)
+  return await apiRequest('/auth/profile/photo', {
+    method: 'POST',
+    body: formData,
+  })
+}
+
+/**
+ * Remove profile photo from backend (deletes from Cloudinary and clears User avatar)
+ */
+export async function removeProfilePhotoApi() {
+  return await apiRequest('/auth/profile/photo', {
+    method: 'DELETE',
+  })
+}

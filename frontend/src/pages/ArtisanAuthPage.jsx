@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { BriefcaseBusiness, ShieldCheck } from 'lucide-react'
+import { BriefcaseBusiness } from 'lucide-react'
 import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'
@@ -9,10 +9,6 @@ import {
   authenticateUser,
   saveRegisteredUser,
 } from '../utils/user-storage'
-import {
-  readProfileImageFile,
-  saveProfileImage,
-} from '../utils/artisan-profile-storage'
 
 const inputClass =
   'mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-3 text-text-main outline-none transition placeholder:text-text-muted focus:border-secondary focus:ring-2 focus:ring-secondary/25'
@@ -59,7 +55,6 @@ const ArtisanAuthPage = () => {
           signupPayload.append('avatar', profileImageFile)
         }
         user = await saveRegisteredUser(signupPayload)
-        if (user?.avatar) saveProfileImage(user, user.avatar)
       } else {
         user = await authenticateUser(
           formData.get('email'),
@@ -291,10 +286,6 @@ const ArtisanAuthPage = () => {
               >
                 {isSignup ? 'Log in' : 'Create an artisan account'}
               </button>
-            </p>
-            <p className="mt-4 inline-flex w-full items-center justify-center gap-1.5 text-center text-xs text-text-muted">
-              <ShieldCheck aria-hidden="true" className="h-4 w-4" />
-              Demo authentication stores account details only in this browser.
             </p>
           </div>
         </section>

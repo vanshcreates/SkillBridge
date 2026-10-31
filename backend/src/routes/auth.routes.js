@@ -6,6 +6,10 @@ import {
   verifyAccount,
   logout,
   getArtisans,
+  getProfile,
+  updateProfile,
+  uploadProfilePhoto,
+  removeProfilePhoto,
 } from "../controllers/auth.controller.js";
 import { verifyJWT } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
@@ -27,6 +31,12 @@ router.post("/logout", logout);
 router.get("/verify", verifyJWT, verify);
 router.post("/verify", verifyJWT, verify);
 router.post("/verify-account", verifyAccount);
+
+// Profile endpoints (Any authenticated user: customer, artisan, expert, industry)
+router.get("/profile", verifyJWT, getProfile);
+router.put("/profile", verifyJWT, updateProfile);
+router.post("/profile/photo", verifyJWT, upload.single("avatar"), uploadProfilePhoto);
+router.delete("/profile/photo", verifyJWT, removeProfilePhoto);
 
 // Additional public queries
 router.get("/artisans", getArtisans);

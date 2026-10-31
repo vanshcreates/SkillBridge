@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 import { MapPin, Pencil, Plus, Star, Trash2 } from 'lucide-react'
 import {
-  deleteSavedAddress,
-  getSavedAddresses,
-  saveDeliveryAddress,
-  setDefaultSavedAddress,
-  updateSavedAddress,
-} from '../../utils/user-storage'
+  addCustomerAddressApi,
+  deleteCustomerAddressApi,
+  getCustomerAddressesApi,
+  setDefaultAddressApi,
+  updateCustomerAddressApi,
+} from '../../services/marketplace-api'
 
 const emptyAddress = {
   fullName: '',
@@ -21,17 +21,16 @@ const emptyAddress = {
 const fieldClass =
   'mt-1 w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-text-main outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/25'
 
-const SavedAddressForm = ({ address, onCancel, onSave }) => {
+const SavedAddressForm = ({ address, onCancel, onSave, loading }) => {
   const [error, setError] = useState('')
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault()
     setError('')
     const formData = new FormData(event.currentTarget)
     const values = Object.fromEntries(formData.entries())
-
     try {
-      onSave(values)
+      await onSave(values)
     } catch (saveError) {
       setError(saveError.message)
     }
@@ -60,7 +59,6 @@ const SavedAddressForm = ({ address, onCancel, onSave }) => {
             className={fieldClass}
             defaultValue={address.phone}
             name="phone"
-            required
             type="tel"
           />
         </label>
@@ -71,7 +69,6 @@ const SavedAddressForm = ({ address, onCancel, onSave }) => {
             className={fieldClass}
             defaultValue={address.email}
             name="email"
-            required
             type="email"
           />
         </label>
@@ -115,7 +112,6 @@ const SavedAddressForm = ({ address, onCancel, onSave }) => {
             inputMode="numeric"
             name="postalCode"
             pattern="[0-9]{6}"
-            required
           />
         </label>
       </div>
@@ -126,10 +122,11 @@ const SavedAddressForm = ({ address, onCancel, onSave }) => {
       )}
       <div className="mt-4 flex flex-wrap gap-2">
         <button
-          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+          className="rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:opacity-60"
+          disabled={loading}
           type="submit"
         >
-          Save address
+          {loading ? 'Saving…' : 'Save address'}
         </button>
         <button
           className="rounded-lg border border-border-strong px-4 py-2 text-sm font-semibold text-primary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
@@ -147,30 +144,76 @@ const SavedAddressesSection = ({ user }) => {
   const [addresses, setAddresses] = useState([])
   const [error, setError] = useState('')
   const [formMode, setFormMode] = useState(null)
+  const [saving, setSaving] = useState(false)
+  const [loading, setLoading] = useState(true)
 
-  const reloadAddresses = useCallback(() => {
-    setAddresses(getSavedAddresses(user))
+  const reloadAddresses = useCallback(async () => {
     setError('')
-  }, [user])
+    try {
+      const data = await getCustomerAddressesApi()
+      if (data?.success && Array.isArray(data.addresses)) {
+        setAddresses(data.addresses)
+      } else {
+        setAddresses([])
+      }
+    } catch (err) {
+      console.warn('Backend address fetch:', err.message)
+      setAddresses([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    try {
-      reloadAddresses()
-    } catch (loadError) {
-      console.error('Unable to load saved profile addresses.', loadError)
-      setAddresses([])
-      setError(loadError.message)
-    }
-  }, [reloadAddresses])
+    reloadAddresses()
+  }, [reloadAddresses, user])
 
-  const handleMutation = (mutation) => {
+  const handleAdd = async (values) => {
+    setSaving(true)
     try {
-      mutation()
-      reloadAddresses()
+      const data = await addCustomerAddressApi(values)
+      if (!data?.success) throw new Error(data?.message || 'Failed to add address')
+      await reloadAddresses()
       setFormMode(null)
-    } catch (mutationError) {
-      console.error('Unable to update saved delivery addresses.', mutationError)
-      setError(mutationError.message)
+    } catch (err) {
+      setError(err.message || 'Failed to save address to cloud.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleUpdate = async (addressId, values) => {
+    setSaving(true)
+    try {
+      const data = await updateCustomerAddressApi(addressId, values)
+      if (!data?.success) throw new Error(data?.message || 'Failed to update address')
+      await reloadAddresses()
+      setFormMode(null)
+    } catch (err) {
+      setError(err.message || 'Failed to update address.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (addressId) => {
+    if (!window.confirm('Remove this address?')) return
+    try {
+      const data = await deleteCustomerAddressApi(addressId)
+      if (!data?.success) throw new Error(data?.message || 'Failed to delete address')
+      await reloadAddresses()
+    } catch (err) {
+      setError(err.message || 'Failed to remove address.')
+    }
+  }
+
+  const handleSetDefault = async (addressId) => {
+    try {
+      const data = await setDefaultAddressApi(addressId)
+      if (!data?.success) throw new Error(data?.message || 'Failed to set default')
+      await reloadAddresses()
+    } catch (err) {
+      setError(err.message || 'Failed to update default address.')
     }
   }
 
@@ -183,7 +226,7 @@ const SavedAddressesSection = ({ user }) => {
             Saved delivery addresses
           </h2>
           <p className="mt-1 text-sm text-text-muted">
-            Choose a default address, or edit and remove saved addresses.
+            Addresses are saved securely to your cloud profile.
           </p>
         </div>
         {!formMode && (
@@ -207,100 +250,93 @@ const SavedAddressesSection = ({ user }) => {
       {formMode?.type === 'add' && (
         <SavedAddressForm
           address={formMode.address}
+          loading={saving}
           onCancel={() => setFormMode(null)}
-          onSave={(address) =>
-            handleMutation(() => saveDeliveryAddress(user, address))
-          }
+          onSave={handleAdd}
         />
       )}
 
-      {addresses.length ? (
+      {loading ? (
+        <p className="mt-4 text-sm text-text-muted">Loading saved addresses…</p>
+      ) : addresses.length ? (
         <ul className="mt-5 grid gap-3 md:grid-cols-2">
-          {addresses.map((address) => (
-            <li
-              className={`rounded-xl border p-4 ${
-                address.isDefault
-                  ? 'border-secondary/60 bg-background'
-                  : 'border-border bg-background'
-              }`}
-              key={address.id}
-            >
-              {formMode?.type === 'edit' && formMode.id === address.id ? (
-                <SavedAddressForm
-                  address={address}
-                  onCancel={() => setFormMode(null)}
-                  onSave={(updatedAddress) =>
-                    handleMutation(() =>
-                      updateSavedAddress(user, address.id, updatedAddress),
-                    )
-                  }
-                />
-              ) : (
-                <>
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <MapPin aria-hidden="true" className="h-4 w-4 shrink-0 text-secondary" />
-                      <p className="font-semibold text-text-main">{address.fullName}</p>
+          {addresses.map((address) => {
+            const addrId = address.id || address._id
+            return (
+              <li
+                className={`rounded-xl border p-4 ${
+                  address.isDefault
+                    ? 'border-secondary/60 bg-background'
+                    : 'border-border bg-background'
+                }`}
+                key={addrId}
+              >
+                {formMode?.type === 'edit' && formMode.id === addrId ? (
+                  <SavedAddressForm
+                    address={address}
+                    loading={saving}
+                    onCancel={() => setFormMode(null)}
+                    onSave={(values) => handleUpdate(addrId, values)}
+                  />
+                ) : (
+                  <>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        <MapPin aria-hidden="true" className="h-4 w-4 shrink-0 text-secondary" />
+                        <p className="font-semibold text-text-main">{address.fullName}</p>
+                      </div>
+                      {address.isDefault && (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold text-secondary">
+                          <Star aria-hidden="true" className="h-3.5 w-3.5 fill-current" />
+                          Default
+                        </span>
+                      )}
                     </div>
-                    {address.isDefault && (
-                      <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-surface-muted px-2.5 py-1 text-xs font-semibold text-secondary">
-                        <Star aria-hidden="true" className="h-3.5 w-3.5 fill-current" />
-                        Default
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-text-secondary">
-                    <p>{address.address}</p>
-                    <p>
-                      {address.city}, {address.state} {address.postalCode}
-                    </p>
-                    <p>{address.phone}</p>
-                    <p>{address.email}</p>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
-                    {!address.isDefault && (
+                    <div className="mt-2 text-sm leading-6 text-text-secondary">
+                      <p>{address.address}</p>
+                      <p>
+                        {address.city}, {address.state} {address.postalCode}
+                      </p>
+                      {address.phone && <p>{address.phone}</p>}
+                      {address.email && <p>{address.email}</p>}
+                    </div>
+                    <div className="mt-4 flex flex-wrap gap-2 border-t border-border pt-3">
+                      {!address.isDefault && (
+                        <button
+                          className="rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                          onClick={() => handleSetDefault(addrId)}
+                          type="button"
+                        >
+                          Set as default
+                        </button>
+                      )}
                       <button
-                        className="rounded-md px-2 py-1 text-xs font-semibold text-primary hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-                        onClick={() =>
-                          handleMutation(() =>
-                            setDefaultSavedAddress(user, address.id),
-                          )
-                        }
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-text-secondary hover:bg-surface-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                        onClick={() => setFormMode({ type: 'edit', id: addrId, address })}
                         type="button"
                       >
-                        Set as default
+                        <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
+                        Edit
                       </button>
-                    )}
-                    <button
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-text-secondary hover:bg-surface-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-                      onClick={() => setFormMode({ type: 'edit', id: address.id })}
-                      type="button"
-                    >
-                      <Pencil aria-hidden="true" className="h-3.5 w-3.5" />
-                      Edit
-                    </button>
-                    <button
-                      className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-error hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
-                      onClick={() =>
-                        handleMutation(() =>
-                          deleteSavedAddress(user, address.id),
-                        )
-                      }
-                      type="button"
-                    >
-                      <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
-                      Remove
-                    </button>
-                  </div>
-                </>
-              )}
-            </li>
-          ))}
+                      <button
+                        className="inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-semibold text-error hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error"
+                        onClick={() => handleDelete(addrId)}
+                        type="button"
+                      >
+                        <Trash2 aria-hidden="true" className="h-3.5 w-3.5" />
+                        Remove
+                      </button>
+                    </div>
+                  </>
+                )}
+              </li>
+            )
+          })}
         </ul>
       ) : (
         !formMode && (
           <p className="mt-4 text-sm leading-6 text-text-muted">
-            Your first order saves its delivery address here. You can also add one now.
+            No saved addresses found. Add a delivery address for faster checkout.
           </p>
         )
       )}

@@ -17,11 +17,7 @@ import {
 } from 'lucide-react'
 import IndustryLayout from '../components/layout/IndustryLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
-import {
-  getIndustryOrderHistory,
-  saveOrderHistoryEntry,
-} from '../utils/order-storage'
-import { getRegisteredArtisans } from '../utils/user-storage'
+import { getArtisansApi } from '../services/auth-api'
 import {
   analyzeProjectApi,
   createIndustryProjectApi,
@@ -85,7 +81,7 @@ const IndustryDashboardPage = () => {
     details: '',
   })
 
-  // Load registered artisans from backend or fallback to local
+  // Load registered artisans from backend
   const loadArtisans = useCallback(async () => {
     try {
       const res = await getAvailableArtisansForIndustryApi()
@@ -94,9 +90,16 @@ const IndustryDashboardPage = () => {
         return
       }
     } catch {
-      // fallback
+      // fallback to auth artisans
     }
-    setArtisans(getRegisteredArtisans())
+    try {
+      const authArtisans = await getArtisansApi()
+      if (Array.isArray(authArtisans)) {
+        setArtisans(authArtisans)
+      }
+    } catch {
+      setArtisans([])
+    }
   }, [])
 
   // Load dashboard, orders and notifications from backend API
@@ -144,34 +147,15 @@ const IndustryDashboardPage = () => {
             }))
           : []
 
-        // If backend has data, prioritize it; otherwise combine with local
-        if (backendOrders.length || backendProjects.length) {
-          // Combine unique by id
-          const combined = [...backendProjects]
-          backendOrders.forEach((bo) => {
-            if (!combined.some((p) => p.id === bo.id)) combined.push(bo)
-          })
-          setOrders(combined)
-          return
-        }
+        const combined = [...backendProjects]
+        backendOrders.forEach((bo) => {
+          if (!combined.some((p) => p.id === bo.id)) combined.push(bo)
+        })
+        setOrders(combined)
       }
-    } catch {
-      // Backend offline, fallback to local storage
+    } catch (err) {
+      console.warn('Backend industry fetch error:', err.message)
     }
-
-    // Fallback: local storage
-    const localOrders = getIndustryOrderHistory(currentUser)
-    setOrders(localOrders)
-    setStats({
-      totalRequests: localOrders.length,
-      awaitingResponse: localOrders.filter(
-        (o) => o.status === 'Awaiting response' || o.status === 'Awaiting artisan response'
-      ).length,
-      acceptedByArtisans: localOrders.filter((o) =>
-        ACCEPTED_STATUSES.includes(o.status)
-      ).length,
-      completedProjects: localOrders.filter((o) => o.status === 'Completed').length,
-    })
   }, [currentUser])
 
   // Periodic polling for realtime acceptance updates
@@ -179,12 +163,10 @@ const IndustryDashboardPage = () => {
     loadArtisans()
     refreshBackendData()
 
-    const intervalId = window.setInterval(refreshBackendData, 2500)
-    window.addEventListener('storage', refreshBackendData)
+    const intervalId = window.setInterval(refreshBackendData, 3000)
 
     return () => {
       window.clearInterval(intervalId)
-      window.removeEventListener('storage', refreshBackendData)
     }
   }, [loadArtisans, refreshBackendData])
 
@@ -301,8 +283,7 @@ const IndustryDashboardPage = () => {
     const details = String(formData.get('details')).trim()
     const deadline = String(formData.get('deadline'))
 
-    // Attempt Backend API creation
-    let backendSuccess = false
+    // Create project in backend
     try {
       const res = await createIndustryProjectApi({
         title,
@@ -313,74 +294,22 @@ const IndustryDashboardPage = () => {
         deadline,
         specifications: details,
         assignedArtisanId: artisan.id || artisan._id,
-      })
+      });
 
       if (res?.success) {
-        backendSuccess = true
         setNotice(
           `Project assigned to ${artisan.name} successfully at ₹${unitPrice}/item for ${duration}. The artisan will receive notification immediately.`
-        )
+        );
+      } else {
+        throw new Error(res?.message || 'Failed to assign project.');
       }
     } catch (apiErr) {
-      console.warn('Backend project creation warning:', apiErr.message)
+      console.error('Backend project creation error:', apiErr.message);
+      setNotice(apiErr.message || 'The order request could not be assigned.');
+      setNoticeIsError(true);
     }
 
-    // Also update local storage for seamless sync
-    try {
-      const requestedDelivery = deadline
-        ? new Date(`${deadline}T12:00:00`).toLocaleDateString()
-        : duration
-      saveOrderHistoryEntry(
-        {
-          id: `industry-${Date.now()}`,
-          source: 'industry',
-          assignedArtisanId: artisan.id || artisan._id,
-          assignedArtisan: {
-            id: artisan.id || artisan._id,
-            name: artisan.name,
-            email: artisan.email,
-            artCategory: artisan.artCategory,
-          },
-          createdAt: new Date().toISOString(),
-          deadline,
-          duration,
-          specifications: details,
-          items: [
-            {
-              name: title,
-              category,
-              artisan: artisan.name,
-              price: unitPrice,
-              quantity,
-            },
-          ],
-          subtotal: unitPrice * quantity,
-          shipping: 0,
-          total: unitPrice * quantity,
-          customer: {
-            fullName: currentUser.contactName || currentUser.name,
-            contactName: currentUser.contactName || currentUser.name,
-            companyName: currentUser.name,
-            phone: currentUser.phone,
-            email: currentUser.email,
-            address: currentUser.companyAddress,
-            note: `Industry production request. Duration: ${duration}. Delivery requested: ${requestedDelivery}.${details ? ` ${details}` : ''}`,
-          },
-        },
-        currentUser,
-      )
-      if (!backendSuccess) {
-        setNotice(`Order request assigned to ${artisan.name}.`)
-      }
-    } catch (localErr) {
-      console.error('Local order save error:', localErr)
-      if (!backendSuccess) {
-        setNotice(localErr.message || 'The order request could not be assigned.')
-        setNoticeIsError(true)
-      }
-    }
-
-    refreshBackendData()
+    refreshBackendData();
     setFormOpen(false)
     setAnalysisData(null)
     setIsSubmitting(false)

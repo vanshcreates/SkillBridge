@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CartContext } from './cart-context'
-import { saveOrderHistoryEntry } from '../utils/order-storage'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 
 const CART_STORAGE_KEY = 'skillbridge-cart'
@@ -24,7 +23,6 @@ export const CartProvider = ({ children }) => {
     const storedItems = readStoredValue(CART_STORAGE_KEY, [])
     return Array.isArray(storedItems) ? storedItems : []
   })
-  const [latestOrder, setLatestOrder] = useState(null)
 
   useEffect(() => {
     try {
@@ -93,32 +91,6 @@ export const CartProvider = ({ children }) => {
 
   const clearCart = useCallback(() => setItems([]), [])
 
-  const placeOrderRequest = useCallback((customer, user) => {
-    if (!user || (user.accountType ?? 'customer') !== 'customer') {
-      openAuth('login')
-      throw new Error('Log in with a customer account before placing an order.')
-    }
-
-    const subtotal = items.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    )
-    const order = {
-      id: `SB-${Date.now()}`,
-      createdAt: new Date().toISOString(),
-      customer,
-      items,
-      subtotal,
-      shipping: subtotal >= 1500 ? 0 : 99,
-      total: subtotal + (subtotal >= 1500 ? 0 : 99),
-    }
-
-    saveOrderHistoryEntry(order, user)
-    setLatestOrder(order)
-    clearCart()
-    return order
-  }, [clearCart, items, openAuth])
-
   const value = useMemo(
     () => ({
       items,
@@ -127,19 +99,15 @@ export const CartProvider = ({ children }) => {
         (sum, item) => sum + item.price * item.quantity,
         0,
       ),
-      latestOrder,
       addToCart,
       updateQuantity,
       removeFromCart,
       clearCart,
-      placeOrderRequest,
     }),
     [
       addToCart,
       clearCart,
       items,
-      latestOrder,
-      placeOrderRequest,
       removeFromCart,
       updateQuantity,
     ],

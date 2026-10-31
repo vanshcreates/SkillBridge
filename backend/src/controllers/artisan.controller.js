@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Shop } from "../models/shop.model.js";
 import { Product } from "../models/product.model.js";
 import { Order } from "../models/order.model.js";
@@ -765,7 +766,10 @@ export const getArtisanCourses = async (req, res) => {
 export const getArtisanCourseById = async (req, res) => {
   try {
     const { id } = req.params;
-    const course = await Course.findById(id);
+    const isObjectId = mongoose.Types.ObjectId.isValid(id);
+    const course = isObjectId
+      ? await Course.findById(id)
+      : await Course.findOne({ slug: id });
 
     if (!course) {
       return res.status(404).json({

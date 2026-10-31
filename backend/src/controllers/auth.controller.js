@@ -1,5 +1,5 @@
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import { uploadOnCloudinary, deleteFromCloudinary } from "../utils/cloudinary.js";
 
 const sanitizeString = (val) =>
   typeof val === "string" ? val.trim() : val != null ? String(val).trim() : "";
@@ -303,5 +303,143 @@ export const getArtisans = async (req, res) => {
       success: false,
       message: error.message || "Failed to retrieve artisans.",
     });
+  }
+};
+
+// @desc    Get current user profile
+// @route   GET /api/auth/profile
+// @access  Private
+export const getProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password -verificationToken");
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+    return res.status(200).json({
+      success: true,
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update current user profile
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+  try {
+    const allowed = [
+      "name",
+      "phone",
+      "city",
+      "state",
+      "bio",
+      "artCategory",
+      "experience",
+      "hourlyRate",
+      "expertise",
+      "contactName",
+      "industry",
+      "companyAddress",
+    ];
+    const updates = {};
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        updates[key] = typeof req.body[key] === "string" ? req.body[key].trim() : req.body[key];
+      }
+    }
+    const user = await User.findByIdAndUpdate(
+      req.user._id,
+      { $set: updates },
+      { new: true, runValidators: true }
+    ).select("-password -verificationToken");
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile updated successfully.",
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Upload / change profile photo
+// @route   POST /api/auth/profile/photo
+// @access  Private
+export const uploadProfilePhoto = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    let avatarUrl = "";
+    if (req.file?.path) {
+      const uploadRes = await uploadOnCloudinary(req.file.path, {
+        folder: "skillbridge/avatars",
+      });
+      avatarUrl = uploadRes?.secure_url || "";
+    } else if (req.body?.imageBase64 || req.body?.avatar) {
+      const base64Str = req.body.imageBase64 || req.body.avatar;
+      const { v2: cloudinary } = await import("cloudinary");
+      const uploadRes = await cloudinary.uploader.upload(base64Str, {
+        folder: "skillbridge/avatars",
+      });
+      avatarUrl = uploadRes?.secure_url || "";
+    }
+
+    if (!avatarUrl) {
+      return res.status(400).json({ success: false, message: "No image provided or upload failed." });
+    }
+
+    // Delete old avatar from Cloudinary if existed
+    if (user.avatar && user.avatar.includes("cloudinary")) {
+      const publicId = user.avatar.split("/").slice(-2).join("/").replace(/\.[^/.]+$/, "");
+      await deleteFromCloudinary(publicId).catch(() => {});
+    }
+
+    user.avatar = avatarUrl;
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo updated successfully.",
+      avatar: user.avatar,
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    console.error("Upload profile photo error:", error);
+    return res.status(500).json({ success: false, message: error.message || "Failed to upload photo." });
+  }
+};
+
+// @desc    Remove profile photo
+// @route   DELETE /api/auth/profile/photo
+// @access  Private
+export const removeProfilePhoto = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    if (user.avatar && user.avatar.includes("cloudinary")) {
+      const publicId = user.avatar.split("/").slice(-2).join("/").replace(/\.[^/.]+$/, "");
+      await deleteFromCloudinary(publicId).catch(() => {});
+    }
+
+    user.avatar = "";
+    await user.save({ validateBeforeSave: false });
+
+    return res.status(200).json({
+      success: true,
+      message: "Profile photo removed successfully.",
+      avatar: "",
+      user: user.toSafeObject(),
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: error.message });
   }
 };

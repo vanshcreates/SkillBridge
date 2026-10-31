@@ -29,18 +29,6 @@ import ArtisanLayout from '../components/layout/ArtisanLayout'
 import ProfileImageControl from '../components/profile/ProfileImageControl'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import {
-  getArtisanShop,
-  getArtisanListings,
-  saveArtisanShop,
-  saveArtisanListing,
-  publishArtisanListing,
-} from '../utils/artisan-storage'
-import {
-  getArtisanOrderHistory,
-  updateArtisanOrderStatus,
-} from '../utils/order-storage'
-import { getExpertCourses } from '../utils/training-storage'
-import {
   getArtisanDashboardApi,
   getArtisanShopApi,
   saveArtisanShopApi,
@@ -63,65 +51,8 @@ const sections = [
   { id: 'payments', label: 'Payment History', icon: WalletCards },
 ]
 
-function loadPublishedCourses() {
-  try {
-    const courses = getExpertCourses().map((course) => ({
-      ...course,
-      lessons: (course.lessons ?? []).map((lesson) =>
-        typeof lesson === 'string'
-          ? { title: lesson, videoUrl: '' }
-          : lesson,
-      ),
-      outcomes: Array.isArray(course.outcomes) ? course.outcomes : [],
-    }))
-    return { courses, error: '' }
-  } catch (error) {
-    console.error('Unable to load expert-created courses.', error)
-    return {
-      courses: [],
-      error: error.message || 'Published expert courses could not be loaded.',
-    }
-  }
-}
-
 const inputClass =
   'mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-3 text-text-main outline-none transition placeholder:text-text-muted focus:border-secondary focus:ring-2 focus:ring-secondary/25'
-
-function loadArtisanListingsState(user) {
-  try {
-    return { listings: getArtisanListings(user), error: '' }
-  } catch (error) {
-    console.error('Unable to load artisan listings.', error)
-    return {
-      listings: [],
-      error: error.message || 'Your product listings could not be loaded.',
-    }
-  }
-}
-
-function loadArtisanShop(user) {
-  try {
-    return { shop: getArtisanShop(user), error: '' }
-  } catch (error) {
-    console.error('Unable to load artisan shop.', error)
-    return {
-      shop: null,
-      error: error.message || 'Your shop details could not be loaded.',
-    }
-  }
-}
-
-function loadArtisanOrders(user, shopName) {
-  try {
-    return { orders: getArtisanOrderHistory({ ...user, shopName }), error: '' }
-  } catch (error) {
-    console.error('Unable to load artisan orders.', error)
-    return {
-      orders: [],
-      error: error.message || 'Your orders could not be loaded.',
-    }
-  }
-}
 
 function getStatusStyle(status) {
   if (status === 'Rejected') return 'bg-red-50 text-error'
@@ -133,8 +64,10 @@ function getStatusStyle(status) {
 const ArtisanProfilePage = () => {
   const { currentUser } = useAuthDialog()
   const [activeSection, setActiveSection] = useState('dashboard')
-  const [publishedCourseState, setPublishedCourseState] =
-    useState(loadPublishedCourses)
+  const [publishedCourseState, setPublishedCourseState] = useState({
+    courses: [],
+    error: '',
+  })
   const { courses: expertCourses, error: publishedCourseError } =
     publishedCourseState
   const courses = expertCourses
@@ -163,15 +96,15 @@ const ArtisanProfilePage = () => {
   const [orderNotice, setOrderNotice] = useState('')
   const [orderNoticeIsError, setOrderNoticeIsError] = useState(false)
   const [paymentsData, setPaymentsData] = useState(null)
-  const [savedListingState, setSavedListingState] = useState(() =>
-    currentUser
-      ? loadArtisanListingsState(currentUser)
-      : { listings: [], error: '' },
-  )
+  const [savedListingState, setSavedListingState] = useState({
+    listings: [],
+    error: '',
+  })
   const { listings, error: listingStorageError } = savedListingState
-  const [savedShopState, setSavedShopState] = useState(() =>
-    currentUser ? loadArtisanShop(currentUser) : { shop: null, error: '' },
-  )
+  const [savedShopState, setSavedShopState] = useState({
+    shop: null,
+    error: '',
+  })
   const { shop, error: shopStorageError } = savedShopState
   const shopName = shop?.name
 
@@ -223,49 +156,30 @@ const ArtisanProfilePage = () => {
     }
   }, [currentUser])
 
+  // Periodic poll to refresh backend orders for realtime new order notifications
   useEffect(() => {
+    let isMounted = true
     const refreshOrders = () => {
-      const result = loadArtisanOrders(currentUser, shopName)
-      setArtisanOrders(result.orders)
-      setOrdersError(result.error)
+      getArtisanOrdersApi()
+        .then((res) => {
+          if (isMounted && Array.isArray(res?.orders)) {
+            setArtisanOrders(res.orders)
+            setOrdersError('')
+          }
+        })
+        .catch((e) => {
+          console.warn('Backend orders poll:', e.message)
+        })
     }
 
     refreshOrders()
-    const intervalId = window.setInterval(refreshOrders, 2000)
-    window.addEventListener('storage', refreshOrders)
+    const intervalId = window.setInterval(refreshOrders, 4000)
 
-    return () => {
-      window.clearInterval(intervalId)
-      window.removeEventListener('storage', refreshOrders)
-    }
-  }, [currentUser, shopName])
-
-  useEffect(() => {
-    let isMounted = true
-    getArtisanCoursesApi()
-      .then((res) => {
-        if (isMounted && res?.success && Array.isArray(res.courses) && res.courses.length > 0) {
-          setPublishedCourseState({
-            courses: res.courses,
-            error: '',
-          })
-        }
-      })
-      .catch((err) => {
-        console.warn('Backend training courses fetch error:', err)
-      })
-
-    const refreshCourses = () => {
-      const courseState = loadPublishedCourses()
-      setPublishedCourseState(courseState)
-    }
-
-    window.addEventListener('storage', refreshCourses)
     return () => {
       isMounted = false
-      window.removeEventListener('storage', refreshCourses)
+      window.clearInterval(intervalId)
     }
-  }, [])
+  }, [currentUser])
 
   if (!currentUser) {
     return <Navigate replace to="/artisan/auth" />
@@ -314,21 +228,14 @@ const ArtisanProfilePage = () => {
     }
 
     try {
-      let savedShop
-      try {
-        const res = await saveArtisanShopApi(payload)
-        savedShop = res?.shop
-      } catch (apiErr) {
-        console.warn('Backend shop save error, falling back:', apiErr.message)
-      }
-      if (!savedShop) {
-        savedShop = saveArtisanShop(currentUser, payload)
+      const res = await saveArtisanShopApi(payload)
+      if (res?.shop) {
+        setSavedShopState({ shop: res.shop, error: '' })
+        setShopFormOpen(false)
+        setShopNotice('Your shop details have been saved to your cloud profile.')
       } else {
-        saveArtisanShop(currentUser, payload)
+        throw new Error(res?.message || 'Unable to save shop details.')
       }
-      setSavedShopState({ shop: savedShop, error: '' })
-      setShopFormOpen(false)
-      setShopNotice('Your shop details have been saved.')
     } catch (error) {
       setShopNotice(error.message || 'Unable to save your shop details.')
       setShopError(true)
@@ -339,26 +246,19 @@ const ArtisanProfilePage = () => {
     setOrderNotice('')
     setOrderNoticeIsError(false)
     try {
-      let updatedOrder
-      try {
-        const res = await updateArtisanOrderStatusApi(orderId, status)
-        updatedOrder = res?.order
-      } catch (apiErr) {
-        console.warn('Backend order status update error:', apiErr.message)
-      }
-      if (!updatedOrder) {
-        updatedOrder = updateArtisanOrderStatus(
-          { ...currentUser, shopName },
-          orderId,
-          status,
+      const res = await updateArtisanOrderStatusApi(orderId, status)
+      if (res?.success) {
+        setArtisanOrders((orders) =>
+          orders.map((order) =>
+            order.id === orderId || order._id === orderId
+              ? (res.order || { ...order, status })
+              : order
+          ),
         )
+        setOrderNotice(`Order ${orderId} marked ${status.toLowerCase()}.`)
+      } else {
+        throw new Error(res?.message || 'The order status could not be updated.')
       }
-      setArtisanOrders((orders) =>
-        orders.map((order) =>
-          order.id === orderId || order._id === orderId ? (updatedOrder || { ...order, status }) : order
-        ),
-      )
-      setOrderNotice(`Order ${orderId} marked ${status.toLowerCase()}.`)
     } catch (error) {
       console.error('Unable to update artisan order.', error)
       setOrderNotice(error.message || 'The order status could not be updated.')
@@ -393,47 +293,26 @@ const ArtisanProfilePage = () => {
     }
 
     try {
-      let listing
-      try {
-        const res = await createArtisanListingApi(payloadFormData)
-        listing = res?.listing
-      } catch (apiErr) {
-        console.warn('Backend listing create error, using local fallback:', apiErr.message)
-      }
-      if (!listing) {
-        const localPayload = {
-          title: formData.get('title'),
-          category: formData.get('category'),
-          description: formData.get('description'),
-          price: formData.get('price'),
-          stock: formData.get('stock'),
-          materialCost: formData.get('materialCost'),
-          laborHours: formData.get('laborHours'),
-          packagingCost: formData.get('packagingCost'),
-          image: productImagePreviews[0] || '',
-          images: productImagePreviews,
-        }
-        listing = saveArtisanListing(currentUser, localPayload)
+      const res = await createArtisanListingApi(payloadFormData)
+      if (res?.listing) {
+        setSavedListingState((existingState) => ({
+          listings: [res.listing, ...existingState.listings],
+          error: '',
+        }))
+        setShowListingForm(false)
+        setProductImages([])
+        setProductImagePreviews([])
+        setPricingInputs({
+          materialCost: '',
+          laborHours: '',
+          packagingCost: '',
+        })
+        setListingPrice('')
+        setListingNotice('Your product was saved as a draft. Publish it when it is ready for buyers.')
+        formElement.reset()
       } else {
-        try {
-          saveArtisanListing(currentUser, listing)
-        } catch {}
+        throw new Error(res?.message || 'Unable to save this listing.')
       }
-      setSavedListingState((existingState) => ({
-        listings: [listing, ...existingState.listings],
-        error: '',
-      }))
-      setShowListingForm(false)
-      setProductImages([])
-      setProductImagePreviews([])
-      setPricingInputs({
-        materialCost: '',
-        laborHours: '',
-        packagingCost: '',
-      })
-      setListingPrice('')
-      setListingNotice('Your product was saved as a draft. Publish it when it is ready for buyers.')
-      formElement.reset()
     } catch (error) {
       setListingNotice(error.message || 'Unable to save this listing.')
       setListingError(true)
@@ -494,25 +373,18 @@ const ArtisanProfilePage = () => {
     setListingNotice('')
     setListingError(false)
     try {
-      let updatedListing
-      try {
-        const res = await publishArtisanListingApi(listingId)
-        updatedListing = res?.listing
-      } catch (apiErr) {
-        console.warn('Backend publish error:', apiErr.message)
-      }
-      if (!updatedListing) {
-        updatedListing = publishArtisanListing(currentUser, listingId)
+      const res = await publishArtisanListingApi(listingId)
+      if (res?.listing) {
+        setSavedListingState((state) => ({
+          listings: state.listings.map((listing) =>
+            (listing.id === listingId || listing._id === listingId) ? res.listing : listing,
+          ),
+          error: '',
+        }))
+        setListingNotice('Your product is now published in the marketplace.')
       } else {
-        try { publishArtisanListing(currentUser, listingId) } catch {}
+        throw new Error(res?.message || 'Unable to publish this product.')
       }
-      setSavedListingState((state) => ({
-        listings: state.listings.map((listing) =>
-          (listing.id === listingId || listing._id === listingId) ? updatedListing : listing,
-        ),
-        error: '',
-      }))
-      setListingNotice('Your product is now published in the marketplace.')
     } catch (error) {
       console.error('Unable to publish product listing.', error)
       setListingNotice(error.message || 'Unable to publish this product.')

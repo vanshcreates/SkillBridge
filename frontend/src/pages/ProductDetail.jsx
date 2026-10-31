@@ -16,13 +16,12 @@ import { useAuthDialog } from '../hooks/useAuthDialog'
 import content from '../data/local-storage.json'
 import { getProductSlug } from '../utils/marketplace'
 import {
-  getPublishedArtisanListings,
-  toMarketplaceProduct,
-} from '../utils/artisan-storage'
-import { getMarketplaceProductsApi } from '../services/marketplace-api'
+  getMarketplaceProductByIdApi,
+  getMarketplaceProductsApi,
+} from '../services/marketplace-api'
 
 const sampleProducts = content.marketplace.products
-const formatPrice = (price) => `₹${price.toLocaleString('en-IN')}`
+const formatPrice = (price) => `₹${Number(price || 0).toLocaleString('en-IN')}`
 
 const ProductDetail = () => {
   const { slug } = useParams()
@@ -38,16 +37,17 @@ const ProductDetail = () => {
 
   const isCustomer = currentUser && (currentUser.accountType ?? 'customer') === 'customer'
   const [backendProducts, setBackendProducts] = useState([])
-  const [artisanProducts] = useState(() => {
-    try {
-      return getPublishedArtisanListings().map(toMarketplaceProduct)
-    } catch (error) {
-      console.error('Unable to load artisan product details.', error)
-      return []
-    }
-  })
+  const [singleProduct, setSingleProduct] = useState(null)
 
   useEffect(() => {
+    getMarketplaceProductByIdApi(slug)
+      .then((res) => {
+        if (res?.success && res.product) {
+          setSingleProduct(res.product)
+        }
+      })
+      .catch(() => {})
+
     getMarketplaceProductsApi()
       .then((res) => {
         if (res?.success && Array.isArray(res.products) && res.products.length > 0) {
@@ -55,13 +55,17 @@ const ProductDetail = () => {
         }
       })
       .catch((err) => {
-        console.warn('Backend marketplace fetch error (using local):', err.message)
+        console.warn('Backend marketplace fetch error:', err.message)
       })
-  }, [])
+  }, [slug])
 
   const products = useMemo(
-    () => [...sampleProducts, ...backendProducts, ...artisanProducts],
-    [backendProducts, artisanProducts],
+    () => [
+      ...(singleProduct ? [singleProduct] : []),
+      ...backendProducts,
+      ...sampleProducts,
+    ],
+    [singleProduct, backendProducts],
   )
 
   const product = products.find(

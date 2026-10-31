@@ -7,36 +7,17 @@ import MarketplaceProducts from '../components/marketplace/MarketplaceProducts'
 import { useCart } from '../hooks/useCart'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getMarketplaceProductsApi } from '../services/marketplace-api'
-import {
-  getPublishedArtisanListings,
-  toMarketplaceProduct,
-} from '../utils/artisan-storage'
 import content from '../data/local-storage.json'
 
 const { products: sampleProducts, categories: sampleCategories } = content.marketplace
 const featuredProducts = sampleProducts.slice(0, 3)
-
-function readArtisanProducts() {
-  try {
-    return {
-      products: getPublishedArtisanListings().map(toMarketplaceProduct),
-      error: '',
-    }
-  } catch (error) {
-    console.error('Unable to load artisan marketplace listings.', error)
-    return {
-      products: [],
-      error: error.message || 'Artisan listings could not be loaded.',
-    }
-  }
-}
 
 const Marketplace = () => {
   const { currentUser, openAuth } = useAuthDialog()
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState('All crafts')
   const [sortOrder, setSortOrder] = useState('featured')
-  const [artisanProductState, setArtisanProductState] = useState(readArtisanProducts)
+  const [backendProducts, setBackendProducts] = useState([])
   const { addToCart, itemCount, items } = useCart()
 
   // STRICT ACCESS CONTROL: Only customers can access the marketplace
@@ -95,35 +76,30 @@ const Marketplace = () => {
     getMarketplaceProductsApi()
       .then((res) => {
         if (res?.success && Array.isArray(res.products) && res.products.length > 0) {
-          setArtisanProductState({ products: res.products, error: '' })
+          setBackendProducts(res.products)
         }
       })
       .catch((err) => {
-        console.warn('Backend marketplace fetch error (using local):', err.message)
+        console.warn('Backend marketplace fetch error:', err.message)
       })
   }, [])
 
   const products = useMemo(
-    () => [...sampleProducts, ...artisanProductState.products],
-    [artisanProductState.products],
+    () => (backendProducts.length > 0 ? backendProducts : sampleProducts),
+    [backendProducts],
   )
   const categories = useMemo(
     () => [
       ...sampleCategories,
       ...new Set(
-        artisanProductState.products
+        backendProducts
           .map((product) => product.category)
+          .filter(Boolean)
           .filter((category) => !sampleCategories.includes(category)),
       ),
     ],
-    [artisanProductState.products],
+    [backendProducts],
   )
-
-  useEffect(() => {
-    const refreshListings = () => setArtisanProductState(readArtisanProducts())
-    window.addEventListener('storage', refreshListings)
-    return () => window.removeEventListener('storage', refreshListings)
-  }, [])
 
   const visibleProducts = useMemo(() => {
     const query = search.trim().toLowerCase()

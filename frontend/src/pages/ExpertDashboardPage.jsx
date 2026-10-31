@@ -41,10 +41,6 @@ import {
   getVideoDuration,
   parseDurationToSeconds,
 } from '../utils/course-video'
-import {
-  getExpertCourses,
-  saveExpertCourse,
-} from '../utils/training-storage'
 
 const fieldClass =
   'mt-1.5 w-full rounded-lg border border-border bg-white px-3.5 py-3 text-text-main outline-none transition placeholder:text-text-muted focus:border-secondary focus:ring-2 focus:ring-secondary/25'
@@ -161,23 +157,11 @@ const ExpertDashboardPage = () => {
           setCoursePage(coursesRes.pagination.page || 1)
         }
       } else {
-        // Fallback to local storage if backend returned no data
-        const localCourses = getExpertCourses().filter(
-          (c) => c.expertId === currentUser?.id || c.expertId === currentUser?._id
-        )
-        setCourses(localCourses)
-        setStats((prev) => ({
-          ...prev,
-          totalCourses: localCourses.length,
-          publishedCourses: localCourses.filter((c) => c.isPublished !== false).length,
-        }))
+        setCourses([])
       }
     } catch (err) {
-      console.warn('Dashboard loading fallback:', err)
-      const localCourses = getExpertCourses().filter(
-        (c) => c.expertId === currentUser?.id || c.expertId === currentUser?._id
-      )
-      setCourses(localCourses)
+      console.warn('Dashboard loading error:', err)
+      setCourses([])
     } finally {
       setIsLoading(false)
     }
@@ -487,17 +471,7 @@ const ExpertDashboardPage = () => {
           }))
           setNotice(`Your course has been published with total duration ${totalTime}.`)
         } else {
-          const savedLocal = saveExpertCourse(currentUser, {
-            title: formTitle.trim(),
-            category: formCategory.trim(),
-            description: formDescription.trim(),
-            duration: totalTime,
-            level: formLevel,
-            lessons: validLessons,
-            outcomes: formOutcomes,
-          })
-          setCourses((prev) => [savedLocal, ...prev])
-          setNotice('Course saved to your workspace.')
+          throw new Error(response?.message || 'Unable to save course to cloud.')
         }
       }
 
