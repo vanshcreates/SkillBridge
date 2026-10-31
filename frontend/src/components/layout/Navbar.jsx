@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import {
   Compass,
   Menu,
@@ -19,8 +19,7 @@ const Navbar = ({
 }) => {
   const isMarketplace = variant === 'marketplace'
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
-  const location = useLocation()
-
+  
   return (
     <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-primary/95 shadow-md backdrop-blur-xl transition-all">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">

@@ -10,9 +10,9 @@
 
 import { ARTISAN_QUESTIONS } from "../utils/artisan-voice-questions.js";
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GEMINI_TTS_API_KEY || "";
-const GROQ_API_KEY = process.env.GROQ_API_KEY || "";
-const LLM_PROVIDER = (process.env.LLM_PROVIDER || "gemini").toLowerCase();
+const getGeminiKey = () => process.env.GEMINI_API_KEY || process.env.GEMINI_TTS_API_KEY || "";
+const getGroqKey = () => process.env.GROQ_API_KEY || "";
+const getLlmProvider = () => (process.env.LLM_PROVIDER || "gemini").toLowerCase();
 
 /**
  * Construct strict system prompt for information extraction only
@@ -63,7 +63,8 @@ REQUIRED JSON SCHEMA:
  * Call Google Gemini API
  */
 async function callGemini(questionId, transcript, language) {
-  if (!GEMINI_API_KEY) {
+  const geminiKey = getGeminiKey();
+  if (!geminiKey) {
     throw new Error("GEMINI_API_KEY is not configured");
   }
 
@@ -74,7 +75,7 @@ USER SPOKEN TRANSCRIPT:
 
 Extract now and output ONLY the JSON object.`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${geminiKey}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -106,7 +107,8 @@ Extract now and output ONLY the JSON object.`;
  * Call Groq API
  */
 async function callGroq(questionId, transcript, language) {
-  if (!GROQ_API_KEY) {
+  const groqKey = getGroqKey();
+  if (!groqKey) {
     throw new Error("GROQ_API_KEY is not configured");
   }
 
@@ -116,7 +118,7 @@ async function callGroq(questionId, transcript, language) {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
+      Authorization: `Bearer ${groqKey}`,
     },
     body: JSON.stringify({
       model: "llama-3.3-70b-versatile",
@@ -343,8 +345,12 @@ export async function extractVoiceAnswer(questionId, transcript, language = "pa"
 
   let result = null;
 
+  const provider = getLlmProvider();
+  const groqKey = getGroqKey();
+  const geminiKey = getGeminiKey();
+
   // Attempt configured LLM Provider first
-  if (LLM_PROVIDER === "groq" && GROQ_API_KEY) {
+  if (provider === "groq" && groqKey) {
     try {
       result = await callGroq(questionId, trimmed, language);
     } catch (err) {
@@ -352,7 +358,7 @@ export async function extractVoiceAnswer(questionId, transcript, language = "pa"
     }
   }
 
-  if (!result && GEMINI_API_KEY) {
+  if (!result && geminiKey) {
     try {
       result = await callGemini(questionId, trimmed, language);
     } catch (err) {
@@ -360,7 +366,7 @@ export async function extractVoiceAnswer(questionId, transcript, language = "pa"
     }
   }
 
-  if (!result && GROQ_API_KEY) {
+  if (!result && groqKey) {
     try {
       result = await callGroq(questionId, trimmed, language);
     } catch (err) {

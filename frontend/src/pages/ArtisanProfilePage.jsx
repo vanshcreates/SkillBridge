@@ -1,6 +1,8 @@
 import { createElement, useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
+  Bot,
+  Sparkles,
   ArrowUpRight,
   BookOpenCheck,
   Boxes,
@@ -535,6 +537,34 @@ const ArtisanProfilePage = () => {
 
           {activeSection === 'dashboard' && (
             <div>
+              {/* Voice AI Assistant Banner */}
+              <div className="mb-6 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-secondary/30 bg-gradient-to-r from-secondary/10 via-surface to-primary/5 p-4 sm:p-5 shadow-xs">
+                <div className="flex items-start gap-3.5">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-white shadow-xs">
+                    <Bot className="h-6 w-6" />
+                  </span>
+                  <div>
+                    <h3 className="text-sm sm:text-base font-bold text-text-main flex items-center gap-2">
+                      <span>Operate with AI Voice Assistant</span>
+                      <span className="rounded-full bg-secondary/15 px-2 py-0.5 text-[0.65rem] font-bold text-secondary uppercase">
+                        Hands-Free
+                      </span>
+                    </h3>
+                    <p className="mt-1 text-xs sm:text-sm text-text-secondary leading-relaxed">
+                      Speak naturally in Punjabi, Hindi or English to check pending orders, add products, track earnings, or update prices.
+                    </p>
+                  </div>
+                </div>
+
+                <button
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-primary-hover transition active:scale-95 cursor-pointer"
+                  onClick={() => window.dispatchEvent(new CustomEvent('open-voice-assistant'))}
+                  type="button"
+                >
+                  <Sparkles className="h-4 w-4" />
+                  <span>Open Voice Assistant (ਬੋਲ ਕੇ ਕੰਮ ਕਰੋ)</span>
+                </button>
+              </div>
               <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                 {[
                   { label: 'My product listings', value: listings.length, icon: Boxes },

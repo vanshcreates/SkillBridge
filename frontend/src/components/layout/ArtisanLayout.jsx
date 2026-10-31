@@ -1,6 +1,7 @@
 import { BriefcaseBusiness, LogOut } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import ProfileImageControl from '../profile/ProfileImageControl'
+import FloatingRobotWidget from '../voice/FloatingRobotWidget'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
 import { usePreventBack } from '../../hooks/usePreventBack'
 
@@ -64,6 +65,9 @@ const ArtisanLayout = ({ children }) => {
         </div>
       </header>
       {children}
+
+      {/* Floating AI Voice Assistant Widget */}
+      <FloatingRobotWidget user={currentUser} />
     </div>
   )
 }
