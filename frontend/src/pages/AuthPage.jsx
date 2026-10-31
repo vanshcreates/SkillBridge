@@ -129,15 +129,27 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
         } rounded-2xl border border-border bg-surface p-6 shadow-2xl sm:p-9`}
         role="dialog"
       >
-        <button
-          aria-label="Close sign-in dialog"
-          autoFocus
-          className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-          onClick={onClose}
-          type="button"
-        >
-          <X aria-hidden="true" className="h-5 w-5" />
-        </button>
+        <div className="mb-4 flex items-center justify-between">
+          <button
+            className="inline-flex items-center gap-2 text-sm font-semibold text-text-secondary transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+            onClick={() => {
+              onClose()
+              navigate('/', { replace: true })
+            }}
+            type="button"
+          >
+            <ArrowLeft aria-hidden="true" className="h-4 w-4" />
+            Back to main page
+          </button>
+          <button
+            aria-label="Close sign-in dialog"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full text-text-muted transition hover:bg-surface-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+            onClick={onClose}
+            type="button"
+          >
+            <X aria-hidden="true" className="h-5 w-5" />
+          </button>
+        </div>
         {selectedAccountType && (
           <button
             className="mb-5 inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
@@ -201,6 +213,16 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
                 </span>
               </button>
             ))}
+            <button
+              className="mt-5 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-surface-muted hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+              onClick={() => {
+                onClose()
+                navigate('/', { replace: true })
+              }}
+              type="button"
+            >
+              Cancel and return to main page
+            </button>
           </div>
         ) : (
         <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
@@ -288,6 +310,16 @@ const AuthPage = ({ mode, onClose, onModeChange, onAuthenticate }) => {
               : isSignup
                 ? 'Create account'
                 : 'Log in'}
+          </button>
+        <button
+            className="mt-2 inline-flex min-h-11 w-full items-center justify-center rounded-lg border border-border bg-white px-5 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-surface-muted hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+            onClick={() => {
+              onClose()
+              navigate('/', { replace: true })
+            }}
+            type="button"
+          >
+            Cancel and return to main page
           </button>
         </form>
         )}

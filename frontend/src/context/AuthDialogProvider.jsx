@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import AuthPage from '../pages/AuthPage'
 import {
   clearSessionUser,
@@ -10,6 +11,7 @@ import { getAuthToken } from '../services/auth-api'
 import { AuthDialogContext } from './auth-dialog-context'
 
 const AuthDialogProvider = ({ children }) => {
+  const navigate = useNavigate()
   const [mode, setMode] = useState(null)
   const [currentUser, setCurrentUser] = useState(() => readSessionUser())
   const [isVerifying, setIsVerifying] = useState(false)
@@ -67,7 +69,9 @@ const AuthDialogProvider = ({ children }) => {
   const logout = useCallback(() => {
     clearSessionUser()
     setCurrentUser(null)
-  }, [])
+    setMode(null)
+    navigate('/', { replace: true })
+  }, [navigate])
 
   const value = useMemo(
     () => ({ openAuth, currentUser, authenticate, logout, isVerifying }),

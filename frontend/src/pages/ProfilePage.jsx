@@ -81,6 +81,13 @@ const ProfilePage = () => {
           >
             Create profile
           </button>
+          <Link
+            className="ml-3 mt-7 inline-flex items-center gap-2 rounded-lg border border-border px-5 py-3 font-semibold text-text-secondary transition hover:bg-surface-muted hover:text-text-main"
+            to="/"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to main page
+          </Link>
         </main>
       </MarketplaceLayout>
     )

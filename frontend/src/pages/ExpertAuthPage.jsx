@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { ArrowLeft, useState } from 'react'
 import { BookOpenCheck } from 'lucide-react'
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import ExpertLayout from '../components/layout/ExpertLayout'
 import ProfileImageSignupField from '../components/profile/ProfileImageSignupField'
 import { useAuthDialog } from '../hooks/useAuthDialog'
@@ -119,6 +119,13 @@ const ExpertAuthPage = () => {
               <BookOpenCheck aria-hidden="true" className="h-6 w-6" />
             </div>
             <p className="text-sm font-semibold text-secondary">Expert studio account</p>
+            <Link
+              to="/"
+              className="mb-4 inline-flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-primary transition"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Return to main page
+            </Link>
             <h2 className="mt-1 font-serif text-3xl font-semibold text-text-main">
               {isSignup ? 'Create your expert profile' : 'Welcome back'}
             </h2>

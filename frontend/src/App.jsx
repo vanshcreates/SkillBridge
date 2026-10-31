@@ -45,39 +45,11 @@ const App = () => {
             fallback={<p className="p-8 text-center" role="status">Loading page…</p>}
           >
             <Routes>
-              {/* Public & marketing routes - guarded from authenticated users */}
-              <Route
-                path="/"
-                element={
-                  <GuestOnlyRoute>
-                    <Home />
-                  </GuestOnlyRoute>
-                }
-              />
-              <Route
-                path="/artisans"
-                element={
-                  <GuestOnlyRoute>
-                    <FindArtisansPage />
-                  </GuestOnlyRoute>
-                }
-              />
-              <Route
-                path="/story-of-art"
-                element={
-                  <GuestOnlyRoute>
-                    <StoryOfArtPage />
-                  </GuestOnlyRoute>
-                }
-              />
-              <Route
-                path="/about-us"
-                element={
-                  <GuestOnlyRoute>
-                    <AboutUsPage />
-                  </GuestOnlyRoute>
-                }
-              />
+              {/* Public & marketing routes */}
+              <Route path="/" element={<Home />} />
+              <Route path="/artisans" element={<FindArtisansPage />} />
+              <Route path="/story-of-art" element={<StoryOfArtPage />} />
+              <Route path="/about-us" element={<AboutUsPage />} />
 
               {/* Role Auth Pages - guarded from already logged-in users */}
               <Route

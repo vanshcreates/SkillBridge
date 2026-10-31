@@ -1,19 +1,17 @@
 import { GraduationCap, LayoutDashboard, LogOut } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import ProfileImageControl from '../profile/ProfileImageControl'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
 import { usePreventBack } from '../../hooks/usePreventBack'
 
 const ExpertLayout = ({ children }) => {
   const { currentUser, logout } = useAuthDialog()
-  const navigate = useNavigate()
 
   // Prevent browser back button from navigating out of the expert studio
   usePreventBack(Boolean(currentUser && currentUser.accountType === 'expert'))
 
   const handleLogout = () => {
     logout()
-    navigate('/expert/auth', { replace: true })
   }
 
   return (

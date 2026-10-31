@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { ShoppingBag } from 'lucide-react'
+import { ArrowLeft, ShoppingBag } from 'lucide-react'
+import { Link } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import FeaturedCraftCarousel from '../components/marketplace/FeaturedCraftCarousel'
 import MarketplaceProducts from '../components/marketplace/MarketplaceProducts'
@@ -118,6 +119,15 @@ const Marketplace = () => {
               >
                 Create an account
               </button>
+            </div>
+            <div className="mt-4">
+              <Link
+                className="inline-flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-primary transition"
+                to="/"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Return to main page
+              </Link>
             </div>
           </div>
         </div>
