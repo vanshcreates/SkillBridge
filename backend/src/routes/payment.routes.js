@@ -8,10 +8,10 @@ import {
 import { verifyJWT, requireRoles } from "../middlewares/auth.middleware.js";
 
 const router = Router();
-const requireCustomer = requireRoles("customer");
+const requireCustomerOrIndustry = requireRoles("customer", "industry");
 
-// All payment routes are protected for authenticated customer accounts
-router.use(verifyJWT, requireCustomer);
+// All payment routes are protected for authenticated customer or industry accounts
+router.use(verifyJWT, requireCustomerOrIndustry);
 
 router.get("/config", getRazorpayConfig);
 router.post("/create-order", createPaymentOrder);
@@ -19,4 +19,3 @@ router.post("/verify", verifyPayment);
 router.post("/failed", handlePaymentFailure);
 
 export default router;
-

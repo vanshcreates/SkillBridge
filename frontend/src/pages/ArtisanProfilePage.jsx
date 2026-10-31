@@ -254,7 +254,11 @@ const ArtisanProfilePage = () => {
               : order
           ),
         )
-        setOrderNotice(`Order ${orderId} marked ${status.toLowerCase()}.`)
+        if (status === 'Completed') {
+          setOrderNotice(`Order ${orderId} marked Completed. The industry partner/customer has been notified to release payment.`)
+        } else {
+          setOrderNotice(`Order ${orderId} marked ${status.toLowerCase()}.`)
+        }
       } else {
         throw new Error(res?.message || 'The order status could not be updated.')
       }
@@ -542,7 +546,7 @@ const ArtisanProfilePage = () => {
                     icon: ClipboardList,
                   },
                   { label: 'Published courses', value: courses.length, icon: GraduationCap },
-                  { label: 'Payments received', value: '₹0', icon: WalletCards },
+                  { label: 'Payments received', value: `₹${(paymentsData?.summary?.totalEarnings ?? 0).toLocaleString('en-IN')}`, icon: WalletCards },
                 ].map(({ label, value, icon: Icon }) => (
                   <div
                     className="rounded-xl border border-border bg-background p-5"
@@ -1222,8 +1226,8 @@ const ArtisanProfilePage = () => {
                   {artisanOrders.map((order) => {
                     const isAwaiting = order.status === 'Awaiting response'
                     const nextStatuses = {
-                      Processing: ['Ready to ship'],
-                      'Ready to ship': ['Shipped'],
+                      Processing: ['Ready to ship', 'Completed'],
+                      'Ready to ship': ['Shipped', 'Completed'],
                       Shipped: ['Completed'],
                     }[order.status] ?? []
                     const customer = order.customer
@@ -1344,9 +1348,44 @@ const ArtisanProfilePage = () => {
                           </div>
                         </div>
 
+                        {order.status === 'Completed' && (
+                          <div className="mx-5 mb-4 sm:mx-6 rounded-xl border p-4 flex flex-wrap items-center justify-between gap-3 text-sm">
+                            {order.paymentStatus === 'paid' ? (
+                              <div className="flex items-center gap-2.5 text-success">
+                                <CheckCircle2 className="h-5 w-5 shrink-0" />
+                                <div>
+                                  <p className="font-semibold">
+                                    Payment Received: ₹{artisanSubtotal.toLocaleString('en-IN')}
+                                  </p>
+                                  <p className="text-xs text-text-muted">
+                                    Paid via Razorpay {order.razorpayPaymentId ? `· Ref: ${order.razorpayPaymentId}` : ''}
+                                    {order.paidAt && ` · ${new Date(order.paidAt).toLocaleString()}`}
+                                  </p>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2.5 text-amber-800">
+                                <Clock3 className="h-5 w-5 shrink-0 text-amber-600" />
+                                <div>
+                                  <p className="font-semibold">
+                                    Order Completed · Payment Pending from {order.source === 'industry' ? 'Industry Partner' : 'Customer'}
+                                  </p>
+                                  <p className="text-xs text-amber-700">
+                                    The {order.source === 'industry' ? 'industry partner' : 'customer'} has been notified to release ₹{artisanSubtotal.toLocaleString('en-IN')}.
+                                  </p>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+
                         <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-5 py-4 sm:px-6">
                           <p className="text-xs leading-5 text-text-muted">
-                            Order requests are stored locally in this demo; no payment is processed.
+                            {order.status === 'Completed' && order.paymentStatus === 'paid'
+                              ? 'Payment verified via Razorpay.'
+                              : order.status === 'Completed'
+                              ? 'Awaiting industry payment release via Razorpay.'
+                              : 'Mark order as Completed when finished to enable payment release.'}
                           </p>
                           {isAwaiting && (
                             <div className="flex flex-wrap gap-2">
@@ -1621,7 +1660,11 @@ const ArtisanProfilePage = () => {
                             ₹{p.amount.toLocaleString('en-IN')}
                           </td>
                           <td className="px-4 py-3">
-                            <span className="rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-success">
+                            <span className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                              p.paymentStatus === 'Paid'
+                                ? 'bg-green-50 text-success'
+                                : 'bg-amber-50 text-amber-800 border border-amber-200'
+                            }`}>
                               {p.paymentStatus}
                             </span>
                           </td>

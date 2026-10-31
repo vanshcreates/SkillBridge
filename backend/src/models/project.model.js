@@ -98,6 +98,26 @@ const projectSchema = new mongoose.Schema(
       ref: "Order",
       default: null,
     },
+    paymentStatus: {
+      type: String,
+      enum: ["pending", "paid", "failed"],
+      default: "pending",
+      index: true,
+    },
+    paidAt: {
+      type: Date,
+      default: null,
+    },
+    razorpayOrderId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    razorpayPaymentId: {
+      type: String,
+      trim: true,
+      default: "",
+    },
     responsibleAnalysis: {
       feasibilityScore: { type: Number, default: 85 },
       feasibilityStatus: { type: String, default: "High Feasibility" },
@@ -159,6 +179,7 @@ projectSchema.pre("save", function () {
 projectSchema.methods.toSafeObject = function (industryObj = null, artisanObj = null) {
   const ind = industryObj || this.industry;
   const art = artisanObj || this.assignedArtisan;
+  const order = this.orderRef && typeof this.orderRef === "object" ? this.orderRef : null;
 
   return {
     id: this._id.toString(),
@@ -177,7 +198,11 @@ projectSchema.methods.toSafeObject = function (industryObj = null, artisanObj = 
     dimensions: this.dimensions || "",
     images: this.images || [],
     status: this.status,
-    orderRef: this.orderRef ? this.orderRef.toString() : null,
+    orderRef: order ? order._id.toString() : (this.orderRef ? this.orderRef.toString() : null),
+    paymentStatus: this.paymentStatus || (order ? order.paymentStatus : "pending"),
+    paidAt: this.paidAt || (order ? order.paidAt : null),
+    razorpayOrderId: this.razorpayOrderId || (order ? order.razorpayOrderId : ""),
+    razorpayPaymentId: this.razorpayPaymentId || (order ? order.razorpayPaymentId : ""),
     industry: ind
       ? typeof ind === "object" && ind.name
         ? {
@@ -213,4 +238,3 @@ projectSchema.methods.toSafeObject = function (industryObj = null, artisanObj = 
 };
 
 export const Project = mongoose.model("Project", projectSchema);
-
