@@ -11,7 +11,19 @@ import { getMarketplaceProductsApi } from '../services/marketplace-api'
 import content from '../data/local-storage.json'
 
 const { products: sampleProducts, categories: sampleCategories } = content.marketplace
-const featuredProducts = sampleProducts.slice(0, 3)
+const featuredProducts = sampleProducts.slice(0, 3).map((product, index) => ({
+  ...product,
+  image: [
+    '/images/marketplace-embroidered-textile.jpg',
+    '/images/marketplace-crochet-flower.jpg',
+    '/images/marketplace-handwoven-sweater.jpg',
+  ][index],
+  imageAlt: [
+    'Colorful embroidered fabric with detailed floral patterns',
+    'Hand-crocheted flower square in cream, green, and yellow yarn',
+    'Artisan wearing a colorful handwoven sweater',
+  ][index],
+}))
 
 const Marketplace = () => {
   const { currentUser, openAuth } = useAuthDialog()
