@@ -17,7 +17,13 @@ const AuthDialogProvider = ({ children }) => {
   // Automatically verify session with backend verify API on load
   useEffect(() => {
     const token = getAuthToken()
-    if (!token) return
+    if (!token) {
+      if (readSessionUser()) {
+        clearSessionUser()
+        setCurrentUser(null)
+      }
+      return
+    }
 
     let isMounted = true
     setIsVerifying(true)
@@ -29,9 +35,9 @@ const AuthDialogProvider = ({ children }) => {
         }
       })
       .catch((err) => {
-        // If 401 Unauthorized, token has expired
-        if (isMounted && err.status === 401) {
-          console.warn('Session expired. Logging out.')
+        console.warn('Session verification failed. Logging out.', err.message)
+        if (isMounted) {
+          clearSessionUser()
           setCurrentUser(null)
         }
       })
@@ -61,7 +67,6 @@ const AuthDialogProvider = ({ children }) => {
   const logout = useCallback(() => {
     clearSessionUser()
     setCurrentUser(null)
-    setMode(null)
   }, [])
 
   const value = useMemo(
@@ -72,7 +77,7 @@ const AuthDialogProvider = ({ children }) => {
   return (
     <AuthDialogContext.Provider value={value}>
       {children}
-      {mode && !currentUser && (
+      {mode && (
         <AuthPage
           key={mode}
           mode={mode}

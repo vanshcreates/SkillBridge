@@ -1,6 +1,7 @@
 import {
   clearAuthToken,
   getArtisansApi,
+  getAuthToken,
   loginApi,
   setAuthToken,
   signupApi,
@@ -10,7 +11,6 @@ import {
 const REGISTERED_USERS_KEY = 'skillbridge-registered-users'
 const SESSION_USER_KEY = 'skillbridge-current-user'
 const SAVED_ADDRESSES_KEY = 'skillbridge-saved-addresses'
-const PASSWORD_ITERATIONS = 210000
 
 function getAddressOwner(user) {
   return user?.id ?? user?.email?.trim().toLowerCase() ?? 'guest'
@@ -253,42 +253,6 @@ function readRegisteredUsers() {
   }
 }
 
-function bytesToBase64(bytes) {
-  return window.btoa(String.fromCharCode(...bytes))
-}
-
-function base64ToBytes(value) {
-  return Uint8Array.from(window.atob(value), (character) =>
-    character.charCodeAt(0),
-  )
-}
-
-async function hashPassword(password, salt) {
-  if (!window.crypto?.subtle) {
-    throw new Error('Secure password storage is unavailable in this browser.')
-  }
-
-  const key = await window.crypto.subtle.importKey(
-    'raw',
-    new TextEncoder().encode(password),
-    'PBKDF2',
-    false,
-    ['deriveBits'],
-  )
-  const hash = await window.crypto.subtle.deriveBits(
-    {
-      name: 'PBKDF2',
-      salt,
-      iterations: PASSWORD_ITERATIONS,
-      hash: 'SHA-256',
-    },
-    key,
-    256,
-  )
-
-  return new Uint8Array(hash)
-}
-
 export function getRegisteredArtisans() {
   return readRegisteredUsers()
     .filter((user) => (user.accountType ?? 'customer') === 'artisan')
@@ -318,69 +282,25 @@ export async function fetchArtisansList() {
  * Authenticate user with Backend API (POST /api/auth/login)
  */
 export async function authenticateUser(email, password, accountType) {
-  try {
-    const result = await loginApi({ email, password, accountType })
-    if (result?.user) {
-      saveSessionUser(result.user)
-      if (result.token) {
-        setAuthToken(result.token)
-      }
-      return result.user
+  const result = await loginApi({ email, password, accountType })
+  if (result?.user) {
+    saveSessionUser(result.user)
+    if (result.token) {
+      setAuthToken(result.token)
     }
-  } catch (apiError) {
-    // If it's an authentication error (401, 400), throw immediately
-    if (apiError.status >= 400 && apiError.status < 500) {
-      throw apiError
-    }
-
-    // If backend server is unreachable, attempt local browser fallback
-    console.warn('Backend login unreachable, trying local fallback:', apiError.message)
-    const normalizedEmail = email.trim().toLowerCase()
-    const user = readRegisteredUsers().find(
-      (entry) => entry.email.toLowerCase() === normalizedEmail,
-    )
-
-    if (user?.passwordSalt && user?.passwordHash) {
-      const candidateHash = await hashPassword(
-        password,
-        base64ToBytes(user.passwordSalt),
-      )
-      const storedHash = base64ToBytes(user.passwordHash)
-      const isValid =
-        candidateHash.length === storedHash.length &&
-        candidateHash.every((byte, index) => byte === storedHash[index])
-
-      if (isValid) {
-        if (accountType && (user.accountType ?? 'customer') !== accountType) {
-          throw new Error(`Account is registered as ${user.accountType}, not ${accountType}.`)
-        }
-        const safeUser = {
-          id: user.id,
-          name: user.name,
-          email: user.email,
-          createdAt: user.createdAt,
-          accountType: user.accountType ?? 'customer',
-          phone: user.phone,
-          artCategory: user.artCategory,
-          experience: user.experience,
-          bio: user.bio,
-          expertise: user.expertise,
-          contactName: user.contactName,
-          industry: user.industry,
-          companyAddress: user.companyAddress,
-        }
-        saveSessionUser(safeUser)
-        return safeUser
-      }
-    }
-
-    throw apiError
+    return result.user
   }
-
-  return null
+  throw new Error(result?.message || 'Unable to authenticate. Please check your credentials.')
 }
 
 export function readSessionUser() {
+  // A session user without a valid JWT token is invalid
+  const token = getAuthToken()
+  if (!token) {
+    window.localStorage.removeItem(SESSION_USER_KEY)
+    return null
+  }
+
   const storedUser = window.localStorage.getItem(SESSION_USER_KEY)
   if (!storedUser) return null
 
@@ -414,10 +334,7 @@ export async function verifyUserSession() {
     }
   } catch (error) {
     console.warn('Session verification error:', error.message)
-    // If token expired or unauthorized, clear session
-    if (error.status === 401) {
-      clearSessionUser()
-    }
+    clearSessionUser()
     throw error
   }
   return null
@@ -427,90 +344,13 @@ export async function verifyUserSession() {
  * Register a new user with Backend API (POST /api/auth/signup)
  */
 export async function saveRegisteredUser(profile) {
-  try {
-    const result = await signupApi(profile)
-    if (result?.user) {
-      saveSessionUser(result.user)
-      if (result.token) {
-        setAuthToken(result.token)
-      }
-      return result.user
+  const result = await signupApi(profile)
+  if (result?.user) {
+    saveSessionUser(result.user)
+    if (result.token) {
+      setAuthToken(result.token)
     }
-  } catch (apiError) {
-    // If server returned a business logic error (e.g. email already exists), throw it
-    if (apiError.status >= 400 && apiError.status < 500) {
-      throw apiError
-    }
-
-    // If backend is unreachable, handle fallback
-    console.warn('Backend signup unreachable, falling back to local storage:', apiError.message)
-    const users = readRegisteredUsers()
-    const normalizedEmail = profile.email.trim().toLowerCase()
-    const existingUser = users.find(
-      (user) => user.email.toLowerCase() === normalizedEmail,
-    )
-
-    if (existingUser?.passwordSalt && existingUser?.passwordHash) {
-      throw new Error('An account with this email already exists. Log in instead.')
-    }
-
-    if (typeof profile.password !== 'string' || profile.password.length < 6) {
-      throw new Error('Use a password with at least 6 characters.')
-    }
-
-    if (!window.crypto?.getRandomValues) {
-      throw new Error('Secure password storage is unavailable in this browser.')
-    }
-
-    const salt = window.crypto.getRandomValues(new Uint8Array(16))
-    const passwordHash = await hashPassword(profile.password, salt)
-    const newUser = {
-      id: existingUser?.id ?? `user-${Date.now()}`,
-      name: profile.name?.trim() || existingUser?.name,
-      email: normalizedEmail,
-      createdAt: existingUser?.createdAt ?? new Date().toISOString(),
-      accountType: profile.accountType ?? existingUser?.accountType ?? 'customer',
-      phone: profile.phone?.trim() || existingUser?.phone,
-      artCategory: profile.artCategory?.trim() || existingUser?.artCategory,
-      experience: profile.experience?.trim() || existingUser?.experience,
-      bio: profile.bio?.trim() || existingUser?.bio,
-      expertise: profile.expertise?.trim() || existingUser?.expertise,
-      contactName: profile.contactName?.trim() || existingUser?.contactName,
-      industry: profile.industry?.trim() || existingUser?.industry,
-      companyAddress:
-        profile.companyAddress?.trim() || existingUser?.companyAddress,
-      passwordSalt: bytesToBase64(salt),
-      passwordHash: bytesToBase64(passwordHash),
-    }
-
-    window.localStorage.setItem(
-      REGISTERED_USERS_KEY,
-      JSON.stringify(
-        existingUser
-          ? users.map((user) => (user.id === existingUser.id ? newUser : user))
-          : [...users, newUser],
-      ),
-    )
-
-    const safeUser = {
-      id: newUser.id,
-      name: newUser.name,
-      email: newUser.email,
-      createdAt: newUser.createdAt,
-      accountType: newUser.accountType,
-      phone: newUser.phone,
-      artCategory: newUser.artCategory,
-      experience: newUser.experience,
-      bio: newUser.bio,
-      expertise: newUser.expertise,
-      contactName: newUser.contactName,
-      industry: newUser.industry,
-      companyAddress: newUser.companyAddress,
-    }
-
-    saveSessionUser(safeUser)
-    return safeUser
+    return result.user
   }
-
-  throw new Error('Unable to complete registration.')
+  throw new Error(result?.message || 'Unable to complete registration.')
 }
