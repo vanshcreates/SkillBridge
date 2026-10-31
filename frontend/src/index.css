@@ -11,8 +11,8 @@
   --color-secondary-light: #C46D3F;
 
   /* Backgrounds */
-  --color-background: #F9F6F0;
-  --color-surface: #FFFFFF;
+  --color-background: #FFE4C4;
+  --color-surface:  #FDF3E6;
   --color-surface-muted: #F2EBE1;
   --color-card: #FFFFFF;
 
@@ -24,7 +24,7 @@
   /* Borders and accents */
   --color-border: #E5D9C8;
   --color-border-strong: #CBB99F;
-  --color-accent: #E5B25D;
+  --color-accent: #E5C57E;
   --color-accent-light: #F7D488;
 
   /* Status */

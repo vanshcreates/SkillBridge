@@ -23,8 +23,7 @@ export const Hero = () => {
       }}
     >
       {/* High-end Gradient & Backdrop Overlay */}
-      <div className="absolute inset-0 z-0 bg-gradient-to-r from-primary/95 via-primary/85 to-primary/75 backdrop-blur-[2px]" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-background to-transparent z-0" />
+      <div className="absolute inset-x-0 top-0 bottom-[50px] z-0 bg-gradient-to-r from-black/25 via-black/70 to-primary/75 backdrop-blur-[2px]" />
 
       {/* Decorative Floating Ambient Orbs */}
       <div className="pointer-events-none absolute -left-20 top-1/4 h-80 w-80 rounded-full bg-accent/20 blur-3xl animate-float" />
@@ -79,7 +78,7 @@ export const Hero = () => {
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-4 justify-center lg:justify-start pt-3">
             <Button
-              className="text-base px-7 py-3.5 shadow-md shadow-secondary/30 transition-transform hover:-translate-y-0.5"
+              className="text-base px-7 py-3.5 shadow-md transition-transform hover:-translate-y-0.5"
               href="/marketplace"
               size="lg"
               variant="primary"
