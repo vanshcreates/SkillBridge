@@ -1,0 +1,217 @@
+{
+  "roles": [
+    {
+      "title": "I'm an Artisan",
+      "icon": "artisan",
+      "description": "Showcase handmade products, find paid work, connect with customers, and keep growing your skills.",
+      "action": "Join as an artisan",
+      "href": "/artisan/auth",
+      "tone": "bg-surface text-primary"
+    },
+    {
+      "title": "I'm a Customer",
+      "icon": "customer",
+      "description": "Discover handmade products and support the people and traditions behind every creation.",
+      "action": "Browse the marketplace",
+      "href": "/marketplace",
+      "tone": "bg-surface text-text-main"
+    },
+    {
+      "title": "I'm an Industry Partner",
+      "icon": "partner",
+      "description": "Connect with artisans, share work requirements, and explore collaboration on larger orders.",
+      "action": "Join as an industry partner",
+      "href": "/industry/auth",
+      "tone": "bg-surface text-secondary"
+    },
+    {
+      "title": "I'm a Training Expert",
+      "icon": "expert",
+      "description": "Share your expertise, offer practical learning, and help artisans develop new skills.",
+      "action": "Teach a course",
+      "href": "/expert/auth",
+      "tone": "bg-surface text-warning"
+    }
+  ],
+  "skills": [
+    {
+      "title": "Embroidery and Phulkari",
+      "icon": "embroidery",
+      "description": "Intricate needlework and vivid patterns carrying generations of craft.",
+      "tone": "bg-surface text-primary"
+    },
+    {
+      "title": "Tailoring and Stitching",
+      "icon": "tailoring",
+      "description": "Careful cutting, fitting, mending, and made-to-measure work.",
+      "tone": "bg-surface text-text-main"
+    },
+    {
+      "title": "Homemade Food Products",
+      "icon": "food",
+      "description": "Small-batch foods made with care, local knowledge, and familiar flavours.",
+      "tone": "bg-surface text-secondary"
+    },
+    {
+      "title": "Handcrafted Goods",
+      "icon": "handcrafted",
+      "description": "Useful, beautiful objects shaped by hand and individual imagination.",
+      "tone": "bg-surface text-warning"
+    },
+    {
+      "title": "Natural Dyes and Upcycled Textiles",
+      "icon": "natural",
+      "description": "Thoughtful ways to give textiles new life with natural colour and reuse.",
+      "tone": "bg-surface text-text-main"
+    }
+  ],
+  "steps": [
+    {
+      "number": "01",
+      "title": "Share Your Skills",
+      "icon": "share",
+      "description": "Help artisans present their abilities, craft, and the work they are proud to make."
+    },
+    {
+      "number": "02",
+      "title": "Discover Opportunities",
+      "icon": "discover",
+      "description": "Create ways to connect artisans with customers, industry partners, and learning."
+    },
+    {
+      "number": "03",
+      "title": "Grow Together",
+      "icon": "grow",
+      "description": "Encourage collaboration, skill development, and more sustainable livelihoods."
+    }
+  ],
+  "platformGoals": [
+    {
+      "title": "Clear, indicative pricing",
+      "icon": "pricing",
+      "description": "Work toward transparent price guidance that recognises the time, skill, and materials behind each craft."
+    },
+    {
+      "title": "Direct connections",
+      "icon": "connect",
+      "description": "Make it easier for artisans to build relationships with potential customers and partners."
+    },
+    {
+      "title": "Collaborative orders",
+      "icon": "orders",
+      "description": "Help communities explore working together when a larger request calls for shared skills."
+    },
+    {
+      "title": "Relevant training",
+      "icon": "training",
+      "description": "Create space for practical learning shaped around artisans’ interests and experience."
+    }
+  ],
+  "marketplace": {
+    "categories": [
+      "All crafts",
+      "Textiles",
+      "Accessories",
+      "Home & Living",
+      "Art & Decor"
+    ],
+    "products": [
+      {
+        "name": "Phulkari Garden Dupatta",
+        "category": "Textiles",
+        "description": "A vibrant, hand-embroidered dupatta made for celebrations.",
+        "price": 2400,
+        "artisan": "Harpreet Kaur",
+        "location": "Amritsar, Punjab",
+        "rating": "4.9",
+        "image": "https://images.unsplash.com/photo-1590736969955-71cc94901144?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Bright embroidered textile in vivid colors",
+        "badge": "Bestseller"
+      },
+      {
+        "name": "Everyday Woven Tote",
+        "category": "Accessories",
+        "description": "A roomy, handwoven carryall made with natural cotton.",
+        "price": 1200,
+        "artisan": "Meena Devi",
+        "location": "Jaipur, Rajasthan",
+        "rating": "4.8",
+        "image": "https://images.unsplash.com/photo-1584917865442-de89df76afd3?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Handbag displayed against a simple background",
+        "badge": "Made to last"
+      },
+      {
+        "name": "Indigo Hand-dyed Scarf",
+        "category": "Textiles",
+        "description": "Small-batch dyed with botanical patterns; every piece is unique.",
+        "price": 950,
+        "artisan": "Farida Bano",
+        "location": "Kutch, Gujarat",
+        "rating": "4.9",
+        "image": "https://images.unsplash.com/photo-1512436991641-6745cdb1723f?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Softly colored clothing and textiles",
+        "badge": "Small batch"
+      },
+      {
+        "name": "Hand-thrown Terracotta Planter",
+        "category": "Home & Living",
+        "description": "A warm, earthy home for your favorite little green things.",
+        "price": 780,
+        "artisan": "Ramesh Prajapati",
+        "location": "Khurja, Uttar Pradesh",
+        "rating": "4.7",
+        "image": "https://images.unsplash.com/photo-1485955900006-10f4d324d411?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Green plant in a handmade terracotta pot",
+        "badge": "Earth friendly"
+      },
+      {
+        "name": "Block Print Cushion Cover",
+        "category": "Home & Living",
+        "description": "Traditional hand-block printing on soft, breathable cotton.",
+        "price": 680,
+        "artisan": "Shabnam Khan",
+        "location": "Bagru, Rajasthan",
+        "rating": "4.8",
+        "image": "https://images.unsplash.com/photo-1584100936595-c0654b55a2e2?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Decorative printed cushion in a cozy living space",
+        "badge": "Hand printed"
+      },
+      {
+        "name": "Painted Folk Art Set",
+        "category": "Art & Decor",
+        "description": "A pair of cheerful folk-art pieces painted by hand.",
+        "price": 1650,
+        "artisan": "Anita Kumari",
+        "location": "Madhubani, Bihar",
+        "rating": "5.0",
+        "image": "https://images.unsplash.com/photo-1579783902614-a3fb3927b6a5?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Colorful framed artwork displayed on a wall",
+        "badge": "One of a kind"
+      },
+      {
+        "name": "Handwoven Table Runner",
+        "category": "Home & Living",
+        "description": "A tactile table accent woven slowly on a traditional loom.",
+        "price": 1100,
+        "artisan": "Lakshmi Devi",
+        "location": "Panipat, Haryana",
+        "rating": "4.8",
+        "image": "https://images.unsplash.com/photo-1600210322486-9c5d8a3b6e4e?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Warm, handcrafted details in a home interior",
+        "badge": "Artisan favorite"
+      },
+      {
+        "name": "Beaded Statement Earrings",
+        "category": "Accessories",
+        "description": "Lightweight, colorful earrings finished by hand.",
+        "price": 540,
+        "artisan": "Pooja Sharma",
+        "location": "Udaipur, Rajasthan",
+        "rating": "4.9",
+        "image": "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=1000&q=85",
+        "imageAlt": "Colorful handmade statement earrings",
+        "badge": "Gift pick"
+      }
+    ]
+  }
+}

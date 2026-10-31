@@ -1,0 +1,49 @@
+{
+  "users": [
+    {
+      "id": "demo-customer-001",
+      "name": "Aarav Mehta",
+      "email": "aarav.mehta@example.com",
+      "accountType": "customer",
+      "city": "Delhi",
+      "state": "Delhi",
+      "bio": "Discovers handmade home goods and supports local makers."
+    },
+    {
+      "id": "demo-artisan-001",
+      "name": "Harpreet Kaur",
+      "email": "harpreet.kaur@example.com",
+      "accountType": "artisan",
+      "city": "Amritsar",
+      "state": "Punjab",
+      "bio": "Creates hand-embroidered Phulkari textiles."
+    },
+    {
+      "id": "demo-artisan-002",
+      "name": "Meena Devi",
+      "email": "meena.devi@example.com",
+      "accountType": "artisan",
+      "city": "Jaipur",
+      "state": "Rajasthan",
+      "bio": "Weaves practical accessories using traditional techniques."
+    },
+    {
+      "id": "demo-partner-001",
+      "name": "Rohan Kapoor",
+      "email": "rohan.kapoor@example.com",
+      "accountType": "partner",
+      "city": "Mumbai",
+      "state": "Maharashtra",
+      "bio": "Explores fair partnerships and collaborative artisan orders."
+    },
+    {
+      "id": "demo-expert-001",
+      "name": "Sana Iqbal",
+      "email": "sana.iqbal@example.com",
+      "accountType": "expert",
+      "city": "Lucknow",
+      "state": "Uttar Pradesh",
+      "bio": "Shares practical textile and embroidery training."
+    }
+  ]
+}
