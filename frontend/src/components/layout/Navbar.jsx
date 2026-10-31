@@ -1,5 +1,13 @@
-import { Search } from 'lucide-react'
-import { Link } from 'react-router-dom'
+import React, { useState } from 'react'
+import { Link, useLocation } from 'react-router-dom'
+import {
+  Compass,
+  Menu,
+  Search,
+  ShoppingBag,
+  Sparkles,
+  X,
+} from 'lucide-react'
 import Nav from './nav'
 
 const Navbar = ({
@@ -10,68 +18,137 @@ const Navbar = ({
   showSearch = false,
 }) => {
   const isMarketplace = variant === 'marketplace'
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const location = useLocation()
 
   return (
-    <div
-      className={
-        isMarketplace
-          ? 'bg-primary px-5 py-4 text-white sm:px-8'
-          : 'mx-auto flex flex-col gap-3 px-5 py-4 font-serif bg-primary text-white sm:px-8 md:flex-row md:items-center md:justify-between'
-      }
-    >
-      <div
-        className={
-          isMarketplace
-            ? 'mx-auto flex max-w-7xl flex-wrap items-center gap-4 lg:flex-nowrap'
-            : 'contents'
-        }
-      >
-        <Link
-          className="w-fit rounded-sm font-serif text-2xl font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          to="/"
-        >
-          SkillBridge
+    <header className="sticky top-0 z-40 w-full border-b border-white/10 bg-primary/95 shadow-md backdrop-blur-xl transition-all">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 sm:px-6 lg:px-8">
+        {/* Brand Logo */}
+        <div className="flex items-center gap-3">
+          <Link
+            className="group flex items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent"
+            to="/"
+          >
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent via-secondary to-primary shadow-sm transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3">
+              <Sparkles className="h-5 w-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="font-serif text-2xl font-bold tracking-tight text-white transition-colors group-hover:text-accent-light">
+                SkillBridge
+              </span>
+              <span className="hidden text-[10px] font-medium uppercase tracking-[0.18em] text-white/60 sm:inline">
+                Ethical Craft Platform
+              </span>
+            </div>
+          </Link>
+
           {isMarketplace && showSearch && (
-            <span className="ml-2 font-sans text-sm font-normal text-white/70">
-              / Marketplace
+            <span className="hidden rounded-full border border-white/15 bg-white/10 px-2.5 py-0.5 text-xs font-medium text-white/80 md:inline-flex">
+              Marketplace
             </span>
           )}
-        </Link>
+        </div>
+
+        {/* Marketplace Embedded Search Bar */}
         {isMarketplace && (
           <form
-            className="order-3 flex min-w-0 basis-full rounded-lg bg-white p-1 focus-within:ring-2 focus-within:ring-accent lg:order-none lg:mx-auto lg:basis-auto lg:flex-1 lg:max-w-lg"
+            className="hidden flex-1 max-w-md mx-4 lg:flex items-center rounded-full border border-white/15 bg-white/10 px-3.5 py-1.5 backdrop-blur-sm transition-all focus-within:border-accent focus-within:bg-white focus-within:text-text-main focus-within:shadow-md"
             onSubmit={(event) => {
               event.preventDefault()
               document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })
             }}
             role="search"
           >
-            <label className="sr-only" htmlFor="marketplace-search">
-              Search products, crafts, or artisans
-            </label>
-            <Search
-              aria-hidden="true"
-              className="ml-3 h-5 w- shrink-0 self-center text-text-muted"
-            />
+            <Search className="h-4 w-4 shrink-0 text-white/70 transition-colors group-focus-within:text-secondary" />
             <input
-              className="min-w-0 flex-1 bg-transparent px-3 py-2 text-sm text-text-main outline-none placeholder:text-text-muted"
+              aria-label="Search products, crafts, or artisans"
+              className="w-full bg-transparent px-3 py-1 text-sm text-white placeholder:text-white/60 outline-none focus:text-text-main focus:placeholder:text-text-muted"
               id="marketplace-search"
               onChange={(event) => onSearchChange?.(event.target.value)}
-              placeholder="Search products, crafts, or artisans"
+              placeholder="Search handcrafted items, crafts, or makers…"
               type="search"
               value={searchValue}
             />
-            <button
-              className="rounded-md bg-secondary px-4 py-2 text-sm font-semibold text-white transition hover:bg-secondary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
-              type="submit"
-            >
-              Search
-            </button>
+            {searchValue && (
+              <button
+                aria-label="Clear search"
+                className="rounded-full p-1 text-white/60 hover:text-white focus:text-text-main"
+                onClick={() => onSearchChange?.('')}
+                type="button"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
           </form>
         )}
-        <Nav cartCount={cartCount} variant={variant} />
+
+        {/* Desktop Navigation */}
+        <div className="hidden md:flex items-center gap-3">
+          <Nav cartCount={cartCount} variant={variant} />
+        </div>
+
+        {/* Mobile Menu Toggle & Cart Icon Button */}
+        <div className="flex items-center gap-2 md:hidden">
+          {variant === 'marketplace' && (
+            <Link
+              aria-label={`View bag with ${cartCount} items`}
+              className="relative rounded-lg p-2 text-white hover:bg-white/10"
+              to="/marketplace/order-summary"
+            >
+              <ShoppingBag className="h-5 w-5" />
+              {cartCount > 0 && (
+                <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-primary">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+          )}
+
+          <button
+            aria-label="Toggle navigation menu"
+            className="rounded-xl border border-white/20 bg-white/10 p-2 text-white transition hover:bg-white/20"
+            onClick={() => setMobileMenuOpen((open) => !open)}
+            type="button"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
       </div>
-    </div>
+
+      {/* Mobile Search Input when in Marketplace */}
+      {isMarketplace && (
+        <div className="border-t border-white/10 bg-primary/95 px-4 py-2.5 lg:hidden">
+          <form
+            className="flex items-center rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-white focus-within:bg-white focus-within:text-text-main"
+            onSubmit={(event) => {
+              event.preventDefault()
+              document.getElementById('products')?.scrollIntoView({ behavior: 'smooth' })
+            }}
+          >
+            <Search className="h-4 w-4 shrink-0 text-white/70" />
+            <input
+              className="w-full bg-transparent px-2.5 py-1 text-xs text-white placeholder:text-white/60 outline-none focus:text-text-main focus:placeholder:text-text-muted"
+              onChange={(event) => onSearchChange?.(event.target.value)}
+              placeholder="Search crafts or artisans…"
+              type="search"
+              value={searchValue}
+            />
+          </form>
+        </div>
+      )}
+
+      {/* Mobile Navigation Drawer */}
+      {mobileMenuOpen && (
+        <div className="border-t border-white/10 bg-primary/98 px-5 py-6 backdrop-blur-2xl md:hidden">
+          <Nav
+            cartCount={cartCount}
+            onItemClick={() => setMobileMenuOpen(false)}
+            variant={variant}
+          />
+        </div>
+      )}
+    </header>
   )
 }
 

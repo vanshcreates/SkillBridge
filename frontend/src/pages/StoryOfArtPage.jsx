@@ -1,5 +1,5 @@
 import { createElement } from 'react'
-import { ArrowRight, Flower2, HandHeart, Sparkles } from 'lucide-react'
+import { ArrowRight, Flower2, HandHeart, Sparkles, HeartHandshake } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/layout/Footer'
 import Navbar from '../components/layout/Navbar'
@@ -8,24 +8,24 @@ import content from '../data/local-storage.json'
 const stories = [
   {
     icon: Flower2,
-    eyebrow: 'Knowledge in every detail',
-    title: 'A craft is more than its finished form.',
+    eyebrow: 'Knowledge in Every Detail',
+    title: 'A craft is far more than its finished form.',
     description:
-      'A stitch, a weave, or a carefully shaped object reflects practice built over time. The hands that make it carry techniques learned, adapted, and passed along.',
+      'A stitch, a weave, or a carefully shaped object reflects generational practice built over decades. The hands that make it carry ancient techniques learned, adapted, and passed down across families.',
   },
   {
     icon: HandHeart,
-    eyebrow: 'Made by people, for people',
-    title: 'Every handmade piece has a maker.',
+    eyebrow: 'Made by People, For People',
+    title: 'Every handmade piece has an authentic human maker.',
     description:
-      'Behind each piece is a person making thoughtful choices about materials, colour, shape, and use. Knowing who made something can make the work feel closer and more meaningful.',
+      'Behind each piece is a person making thoughtful choices about materials, natural dyes, geometry, and utility. Knowing who made something transforms an everyday object into a living heirloom.',
   },
   {
     icon: Sparkles,
-    eyebrow: 'Tradition with room to grow',
-    title: 'Living traditions keep evolving.',
+    eyebrow: 'Tradition with Room to Grow',
+    title: 'Living traditions continuously evolve with modern purpose.',
     description:
-      'Artisans build on what they know while finding new ways to make, teach, collaborate, and reach people who value their work.',
+      'Artisans build upon centuries of heritage while adopting new digital tools, direct ethical market access, and collaborative briefs with conscious patrons worldwide.',
   },
 ]
 
@@ -33,86 +33,105 @@ const StoryOfArtPage = () => (
   <div className="min-h-screen bg-background">
     <Navbar />
     <main>
-      <section className="bg-primary px-5 py-20 text-white sm:px-8 sm:py-28">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-white/70">
-            Skill, memory, imagination
-          </p>
-          <h1 className="mt-4 max-w-4xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">
-            The story of art is the story of the hands behind it.
+      {/* Editorial Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-hover to-[#432310] px-5 py-20 text-white sm:px-8 sm:py-32">
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full border border-white/10 blur-2xl" />
+        <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full border border-white/10 blur-3xl" />
+        
+        <div className="relative z-10 mx-auto max-w-7xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/90 backdrop-blur-xs">
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
+            <span>Skill · Memory · Imagination</span>
+          </div>
+          <h1 className="mt-4 max-w-4xl font-serif text-4xl font-bold leading-tight sm:text-6xl lg:text-7xl">
+            The Story of Art is the Story of the Hands Behind It.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80">
-            Handmade work brings together knowledge, patience, and creativity.
-            SkillBridge celebrates the people and practices that make every
-            piece one of a kind.
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/80 sm:text-xl">
+            Handmade craft unites centuries of indigenous knowledge, patient dedication, and soulful creativity.
+            SkillBridge celebrates the makers and practices that make every piece truly one of a kind.
           </p>
-          <Link
-            className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-5 py-3 font-semibold text-primary transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
-            to="/artisans"
-          >
-            Meet the artisans
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
+          <div className="mt-9 flex flex-wrap items-center gap-4">
+            <Link
+              className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-6 font-bold text-primary shadow-lg transition-all duration-200 hover:bg-background hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent"
+              to="/artisans"
+            >
+              <span>Meet the Artisans</span>
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </Link>
+            <Link
+              className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+              to="/marketplace"
+            >
+              <span>Browse Crafted Works</span>
+            </Link>
+          </div>
         </div>
       </section>
 
+      {/* Stories Section */}
       <section
         aria-labelledby="story-heading"
-        className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20"
+        className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24"
       >
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold text-secondary">Stories in every craft</p>
+        <div className="max-w-3xl border-l-4 border-secondary pl-6">
+          <p className="text-xs font-bold uppercase tracking-wider text-secondary">Stories in Every Craft</p>
           <h2
-            className="mt-2 font-serif text-3xl font-semibold text-text-main sm:text-4xl"
+            className="mt-2 font-serif text-3xl font-bold text-text-main sm:text-4xl lg:text-5xl"
             id="story-heading"
           >
-            Art carries knowledge forward.
+            Art Carries Generational Knowledge Forward.
           </h2>
-          <p className="mt-4 text-lg leading-8 text-text-secondary">
+          <p className="mt-4 text-base leading-relaxed text-text-secondary sm:text-lg">
             From {content.skills[0].title.toLowerCase()} to{' '}
-            {content.skills[1].title.toLowerCase()}, each practice has its own
-            materials, methods, and meaning. The story is never only about the
-            object; it is also about the maker and the community around the work.
+            {content.skills[1].title.toLowerCase()}, each practice embodies distinct
+            materials, organic techniques, and cultural symbolism. The story is never solely about the
+            object — it is about the resilient community that breathes life into it.
           </p>
         </div>
-        <div className="mt-10 grid gap-5 md:grid-cols-3">
+
+        <div className="mt-14 grid gap-8 md:grid-cols-3">
           {stories.map(({ icon: Icon, eyebrow, title, description }) => (
             <article
-              className="rounded-2xl border border-border bg-surface p-6 shadow-card sm:p-7"
+              className="group relative rounded-3xl border border-border/80 bg-surface p-7 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-secondary/40 hover:shadow-card-hover"
               key={title}
             >
-              <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-secondary">
+              <span className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
                 {createElement(Icon, {
                   'aria-hidden': true,
                   className: 'h-6 w-6',
                 })}
               </span>
-              <p className="mt-5 text-sm font-semibold text-secondary">{eyebrow}</p>
-              <h3 className="mt-2 font-serif text-xl font-semibold text-text-main">
+              <p className="mt-5 text-xs font-bold uppercase tracking-wider text-secondary">{eyebrow}</p>
+              <h3 className="mt-2 font-serif text-xl font-bold text-text-main group-hover:text-primary transition-colors">
                 {title}
               </h3>
-              <p className="mt-3 leading-7 text-text-secondary">{description}</p>
+              <p className="mt-3 text-sm leading-relaxed text-text-secondary">{description}</p>
             </article>
           ))}
         </div>
       </section>
 
-      <section className="border-y border-border bg-surface px-5 py-14 sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+      {/* Call to Action Banner */}
+      <section className="border-y border-border/80 bg-surface/60 px-5 py-16 sm:px-8 backdrop-blur-xs">
+        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-8 sm:flex-row sm:items-center">
           <div>
-            <h2 className="font-serif text-2xl font-semibold text-text-main">
-              Help keep these stories moving.
+            <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-secondary mb-2">
+              <HeartHandshake className="h-4 w-4" />
+              <span>Cultural Preservation</span>
+            </div>
+            <h2 className="font-serif text-2xl font-bold text-text-main sm:text-3xl">
+              Help Keep These Heritage Stories Alive.
             </h2>
-            <p className="mt-2 max-w-2xl leading-7 text-text-secondary">
-              Discover the makers, learn about their craft, and support work
-              made with care.
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-secondary">
+              Discover verified traditional makers, learn their techniques through video courses,
+              and support ethical livelihoods with fair, transparent compensation.
             </p>
           </div>
           <Link
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+            className="inline-flex min-h-12 shrink-0 items-center gap-2 rounded-xl bg-gradient-to-r from-primary to-primary-hover px-6 font-bold text-white shadow-md transition-all duration-200 hover:shadow-lg hover:brightness-105 active:scale-98"
             to="/marketplace"
           >
-            Explore handmade work
+            <span>Explore Handmade Work</span>
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </Link>
         </div>

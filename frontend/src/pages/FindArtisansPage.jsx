@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { ArrowRight, MapPin, Search, Store, UsersRound } from 'lucide-react'
+import { ArrowRight, MapPin, Search, Sparkles, Store, UserCheck, UsersRound } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/layout/Footer'
 import Navbar from '../components/layout/Navbar'
@@ -98,55 +98,72 @@ const FindArtisansPage = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       <main>
-        <section className="bg-primary px-5 py-16 text-white sm:px-8 sm:py-20">
-          <div className="mx-auto max-w-7xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-white/70">
-              The people behind the craft
-            </p>
-            <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold leading-tight sm:text-5xl">
-              Find an artisan. Discover a story.
+        {/* Hero Section */}
+        <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-hover to-[#432310] px-5 py-16 text-white sm:px-8 sm:py-24">
+          <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full border border-white/10 blur-2xl" />
+          <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full border border-white/10 blur-3xl" />
+          
+          <div className="relative z-10 mx-auto max-w-7xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/90 backdrop-blur-xs">
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              <span>The People Behind the Craft</span>
+            </div>
+            <h1 className="mt-4 max-w-3xl font-serif text-4xl font-bold leading-tight sm:text-5xl lg:text-6xl">
+              Find an Artisan. Discover Their Story.
             </h1>
-            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/80">
-              Explore makers and the handmade work they bring into the world.
-              Search by name, place, craft, or product.
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-white/80 sm:text-lg">
+              Explore traditional makers and the cultural craft they sustain.
+              Search by artisan name, village, state, or craft discipline.
             </p>
-            <label className="mt-8 flex max-w-xl items-center gap-3 rounded-xl bg-white px-4 py-2 text-text-main focus-within:ring-2 focus-within:ring-accent">
-              <Search aria-hidden="true" className="h-5 w-5 shrink-0 text-text-muted" />
-              <span className="sr-only">Search artisans</span>
-              <input
-                className="min-w-0 flex-1 bg-transparent py-2 outline-none placeholder:text-text-muted"
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Try embroidery, Jaipur, or a maker’s name"
-                type="search"
-                value={search}
-              />
-            </label>
+
+            {/* Search Bar */}
+            <div className="mt-8 max-w-xl">
+              <label className="flex items-center gap-3 rounded-2xl bg-white/95 px-4 py-2.5 text-text-main shadow-xl backdrop-blur-md transition-all focus-within:ring-3 focus-within:ring-accent">
+                <Search aria-hidden="true" className="h-5 w-5 shrink-0 text-text-muted" />
+                <span className="sr-only">Search artisans</span>
+                <input
+                  className="min-w-0 flex-1 bg-transparent py-1 text-sm outline-none placeholder:text-text-muted text-text-main"
+                  onChange={(event) => setSearch(event.target.value)}
+                  placeholder="Try Phulkari, Jaipur, wood carving, or maker’s name…"
+                  type="search"
+                  value={search}
+                />
+                {search && (
+                  <button
+                    className="text-xs font-semibold text-text-muted hover:text-text-main"
+                    onClick={() => setSearch('')}
+                    type="button"
+                  >
+                    Clear
+                  </button>
+                )}
+              </label>
+            </div>
           </div>
         </section>
 
+        {/* Directory Section */}
         <section
           aria-labelledby="artisan-directory-heading"
-          className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-16"
+          className="mx-auto max-w-7xl px-5 py-12 sm:px-8 sm:py-20"
         >
-          <div className="mb-7 flex flex-wrap items-end justify-between gap-4">
+          <div className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-border/70 pb-5">
             <div>
-              <p className="text-sm font-semibold text-secondary">Meet the makers</p>
+              <p className="text-xs font-bold uppercase tracking-wider text-secondary">Directory</p>
               <h2
-                className="mt-2 font-serif text-3xl font-semibold text-text-main"
+                className="mt-1 font-serif text-3xl font-bold tracking-tight text-text-main"
                 id="artisan-directory-heading"
               >
-                Artisans and their work
+                Artisan Makers & Workshops
               </h2>
             </div>
-            <p aria-live="polite" className="text-sm text-text-muted">
-              {visibleArtisans.length} {visibleArtisans.length === 1 ? 'artisan' : 'artisans'}
+            <p aria-live="polite" className="text-xs font-semibold text-text-muted">
+              Showing <span className="font-bold text-text-main">{visibleArtisans.length}</span> {visibleArtisans.length === 1 ? 'artisan' : 'artisans'}
             </p>
           </div>
 
-          
-
           {visibleArtisans.length ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {visibleArtisans.map((artisan) => {
                 const featuredProduct = artisan.products[0]
                 const productPath = featuredProduct?.name
@@ -155,44 +172,77 @@ const FindArtisansPage = () => {
 
                 return (
                   <article
-                    className="overflow-hidden rounded-2xl border border-border bg-card shadow-card transition hover:-translate-y-1 hover:shadow-card-hover"
+                    className="group flex flex-col justify-between overflow-hidden rounded-3xl border border-border/80 bg-surface shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-secondary/40 hover:shadow-card-hover"
                     key={artisan.name}
                   >
-                    {featuredProduct?.image ? (
-                      <img
-                        alt={featuredProduct.imageAlt || `${featuredProduct.name} by ${artisan.name}`}
-                        className="h-52 w-full object-cover"
-                        loading="lazy"
-                        src={featuredProduct.image}
-                      />
-                    ) : (
-                      <div className="flex h-52 items-center justify-center bg-surface-muted text-secondary">
-                        <Store aria-hidden="true" className="h-12 w-12" />
+                    <div>
+                      {/* Image container */}
+                      <div className="relative h-56 w-full overflow-hidden bg-surface-muted">
+                        {featuredProduct?.image ? (
+                          <img
+                            alt={featuredProduct.imageAlt || `${featuredProduct.name} by ${artisan.name}`}
+                            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                            loading="lazy"
+                            src={featuredProduct.image}
+                          />
+                        ) : (
+                          <div className="flex h-full items-center justify-center bg-surface-muted text-secondary">
+                            <Store aria-hidden="true" className="h-12 w-12 stroke-1" />
+                          </div>
+                        )}
+                        <div className="absolute top-3 right-3 flex items-center gap-1 rounded-full bg-white/90 px-2.5 py-1 text-[0.68rem] font-bold text-primary shadow-xs backdrop-blur-md">
+                          <UserCheck className="h-3 w-3 text-secondary" />
+                          <span>Verified Artisan</span>
+                        </div>
                       </div>
-                    )}
-                    <div className="p-5">
-                      <h3 className="font-serif text-xl font-semibold text-text-main">
-                        {artisan.name}
-                      </h3>
-                      <p className="mt-2 flex items-center gap-2 text-sm text-text-muted">
-                        <MapPin aria-hidden="true" className="h-4 w-4 shrink-0" />
-                        {artisan.location}
-                      </p>
-                      <p className="mt-3 text-sm leading-6 text-text-secondary">
-                        {artisan.crafts.join(' · ')}
-                      </p>
-                      <p className="mt-2 inline-flex items-center gap-2 text-xs font-medium text-text-muted">
-                        <UsersRound aria-hidden="true" className="h-4 w-4" />
-                        {artisan.products.length}{' '}
-                        {artisan.products.length === 1 ? 'featured work' : 'featured works'}
-                      </p>
-                      {productPath && (
+
+                      {/* Content */}
+                      <div className="p-6">
+                        <h3 className="font-serif text-xl font-bold text-text-main group-hover:text-primary transition-colors">
+                          {artisan.name}
+                        </h3>
+                        <p className="mt-1.5 flex items-center gap-1.5 text-xs text-text-muted">
+                          <MapPin aria-hidden="true" className="h-3.5 w-3.5 text-secondary shrink-0" />
+                          <span>{artisan.location}</span>
+                        </p>
+
+                        <div className="mt-3 flex flex-wrap gap-1.5">
+                          {artisan.crafts.map((craft) => (
+                            <span
+                              className="rounded-full bg-secondary/10 px-2.5 py-0.5 text-[0.68rem] font-semibold text-secondary"
+                              key={craft}
+                            >
+                              {craft}
+                            </span>
+                          ))}
+                        </div>
+
+                        <p className="mt-3.5 inline-flex items-center gap-1.5 text-xs font-medium text-text-muted">
+                          <UsersRound aria-hidden="true" className="h-3.5 w-3.5" />
+                          <span>
+                            {artisan.products.length}{' '}
+                            {artisan.products.length === 1 ? 'featured creation' : 'featured creations'}
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="p-6 pt-0">
+                      {productPath ? (
                         <Link
-                          className="mt-5 inline-flex min-h-10 items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                          className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-xs font-bold text-white shadow-xs transition-all duration-200 hover:bg-primary-hover hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
                           to={productPath}
                         >
-                          Explore their work
-                          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                          <span>Explore Creations</span>
+                          <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
+                        </Link>
+                      ) : (
+                        <Link
+                          className="inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-bold text-text-secondary transition hover:bg-surface-muted hover:text-text-main"
+                          to="/marketplace"
+                        >
+                          <span>Browse Marketplace</span>
+                          <ArrowRight aria-hidden="true" className="h-3.5 w-3.5" />
                         </Link>
                       )}
                     </div>
@@ -201,14 +251,23 @@ const FindArtisansPage = () => {
               })}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border-strong bg-surface px-6 py-16 text-center">
-              <Search aria-hidden="true" className="mx-auto h-8 w-8 text-secondary" />
-              <h3 className="mt-4 font-serif text-xl font-semibold text-text-main">
-                No artisans found
+            <div className="rounded-3xl border border-dashed border-border-strong bg-surface/50 px-6 py-20 text-center backdrop-blur-sm">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
+                <Search aria-hidden="true" className="h-6 w-6" />
+              </div>
+              <h3 className="mt-4 font-serif text-2xl font-bold text-text-main">
+                No Artisans Found
               </h3>
-              <p className="mt-2 text-sm text-text-secondary">
-                Try another name, place, or craft.
+              <p className="mx-auto mt-2 max-w-sm text-sm text-text-secondary">
+                Try searching with another craft term, city name, or clear your query to view the directory.
               </p>
+              <button
+                className="mt-6 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-primary-hover"
+                onClick={() => setSearch('')}
+                type="button"
+              >
+                Clear Search
+              </button>
             </div>
           )}
         </section>

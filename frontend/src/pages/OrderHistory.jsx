@@ -1,4 +1,4 @@
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, PackageCheck } from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import OrderHistorySection from '../components/profile/OrderHistorySection'
@@ -17,26 +17,26 @@ const OrderHistory = () => {
     <MarketplaceLayout>
       <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
         <Link
-          className="inline-flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-text-secondary hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
           to="/marketplace"
         >
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          Back to marketplace
+          <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+          <span>Back to Marketplace</span>
         </Link>
-        <header className="mt-6">
-          <p className="text-sm font-semibold text-secondary">Your purchases</p>
-          <h1 className="mt-1 font-serif text-3xl font-semibold text-text-main sm:text-4xl">
-            Order history
+        <header className="mt-6 border-b border-border/70 pb-5">
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-secondary">
+            <PackageCheck className="h-3.5 w-3.5" />
+            <span>Order Records</span>
+          </div>
+          <h1 className="mt-1 font-serif text-3xl font-bold tracking-tight text-text-main sm:text-4xl">
+            Customer Order History
           </h1>
-          <p className="mt-2 text-sm leading-6 text-text-muted">
-            Review order requests made from this browser.
+          <p className="mt-1 text-xs text-text-muted">
+            Track status, review artisan assignments, and settle pending payments securely via Razorpay.
           </p>
         </header>
+
         <OrderHistorySection user={currentUser} />
-        <p className="mt-6 rounded-xl border border-border bg-surface-muted px-4 py-3 text-xs leading-5 text-text-muted">
-          Demo history is local to this browser and is not a confirmed order
-          status. No payment is collected and requests are not sent to artisans.
-        </p>
       </main>
     </MarketplaceLayout>
   )

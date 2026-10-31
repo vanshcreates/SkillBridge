@@ -3,9 +3,12 @@ import {
   ArrowRight,
   BookOpenCheck,
   BriefcaseBusiness,
+  CheckCircle2,
   HandHeart,
   Handshake,
+  ShieldCheck,
   ShoppingBasket,
+  Sparkles,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import Footer from '../components/layout/Footer'
@@ -15,44 +18,48 @@ const community = [
   {
     icon: BriefcaseBusiness,
     title: 'Artisans',
+    badge: 'Makers',
     description:
-      'Share handmade work, build a shop, and keep growing your craft and business.',
+      'Share handmade crafts, build a digital workshop, voice-register in native languages, and receive direct fair-wage payouts.',
   },
   {
     icon: ShoppingBasket,
-    title: 'Customers',
+    title: 'Conscious Patrons',
+    badge: 'Collectors',
     description:
-      'Discover makers and handmade pieces, and learn about the people behind the work.',
+      'Discover authentic cultural artifacts with verified provenance, fair pricing, and secure online checkout via Razorpay.',
   },
   {
     icon: BookOpenCheck,
-    title: 'Training experts',
+    title: 'Training Mentors',
+    badge: 'Masters',
     description:
-      'Create practical courses and pass useful skills on to the next generation of makers.',
+      'Publish video courses, share craft masterclasses, and pass invaluable generational techniques to new artisans.',
   },
   {
     icon: Handshake,
-    title: 'Industry partners',
+    title: 'Industry Partners',
+    badge: 'Enterprises',
     description:
-      'Connect with artisans and explore larger briefs and collaborations.',
+      'Connect with master artisan clusters for bulk production briefs, milestone tracking, and verified escrow payments.',
   },
 ]
 
 const values = [
   {
-    title: 'People before products',
+    title: 'People Before Products',
     description:
-      'Every handmade piece represents a person, a practice, and time spent learning and making.',
+      'Every handmade piece represents a human artisan, years of dedicated practice, and an invaluable cultural story worth sustaining.',
   },
   {
-    title: 'Skills deserve to be seen',
+    title: 'Skills Deserve Transparent Value',
     description:
-      'We want makers to have more ways to share what they know and help others discover their work.',
+      'We eliminate predatory middlemen so artisans receive fair wages, prompt milestone settlements, and dignified business recognition.',
   },
   {
-    title: 'A community that grows together',
+    title: 'A Flourishing Craft Ecosystem',
     description:
-      'Learning, thoughtful partnerships, and meaningful connections can help craft traditions keep evolving.',
+      'By connecting artisans with modern industry briefs, practical video education, and global patrons, heritage crafts continuously thrive.',
   },
 ]
 
@@ -60,149 +67,136 @@ const AboutUsPage = () => (
   <div className="min-h-screen bg-background">
     <Navbar />
     <main>
-      <section className="bg-primary px-5 py-20 text-white sm:px-8 sm:py-28">
-        <div className="mx-auto max-w-7xl">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-white/70">
-            About SkillBridge
-          </p>
-          <h1 className="mt-4 max-w-4xl font-serif text-4xl font-semibold leading-tight sm:text-6xl">
-            Bringing people together through the skills they share.
+      {/* Brand Hero */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-primary via-primary-hover to-[#432310] px-5 py-20 text-white sm:px-8 sm:py-32">
+        <div className="absolute -right-32 -top-32 h-96 w-96 rounded-full border border-white/10 blur-2xl" />
+        <div className="absolute -bottom-40 -left-20 h-96 w-96 rounded-full border border-white/10 blur-3xl" />
+        
+        <div className="relative z-10 mx-auto max-w-7xl">
+          <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-wider text-white/90 backdrop-blur-xs">
+            <Sparkles className="h-3.5 w-3.5 text-accent" />
+            <span>Our Mission & Vision</span>
+          </div>
+          <h1 className="mt-4 max-w-4xl font-serif text-4xl font-bold leading-tight sm:text-6xl lg:text-7xl">
+            Empowering Artisans Through Ethical Technology & Unified Commerce.
           </h1>
-          <p className="mt-6 max-w-2xl text-lg leading-8 text-white/80">
-            SkillBridge is a community platform built around artisans, handmade
-            work, learning, and collaboration. We want the people behind each
-            craft to be easier to find, learn from, and support.
+          <p className="mt-6 max-w-2xl text-base leading-relaxed text-white/80 sm:text-xl">
+            SkillBridge connects traditional Indian artisans, conscious consumers, master craft educators, and ethical industry brands into one dignified, transparent ecosystem.
           </p>
-          <Link
-            className="mt-8 inline-flex min-h-11 items-center gap-2 rounded-lg bg-white px-5 py-3 font-semibold text-primary transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
-            to="/artisans"
-          >
-            Meet the artisans
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
+          <div className="mt-9 flex flex-wrap items-center gap-4">
+            <Link
+              className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-6 font-bold text-primary shadow-lg transition-all duration-200 hover:bg-background hover:scale-105"
+              to="/artisans"
+            >
+              <span>Explore Artisan Directory</span>
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </Link>
+            <Link
+              className="inline-flex min-h-12 items-center gap-2 rounded-xl border border-white/30 bg-white/10 px-6 font-semibold text-white backdrop-blur-sm transition-all hover:bg-white/20"
+              to="/marketplace"
+            >
+              <span>Visit Marketplace</span>
+            </Link>
+          </div>
         </div>
       </section>
 
+      {/* Purpose Section */}
       <section
         aria-labelledby="about-purpose-heading"
-        className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 sm:py-20 md:grid-cols-[0.8fr_1.2fr] md:gap-16"
+        className="mx-auto grid max-w-7xl gap-10 px-5 py-16 sm:px-8 sm:py-24 md:grid-cols-[0.8fr_1.2fr] md:gap-16"
       >
-        <div className="flex items-start">
-          <span className="inline-flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-secondary">
-            <HandHeart aria-hidden="true" className="h-7 w-7" />
-          </span>
-        </div>
-        <div>
-          <p className="text-sm font-semibold text-secondary">Why we’re here</p>
+        <div className="flex flex-col items-start">
+          <div className="flex h-16 w-16 items-center justify-center rounded-3xl bg-primary/10 text-primary shadow-inner">
+            <HandHeart aria-hidden="true" className="h-8 w-8" />
+          </div>
+          <p className="mt-6 text-xs font-bold uppercase tracking-wider text-secondary">Why We Exist</p>
           <h2
-            className="mt-2 font-serif text-3xl font-semibold leading-tight text-text-main sm:text-4xl"
+            className="mt-2 font-serif text-3xl font-bold leading-tight text-text-main sm:text-4xl"
             id="about-purpose-heading"
           >
-            There’s a person and a story behind every piece.
+            Preserving Heritage While Fueling Dignified Livelihoods.
           </h2>
-          <p className="mt-5 text-lg leading-8 text-text-secondary">
-            A stitch, a weave, or a carefully shaped object carries knowledge
-            built through practice. SkillBridge brings together spaces to
-            discover artisans, explore handmade work, learn practical skills,
-            and connect around new opportunities.
+        </div>
+        <div className="space-y-4 text-base leading-relaxed text-text-secondary sm:text-lg">
+          <p>
+            Across rural India, millions of master artisans practice extraordinary art forms handed down through generations. Yet fragmented supply chains, lack of digital access, and intermediary markups have historically undervalued their labor.
           </p>
-          <p className="mt-4 leading-7 text-text-secondary">
-            We’re building toward a community where creative skills are valued,
-            makers can share what they know, and more people can find their way
-            into the world of craft.
+          <p>
+            SkillBridge solves this with an inclusive full-stack platform: multilingual voice AI registration for rural artisans, video masterclasses for skill advancement, and seamless industry order placement with instant Razorpay fair-wage settlement upon project completion.
           </p>
         </div>
       </section>
 
-      <section
-        aria-labelledby="about-community-heading"
-        className="bg-surface px-5 py-16 sm:px-8 sm:py-20"
-      >
+      {/* 4 Pillars of Community */}
+      <section className="border-t border-border/80 bg-surface/50 px-5 py-16 sm:px-8 sm:py-24">
         <div className="mx-auto max-w-7xl">
-          <div className="max-w-3xl">
-            <p className="text-sm font-semibold text-secondary">A place for many people</p>
-            <h2
-              className="mt-2 font-serif text-3xl font-semibold text-text-main sm:text-4xl"
-              id="about-community-heading"
-            >
-              Craft grows when people connect.
+          <div className="text-center max-w-2xl mx-auto">
+            <p className="text-xs font-bold uppercase tracking-wider text-secondary">Our Ecosystem</p>
+            <h2 className="mt-2 font-serif text-3xl font-bold text-text-main sm:text-4xl">
+              Four Pillars of SkillBridge
             </h2>
-            <p className="mt-4 text-lg leading-8 text-text-secondary">
-              SkillBridge is designed to bring different parts of the craft
-              community closer together.
+            <p className="mt-3 text-sm text-text-secondary">
+              A balanced ecosystem where every stakeholder contributes to craft preservation and mutual prosperity.
             </p>
           </div>
-          <div className="mt-10 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-            {community.map(({ icon: Icon, title, description }) => (
-              <article
-                className="rounded-2xl border border-border bg-card p-6 shadow-card"
+
+          <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+            {community.map(({ icon: Icon, title, badge, description }) => (
+              <div
+                className="group rounded-3xl border border-border/80 bg-surface p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-secondary/40 hover:shadow-card-hover"
                 key={title}
               >
-                <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-surface-muted text-secondary">
-                  {createElement(Icon, {
-                    'aria-hidden': true,
-                    className: 'h-6 w-6',
-                  })}
-                </span>
-                <h3 className="mt-5 font-serif text-xl font-semibold text-text-main">
+                <div className="flex items-center justify-between">
+                  <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-colors group-hover:bg-primary group-hover:text-white">
+                    {createElement(Icon, {
+                      'aria-hidden': true,
+                      className: 'h-6 w-6',
+                    })}
+                  </span>
+                  <span className="rounded-full bg-secondary/10 px-2.5 py-0.5 text-[0.65rem] font-bold text-secondary">
+                    {badge}
+                  </span>
+                </div>
+                <h3 className="mt-5 font-serif text-lg font-bold text-text-main group-hover:text-primary transition-colors">
                   {title}
                 </h3>
-                <p className="mt-3 leading-7 text-text-secondary">{description}</p>
-              </article>
+                <p className="mt-2 text-xs leading-relaxed text-text-secondary">
+                  {description}
+                </p>
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      <section
-        aria-labelledby="about-values-heading"
-        className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-20"
-      >
-        <div className="max-w-3xl">
-          <p className="text-sm font-semibold text-secondary">What guides us</p>
-          <h2
-            className="mt-2 font-serif text-3xl font-semibold text-text-main sm:text-4xl"
-            id="about-values-heading"
-          >
-            A few things we believe.
+      {/* Values Section */}
+      <section className="mx-auto max-w-7xl px-5 py-16 sm:px-8 sm:py-24">
+        <div className="max-w-2xl">
+          <p className="text-xs font-bold uppercase tracking-wider text-secondary">Core Values</p>
+          <h2 className="mt-2 font-serif text-3xl font-bold text-text-main sm:text-4xl">
+            What Drives Everything We Build
           </h2>
         </div>
-        <div className="mt-8 divide-y divide-border border-y border-border">
+
+        <div className="mt-10 grid gap-6 md:grid-cols-3">
           {values.map(({ title, description }) => (
-            <article className="py-5 sm:flex sm:gap-8" key={title}>
-              <h3 className="font-serif text-xl font-semibold text-text-main sm:w-64 sm:shrink-0">
+            <div
+              className="rounded-3xl border border-border/80 bg-surface p-7 shadow-card"
+              key={title}
+            >
+              <div className="flex items-center gap-2 text-secondary font-bold text-xs uppercase tracking-wider">
+                <CheckCircle2 className="h-4 w-4" />
+                <span>Value Pillar</span>
+              </div>
+              <h3 className="mt-3 font-serif text-xl font-bold text-text-main">
                 {title}
               </h3>
-              <p className="mt-2 leading-7 text-text-secondary sm:mt-0">
+              <p className="mt-3 text-sm leading-relaxed text-text-secondary">
                 {description}
               </p>
-            </article>
+            </div>
           ))}
-        </div>
-        <p className="mt-5 text-sm leading-6 text-text-muted">
-          SkillBridge is still taking shape. Some experiences and opportunities
-          described here are goals for the platform, not claims about services
-          already available.
-        </p>
-      </section>
-
-      <section className="border-y border-border bg-surface px-5 py-14 sm:px-8">
-        <div className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div>
-            <h2 className="font-serif text-2xl font-semibold text-text-main">
-              Find your place in the community.
-            </h2>
-            <p className="mt-2 max-w-2xl leading-7 text-text-secondary">
-              Meet the makers and discover the skills and stories behind their work.
-            </p>
-          </div>
-          <Link
-            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
-            to="/artisans"
-          >
-            Explore artisans
-            <ArrowRight aria-hidden="true" className="h-4 w-4" />
-          </Link>
         </div>
       </section>
     </main>

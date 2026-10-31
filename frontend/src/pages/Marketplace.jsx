@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { ArrowLeft, ShoppingBag } from 'lucide-react'
+import { ArrowLeft, ShieldCheck, ShoppingBag, Sparkles } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
 import FeaturedCraftCarousel from '../components/marketplace/FeaturedCraftCarousel'
@@ -104,41 +104,44 @@ const Marketplace = () => {
   if (!currentUser) {
     return (
       <MarketplaceLayout>
-        <div className="mx-auto max-w-xl px-4 py-20 text-center">
-          <div className="rounded-2xl border border-border bg-surface p-8 shadow-card sm:p-10">
-            <span className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-              <ShoppingBag className="h-6 w-6" />
+        <div className="mx-auto max-w-xl px-4 py-24 text-center sm:px-6">
+          <div className="rounded-3xl border border-border/80 bg-surface/95 p-8 shadow-card backdrop-blur-md sm:p-12">
+            <span className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 text-primary shadow-inner">
+              <ShoppingBag className="h-8 w-8" />
             </span>
-            <h2 className="mt-4 font-serif text-2xl font-bold text-text-main sm:text-3xl">
+            <div className="mt-5 inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-3 py-0.5 text-xs font-bold uppercase tracking-wider text-secondary">
+              <Sparkles className="h-3 w-3" />
+              <span>Patron Exclusive</span>
+            </div>
+            <h2 className="mt-2 font-serif text-3xl font-bold tracking-tight text-text-main sm:text-4xl">
               Customer Access Only
             </h2>
-            <p className="mt-3 text-sm leading-6 text-text-secondary sm:text-base">
-              The SkillBridge marketplace is exclusively reserved for customers.
-              Please sign in with your customer account or create one to explore handmade artisan crafts.
+            <p className="mt-3 text-sm leading-relaxed text-text-secondary sm:text-base">
+              The SkillBridge marketplace connects conscious patrons directly with verified master artisans. Please sign in with your customer account or create one to explore authentic crafts.
             </p>
-            <div className="mt-7 flex flex-col justify-center gap-3 sm:flex-row">
+            <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
               <button
-                className="rounded-lg bg-primary px-6 py-2.5 font-semibold text-white transition hover:bg-primary-hover"
+                className="rounded-xl bg-gradient-to-r from-primary to-primary-hover px-6 py-3 text-xs font-bold text-white shadow-md transition-all duration-200 hover:shadow-lg hover:brightness-105 active:scale-98"
                 onClick={() => openAuth('login')}
                 type="button"
               >
-                Sign in as customer
+                Sign In as Customer
               </button>
               <button
-                className="rounded-lg border border-border-strong px-6 py-2.5 font-semibold text-text-main transition hover:bg-surface-muted"
+                className="rounded-xl border border-border-strong bg-surface px-6 py-3 text-xs font-bold text-text-main transition hover:bg-surface-muted hover:border-secondary"
                 onClick={() => openAuth('signup')}
                 type="button"
               >
-                Create an account
+                Create Patron Account
               </button>
             </div>
-            <div className="mt-4">
+            <div className="mt-6 border-t border-border/60 pt-5">
               <Link
-                className="inline-flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-primary transition"
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-text-muted hover:text-primary transition"
                 to="/"
               >
-                <ArrowLeft className="h-4 w-4" />
-                Return to main page
+                <ArrowLeft className="h-3.5 w-3.5" />
+                <span>Return to SkillBridge Home</span>
               </Link>
             </div>
           </div>
@@ -146,8 +149,6 @@ const Marketplace = () => {
       </MarketplaceLayout>
     )
   }
-
-  
 
   const resetFilters = () => {
     setSearch('')

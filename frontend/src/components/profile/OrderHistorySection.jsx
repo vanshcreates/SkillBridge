@@ -3,9 +3,12 @@ import {
   CheckCircle2,
   Clock,
   CreditCard,
+  Package,
   PackageCheck,
   RefreshCw,
+  ShieldCheck,
   ShoppingBag,
+  Sparkles,
   XCircle,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -22,13 +25,31 @@ import { loadRazorpayScript } from '../../utils/razorpay'
 
 const formatPrice = (price) => `₹${Number(price || 0).toLocaleString('en-IN')}`
 
-const STATUS_COLORS = {
-  Completed: 'bg-green-100 text-green-700',
-  Shipped: 'bg-blue-100 text-blue-700',
-  'Ready to ship': 'bg-indigo-100 text-indigo-700',
-  Processing: 'bg-yellow-100 text-yellow-700',
-  'Awaiting response': 'bg-gray-100 text-gray-600',
-  Rejected: 'bg-red-100 text-red-600',
+const STATUS_BADGES = {
+  Completed: {
+    bg: 'bg-green-50 text-green-700 border-green-200',
+    dot: 'bg-green-500',
+  },
+  Shipped: {
+    bg: 'bg-blue-50 text-blue-700 border-blue-200',
+    dot: 'bg-blue-500',
+  },
+  'Ready to ship': {
+    bg: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    dot: 'bg-indigo-500',
+  },
+  Processing: {
+    bg: 'bg-amber-50 text-amber-700 border-amber-200',
+    dot: 'bg-amber-500',
+  },
+  'Awaiting response': {
+    bg: 'bg-gray-50 text-gray-700 border-gray-200',
+    dot: 'bg-gray-400',
+  },
+  Rejected: {
+    bg: 'bg-red-50 text-red-700 border-red-200',
+    dot: 'bg-red-500',
+  },
 }
 
 const OrderHistorySection = ({ user, compact = false }) => {
@@ -62,7 +83,7 @@ const OrderHistorySection = ({ user, compact = false }) => {
   }, [user])
 
   const handleCancel = async (orderId) => {
-    if (!window.confirm('Cancel this order?')) return
+    if (!window.confirm('Are you sure you want to cancel this order request?')) return
     setCancellingId(orderId)
     try {
       const data = await cancelCustomerOrderApi(orderId)
@@ -163,182 +184,196 @@ const OrderHistorySection = ({ user, compact = false }) => {
   return (
     <section
       aria-labelledby="profile-orders-heading"
-      className="mt-6 rounded-2xl border border-border bg-surface p-5 sm:p-7"
+      className="mt-6 rounded-3xl border border-border/80 bg-surface p-5 sm:p-8 shadow-card"
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/70 pb-5">
         <div>
-          <p className="text-sm font-semibold text-secondary">Your purchases</p>
+          <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-secondary">
+            <Package className="h-3.5 w-3.5" />
+            <span>Patron Purchases</span>
+          </div>
           <h2
-            className="mt-1 font-serif text-xl font-semibold text-text-main"
+            className="mt-1 font-serif text-2xl font-bold tracking-tight text-text-main"
             id="profile-orders-heading"
           >
-            Order history
+            Order & Payment History
           </h2>
-          <p className="mt-1 text-sm text-text-muted">
+          <p className="mt-0.5 text-xs text-text-muted">
             {loading
-              ? 'Loading your orders…'
-              : `${orders.length} ${orders.length === 1 ? 'order' : 'orders'}`}
+              ? 'Loading your order records…'
+              : `${orders.length} ${orders.length === 1 ? 'order' : 'orders'} placed with independent craftspeople`}
           </p>
         </div>
-        <div className="flex items-center gap-3">
+
+        <div className="flex items-center gap-2.5">
           <button
             aria-label="Refresh orders"
-            className="rounded-lg border border-border p-2 text-text-secondary hover:border-border-strong hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+            className="flex h-9 w-9 items-center justify-center rounded-xl border border-border bg-surface text-text-secondary transition hover:bg-surface-muted hover:text-text-main focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary cursor-pointer"
             disabled={loading}
             onClick={loadOrders}
             type="button"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-          {!compact && (
+          {compact && orders.length > 3 && (
             <Link
-              className="text-sm font-semibold text-primary underline decoration-border underline-offset-4 hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+              className="inline-flex items-center gap-1 rounded-xl bg-primary/10 px-3.5 py-2 text-xs font-bold text-primary hover:bg-primary/15 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
               to="/marketplace/orders"
             >
-              View full history
+              <span>View All ({orders.length})</span>
             </Link>
           )}
         </div>
       </div>
 
       {error ? (
-        <p className="mt-4 rounded-lg border border-error/30 bg-red-50 p-3 text-sm text-error" role="alert">
+        <p className="mt-5 rounded-2xl border border-error/30 bg-red-50 p-4 text-xs font-medium text-error" role="alert">
           {error}
         </p>
       ) : !loading && displayOrders.length ? (
-        <ul className="mt-5 space-y-4">
+        <ul className="mt-6 space-y-4">
           {displayOrders.map((order) => {
             const orderId = order.id || order.orderNumber || order._id
             const status = order.status || order.orderStatus || 'Awaiting response'
             const total = order.totalAmount || order.total || 0
             const canCancel = ['Awaiting response', 'Processing'].includes(status)
             const isPaid = order.paymentStatus === 'paid'
+            const badgeMeta = STATUS_BADGES[status] || {
+              bg: 'bg-gray-50 text-gray-700 border-gray-200',
+              dot: 'bg-gray-400',
+            }
 
             return (
               <li
-                className="rounded-xl border border-border bg-background p-4 sm:p-5"
+                className="overflow-hidden rounded-2xl border border-border/80 bg-background/50 p-5 shadow-xs transition-all hover:border-secondary/30"
                 key={orderId}
               >
-                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+                {/* Header row */}
+                <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center border-b border-border/60 pb-3.5">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wide text-text-muted">
-                      Order reference
-                    </p>
-                    <p className="mt-1 font-semibold text-text-main">{orderId}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-mono text-xs font-bold text-text-main">
+                        #{order.orderNumber || orderId}
+                      </p>
+                      {isPaid ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-green-200 bg-green-50 px-2 py-0.5 text-[0.65rem] font-bold text-success">
+                          <CheckCircle2 className="h-3 w-3" />
+                          <span>Paid via Razorpay</span>
+                        </span>
+                      ) : order.paymentStatus === 'failed' ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-red-200 bg-red-50 px-2 py-0.5 text-[0.65rem] font-bold text-error">
+                          <XCircle className="h-3 w-3" />
+                          <span>Payment Failed</span>
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[0.65rem] font-bold text-warning">
+                          <Clock className="h-3 w-3" />
+                          <span>Payment Pending</span>
+                        </span>
+                      )}
+                    </div>
                     {order.razorpayPaymentId && (
-                      <p className="mt-0.5 text-xs text-text-muted">
-                        Payment: <span className="font-mono text-text-secondary">{order.razorpayPaymentId}</span>
+                      <p className="mt-1 text-[0.68rem] text-text-muted">
+                        Ref: <span className="font-mono text-text-secondary">{order.razorpayPaymentId}</span>
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-wrap items-center gap-2">
+
+                  <div className="flex flex-wrap items-center gap-2.5">
                     <time
-                      className="text-sm text-text-secondary"
+                      className="text-xs text-text-muted"
                       dateTime={order.createdAt}
                     >
-                      {new Date(order.createdAt).toLocaleString()}
+                      {new Date(order.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
                     </time>
                     <span
-                      className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold ${STATUS_COLORS[status] || 'bg-gray-100 text-gray-600'}`}
+                      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-semibold ${badgeMeta.bg}`}
                     >
-                      <PackageCheck aria-hidden="true" className="h-4 w-4" />
-                      {status}
+                      <span className={`h-1.5 w-1.5 rounded-full ${badgeMeta.dot}`} />
+                      <span>{status}</span>
                     </span>
-                    {isPaid ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-1 text-xs font-semibold text-success">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Paid
-                      </span>
-                    ) : order.paymentStatus === 'failed' ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-error">
-                        <XCircle className="h-3.5 w-3.5" />
-                        Payment Failed
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-warning">
-                        <Clock className="h-3.5 w-3.5" />
-                        Payment Pending
-                      </span>
-                    )}
                   </div>
                 </div>
 
-                <ul className="mt-4 divide-y divide-border border-t border-border">
+                {/* Items List */}
+                <ul className="divide-y divide-border/60 py-2">
                   {(order.items || []).map((item, idx) => (
                     <li
                       className="flex flex-col justify-between gap-1 py-3 sm:flex-row sm:items-center"
                       key={item.id || item.name || idx}
                     >
                       <div>
-                        <p className="font-medium text-text-main">{item.name || item.title}</p>
-                        <p className="mt-1 text-sm text-text-muted">
-                          {item.category} · By {item.artisanName || item.artisan || 'Artisan'} · Qty {item.quantity}
+                        <p className="text-sm font-bold text-text-main">{item.name || item.title}</p>
+                        <p className="mt-0.5 text-xs text-text-muted">
+                          {item.category} · Maker: <span className="text-secondary font-medium">{item.artisanName || item.artisan || 'Artisan'}</span> · Qty {item.quantity}
                         </p>
                       </div>
-                      <p className="font-semibold text-text-main">
+                      <p className="font-mono font-bold text-sm text-text-main">
                         {formatPrice(item.price * item.quantity)}
                       </p>
                     </li>
                   ))}
                 </ul>
 
-                <div className="mt-3 flex items-center justify-between border-t border-border pt-3">
-                  <span className="text-sm font-bold text-text-main">Total</span>
-                  <span className="text-sm font-bold text-text-main">{formatPrice(total)}</span>
-                </div>
+                {/* Total & Action Footer */}
+                <div className="flex flex-col justify-between gap-3 border-t border-border/60 pt-3.5 sm:flex-row sm:items-center">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-xs font-semibold text-text-muted">Grand Total:</span>
+                    <span className="font-mono text-base font-extrabold text-primary">
+                      {formatPrice(total)}
+                    </span>
+                  </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
-                  {!isPaid && status !== 'Rejected' && (
-                    <button
-                      className="inline-flex items-center gap-1.5 rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:opacity-50"
-                      disabled={payingId === orderId}
-                      onClick={() => handleRetryPayment(order)}
-                      type="button"
-                    >
-                      <CreditCard className="h-3.5 w-3.5" />
-                      {payingId === orderId ? 'Opening gateway…' : 'Pay Now'}
-                    </button>
-                  )}
-                  {canCancel && (
-                    <button
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-error/40 px-3 py-1.5 text-xs font-semibold text-error hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error disabled:opacity-50"
-                      disabled={cancellingId === orderId}
-                      onClick={() => handleCancel(orderId)}
-                      type="button"
-                    >
-                      <XCircle className="h-3.5 w-3.5" />
-                      {cancellingId === orderId ? 'Cancelling…' : 'Cancel order'}
-                    </button>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {!isPaid && status !== 'Rejected' && (
+                      <button
+                        className="inline-flex items-center gap-1.5 rounded-xl bg-gradient-to-r from-primary to-primary-hover px-4 py-2 text-xs font-bold text-white shadow-xs hover:shadow hover:brightness-105 active:scale-98 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:opacity-50 cursor-pointer"
+                        disabled={payingId === orderId}
+                        onClick={() => handleRetryPayment(order)}
+                        type="button"
+                      >
+                        <CreditCard className="h-3.5 w-3.5" />
+                        <span>{payingId === orderId ? 'Opening Gateway…' : 'Pay via Razorpay'}</span>
+                      </button>
+                    )}
+                    {canCancel && (
+                      <button
+                        className="inline-flex items-center gap-1 rounded-xl border border-error/30 bg-surface px-3 py-2 text-xs font-semibold text-error hover:bg-red-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-error disabled:opacity-50 cursor-pointer"
+                        disabled={cancellingId === orderId}
+                        onClick={() => handleCancel(orderId)}
+                        type="button"
+                      >
+                        <XCircle className="h-3.5 w-3.5" />
+                        <span>{cancellingId === orderId ? 'Cancelling…' : 'Cancel Order'}</span>
+                      </button>
+                    )}
+                  </div>
                 </div>
               </li>
             )
           })}
         </ul>
       ) : !loading ? (
-        <div className="mt-5 rounded-xl border border-dashed border-border-strong px-4 py-8 text-center">
-          <ShoppingBag aria-hidden="true" className="mx-auto h-7 w-7 text-secondary" />
-          <p className="mt-3 font-medium text-text-main">No orders yet</p>
-          <p className="mt-1 text-sm leading-6 text-text-muted">
-            Browse handmade crafts and place your first order.
+        <div className="mt-6 rounded-2xl border border-dashed border-border-strong bg-surface/50 px-4 py-12 text-center backdrop-blur-xs">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
+            <ShoppingBag aria-hidden="true" className="h-6 w-6 stroke-1" />
+          </div>
+          <p className="mt-3 font-serif text-lg font-bold text-text-main">No Orders Placed Yet</p>
+          <p className="mx-auto mt-1 max-w-sm text-xs leading-relaxed text-text-muted">
+            Explore authentic handmade crafts from verified rural artisans and place your first fair-trade order.
           </p>
           <Link
-            className="mt-4 inline-flex rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+            className="mt-5 inline-flex rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
             to="/marketplace"
           >
-            Browse crafts
+            Explore Marketplace Crafts
           </Link>
         </div>
       ) : null}
-
-      {!loading && compact && orders.length > 3 && (
-        <Link
-          className="mt-4 inline-flex text-sm font-semibold text-primary underline decoration-border underline-offset-4 hover:decoration-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-          to="/marketplace/orders"
-        >
-          View all {orders.length} orders
-        </Link>
-      )}
     </section>
   )
 }

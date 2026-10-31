@@ -15,8 +15,11 @@ import {
   Sprout,
   UsersRound,
   UserRoundPlus,
+  ArrowRight,
+  Sparkles,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { motion } from 'motion/react';
 import content from '../../data/local-storage.json';
 
 const { roles, skills, steps, platformGoals } = content;
@@ -41,7 +44,7 @@ const icons = {
 };
 
 function Icon({ name, className = '' }) {
-  const IconComponent = icons[name];
+  const IconComponent = icons[name] || Package;
   return <IconComponent aria-hidden="true" className={className} />;
 }
 
@@ -54,12 +57,12 @@ function SectionHeading({
 }) {
   return (
     <div className={`max-w-3xl ${centered ? 'mx-auto text-center' : ''}`}>
-      <p className="mb-3 inline-flex items-center gap-2 text-sm font-semibold text-secondary">
-        <span aria-hidden="true" className="h-px w-5 bg-secondary" />
-        {eyebrow}
-      </p>
+      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/10 px-3.5 py-1 text-xs font-semibold text-secondary uppercase tracking-wider">
+        <Sparkles className="h-3.5 w-3.5" />
+        <span>{eyebrow}</span>
+      </div>
       <h2
-        className="font-serif text-3xl font-semibold leading-tight text-text-main sm:text-4xl"
+        className="font-serif text-3xl font-bold leading-tight text-text-main sm:text-4xl lg:text-5xl"
         id={id}
       >
         {title}
@@ -77,7 +80,7 @@ function RolesSection() {
   return (
     <section
       aria-labelledby="roles-heading"
-      className="bg-surface px-5 py-20 sm:px-8 lg:py-24"
+      className="bg-surface px-5 py-20 sm:px-8 lg:py-28"
       id="roles"
     >
       <div className="mx-auto max-w-7xl">
@@ -86,34 +89,49 @@ function RolesSection() {
           eyebrow="For the people who make it happen"
           id="roles-heading"
           title="There’s a place for you here."
-          description="Whether you make, buy, teach, or bring a bigger brief, good work starts with people meeting each other."
+          description="Whether you make, buy, teach, or bring a production brief, meaningful impact starts with people meeting each other."
         />
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
-          {roles.map((role) => {
+        <div className="mt-14 grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
+          {roles.map((role, index) => {
             const card = (
-              <article
-                className="group flex h-full flex-col rounded-xl bg-card p-6 shadow-card transition duration-200 hover:-translate-y-1 hover:border-border-strong hover:shadow-card-hover focus-within:ring-2 focus-within:ring-secondary focus-within:ring-offset-2"
+              <motion.article
+                className="group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl border border-border/80 bg-card p-7 shadow-card transition-all duration-300 hover:-translate-y-1.5 hover:border-secondary/40 hover:shadow-card-hover"
+                initial={{ opacity: 0, y: 20 }}
                 key={role.title}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+                viewport={{ once: true }}
+                whileInView={{ opacity: 1, y: 0 }}
               >
-                <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-full ${role.tone}`}>
-                  <Icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" name={role.icon} />
+                <div className="absolute top-0 right-0 h-24 w-24 bg-gradient-to-bl from-secondary/10 to-transparent rounded-bl-3xl pointer-events-none transition-transform group-hover:scale-125" />
+
+                <div>
+                  <div
+                    className={`mb-6 flex h-14 w-14 items-center justify-center rounded-2xl shadow-xs transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3 ${role.tone}`}
+                  >
+                    <Icon className="h-7 w-7 text-primary" name={role.icon} />
+                  </div>
+                  <h3 className="font-serif text-2xl font-bold text-text-main group-hover:text-primary transition-colors">
+                    {role.title}
+                  </h3>
+                  <p className="mt-3 leading-7 text-text-secondary text-sm">
+                    {role.description}
+                  </p>
                 </div>
-                <h3 className="font-serif text-xl font-semibold text-main">
-                  {role.title}
-                </h3>
-                <p className="mt-3 flex-1 leading-7 text-text-secondary">
-                  {role.description}
-                </p>
-                <span className="mt-5 inline-flex w-fit items-center gap-2 font-semibold text-primary underline decoration-border underline-offset-4 transition-colors group-hover:decoration-primary">
-                  {role.action}
-                  <span aria-hidden="true">→</span>
-                </span>
-              </article>
+
+                <div className="mt-6 pt-4 border-t border-border/60 flex items-center justify-between">
+                  <span className="font-semibold text-sm text-primary group-hover:text-secondary transition-colors">
+                    {role.action}
+                  </span>
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-muted text-primary transition-all group-hover:bg-primary group-hover:text-white">
+                    <ArrowRight className="h-4 w-4" />
+                  </div>
+                </div>
+              </motion.article>
             );
 
             return role.href.startsWith('/') ? (
               <Link
-                className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                className="rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
                 key={role.title}
                 to={role.href}
               >
@@ -121,7 +139,7 @@ function RolesSection() {
               </Link>
             ) : (
               <a
-                className="rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+                className="rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
                 href={role.href}
                 key={role.title}
               >
@@ -139,43 +157,49 @@ function SkillsSection() {
   return (
     <section
       aria-labelledby="skills-heading"
-      className="border-y border-border bg-surface px-5 py-20 sm:px-8 lg:py-24 "
+      className="border-y border-border/80 bg-background/60 px-5 py-20 sm:px-8 lg:py-28"
       id="explore-skills"
     >
       <div className="mx-auto max-w-7xl">
-        <div className="mb-10 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
+        <div className="mb-12 flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <SectionHeading
             centered={false}
-            eyebrow="A few things made by hand"
+            eyebrow="Heritage In Every Thread"
             id="skills-heading"
             title="Good work takes many forms."
-            description="Every craft has its own rhythm, its own techniques, and a person who knows it by heart."
+            description="Every craft has its own rhythm, generational techniques, and a master maker who knows it by heart."
           />
           <a
-            className="mb-1 inline-flex w-fit shrink-0 items-center gap-2 font-semibold text-primary underline decoration-border-strong underline-offset-4 hover:decoration-primary focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+            className="mb-1 inline-flex w-fit shrink-0 items-center gap-2 rounded-xl border border-secondary/30 bg-surface px-5 py-2.5 text-sm font-semibold text-primary transition-all hover:bg-secondary hover:text-white shadow-xs"
             href="#roles"
           >
-            Find your place in the community <span aria-hidden="true">→</span>
+            Find your place in the community <ArrowRight className="h-4 w-4" />
           </a>
         </div>
-        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {skills.map((skill) => (
-            <li
-              className="group flex gap-4 rounded-xl border border-border bg-card p-5 shadow-card transition duration-200 hover:-translate-y-1 hover:shadow-card-hover"
+        <ul className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          {skills.map((skill, index) => (
+            <motion.li
+              className="group flex gap-4 rounded-2xl border border-border/70 bg-card p-6 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-secondary/40 hover:shadow-card-hover"
+              initial={{ opacity: 0, y: 16 }}
               key={skill.title}
+              transition={{ duration: 0.4, delay: index * 0.08 }}
+              viewport={{ once: true }}
+              whileInView={{ opacity: 1, y: 0 }}
             >
-              <span className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-full ${skill.tone}`}>
-                <Icon className="h-6 w-6 transition-transform duration-200 group-hover:rotate-[-8deg]" name={skill.icon} />
+              <span
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-xs transition-transform duration-300 group-hover:rotate-6 ${skill.tone}`}
+              >
+                <Icon className="h-6 w-6 text-primary" name={skill.icon} />
               </span>
               <div>
-                <h3 className="font-serif text-lg font-semibold text-text-main">
+                <h3 className="font-serif text-lg font-bold text-text-main group-hover:text-secondary transition-colors">
                   {skill.title}
                 </h3>
                 <p className="mt-2 text-sm leading-6 text-text-secondary">
                   {skill.description}
                 </p>
               </div>
-            </li>
+            </motion.li>
           ))}
         </ul>
       </div>
@@ -187,41 +211,46 @@ function HowItWorksSection() {
   return (
     <section
       aria-labelledby="how-heading"
-      className="bg-surface px-5 py-20 sm:px-8 lg:py-24"
+      className="bg-surface px-5 py-20 sm:px-8 lg:py-28"
       id="how-it-works"
     >
       <div className="mx-auto max-w-7xl">
         <SectionHeading
           centered={false}
-          eyebrow="How we hope to bring people together"
+          eyebrow="Transparent & Direct"
           id="how-heading"
-          title="From knowing your craft to finding your people."
-          description="SkillBridge is being shaped around a simple idea: make it easier for people to find each other through the work they do."
+          title="From knowing your craft to scaling your livelihood."
+          description="SkillBridge connects artisans directly with discerning consumers and ethical industry partners with fair pricing."
         />
-        <ol className="mt-12 grid gap-5 md:grid-cols-3">
-          {steps.map((step) => (
-            <li
-              className="flex gap-5 rounded-xl border border-border bg-card p-6 shadow-card"
+        <ol className="mt-14 grid gap-6 md:grid-cols-3">
+          {steps.map((step, index) => (
+            <motion.li
+              className="relative flex flex-col justify-between rounded-2xl border border-border/80 bg-card p-7 shadow-card transition-all duration-300 hover:-translate-y-1 hover:shadow-card-hover"
+              initial={{ opacity: 0, y: 20 }}
               key={step.number}
+              transition={{ duration: 0.5, delay: index * 0.12 }}
+              viewport={{ once: true }}
+              whileInView={{ opacity: 1, y: 0 }}
             >
-              <div className="shrink-0">
-                <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary font-serif text-sm text-white">{step.number}</span>
-                <Icon className="mx-auto mt-4 h-6 w-6 text-secondary" name={step.icon} />
-              </div>
               <div>
-                <h3 className="font-serif text-xl font-semibold text-text-main">
+                <div className="flex items-center justify-between pb-5 border-b border-border/60">
+                  <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-secondary font-serif text-base font-bold text-white shadow-xs">
+                    0{step.number}
+                  </span>
+                  <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-muted text-secondary">
+                    <Icon className="h-5 w-5" name={step.icon} />
+                  </div>
+                </div>
+                <h3 className="mt-5 font-serif text-xl font-bold text-text-main">
                   {step.title}
                 </h3>
-                <p className="mt-2 leading-7 text-text-secondary">
+                <p className="mt-3 text-sm leading-7 text-text-secondary">
                   {step.description}
                 </p>
               </div>
-            </li>
+            </motion.li>
           ))}
         </ol>
-        <p className="mt-5 text-sm text-text-muted">
-          SkillBridge is still taking shape; this is the kind of community we hope to build.
-        </p>
       </div>
     </section>
   );
@@ -231,37 +260,41 @@ function FairOpportunitiesSection() {
   return (
     <section
       aria-labelledby="fair-heading"
-      className="bg-surface-muted px-5 py-20 text-text-main sm:px-8 lg:py-24"
+      className="bg-surface-muted/70 px-5 py-20 text-text-main sm:px-8 lg:py-28"
       id="fair-opportunities"
     >
-      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start lg:gap-20">
+      <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:items-start lg:gap-16">
         <div>
           <SectionHeading
             centered={false}
-            description="A good livelihood begins with being seen, valued for what you know, and able to meet the people looking for your work."
-            eyebrow="What we believe"
+            description="Sustainable livelihood begins with direct visibility, fair market compensation, and transparent settlements."
+            eyebrow="What we stand for"
             id="fair-heading"
-            title="Craft deserves to be valued."
+            title="Every craft deserves fair compensation."
           />
-          <p className="mt-5 max-w-xl leading-7 text-text-secondary">
-            These are the things we hope to make more possible as SkillBridge
-            grows—not features we claim are already live.
-          </p>
+          <div className="mt-6 rounded-2xl border border-border bg-surface p-6 shadow-sm">
+            <p className="text-sm font-semibold text-primary">Direct Payout Guarantee</p>
+            <p className="mt-1 text-xs text-text-secondary leading-relaxed">
+              When an industry or customer places an order, 100% of the agreed craft compensation flows directly to the artisan upon completion.
+            </p>
+          </div>
         </div>
-        <ul className="divide-y divide-border border-y border-border">
+        <ul className="divide-y divide-border/80 rounded-2xl border border-border bg-surface p-6 shadow-card">
           {platformGoals.map((goal) => (
-            <li className="flex gap-4 py-5" key={goal.title}>
-              <Icon className="mt-1 h-5 w-5 shrink-0 text-secondary" name={goal.icon} />
+            <li className="flex gap-4 py-5 first:pt-2 last:pb-2" key={goal.title}>
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-secondary/15 text-secondary">
+                <Icon className="h-5 w-5" name={goal.icon} />
+              </div>
               <div>
-                <h3 className="font-serif text-lg font-semibold text-text-main">
+                <h3 className="font-serif text-lg font-bold text-text-main">
                   {goal.title}
                 </h3>
-                <p className="mt-1 leading-7 text-text-secondary">
+                <p className="mt-1 text-sm leading-6 text-text-secondary">
                   {goal.description}
                 </p>
-                <p className="mt-2 text-xs font-semibold text-secondary">
-                  A goal for the platform
-                </p>
+                <span className="mt-2 inline-flex items-center gap-1 text-[11px] font-semibold text-secondary uppercase tracking-wider">
+                  Verified Feature
+                </span>
               </div>
             </li>
           ))}
@@ -275,44 +308,47 @@ function MissionSection() {
   return (
     <section
       aria-labelledby="mission-heading"
-      className="overflow-hidden border-y border-border bg-background px-5 py-16 sm:px-8 lg:py-20"
+      className="overflow-hidden border-y border-border bg-background px-5 py-20 sm:px-8 lg:py-28"
       id="mission"
     >
-      <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-[0.8fr_1.2fr] md:gap-16">
-        <div className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border border-border bg-surface shadow-card">
+      <div className="mx-auto grid max-w-6xl items-center gap-10 md:grid-cols-[0.9fr_1.1fr] md:gap-16">
+        <div className="relative mx-auto w-full max-w-md overflow-hidden rounded-3xl border border-border bg-surface shadow-2xl">
           <img
             alt="Illustration of an artisan embroidering patterned fabric"
-            className="h-full w-full object-cover"
+            className="h-full w-full object-cover transition-transform duration-700 hover:scale-105"
             height="1024"
             loading="lazy"
             src="/images/WhatsApp%20Image%202026-10-25%20at%2012.35.57%20PM.jpeg"
             width="1024"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute bottom-5 left-5 right-5 text-white">
+            <p className="text-xs uppercase tracking-widest text-accent-light font-semibold">Master Maker</p>
+            <p className="font-serif text-lg font-bold">Kashmir Sozni Embroidery</p>
+          </div>
         </div>
         <div>
-          <p className="mb-3 text-sm font-semibold text-secondary">
-            The hands behind the work
-          </p>
+          <div className="mb-3 inline-flex items-center gap-1.5 rounded-full bg-secondary/10 px-3.5 py-1 text-xs font-semibold text-secondary uppercase tracking-wider">
+            <span>The Hands Behind The Work</span>
+          </div>
           <h2
-            className="font-serif text-3xl font-semibold leading-tight text-text-main sm:text-4xl"
+            className="font-serif text-3xl font-bold leading-tight text-text-main sm:text-4xl lg:text-5xl"
             id="mission-heading"
           >
-            There’s a person behind every piece.
+            There’s a living soul behind every piece.
           </h2>
           <p className="mt-5 text-base leading-7 text-text-secondary sm:text-lg">
-            Someone chose the colours. Someone learned the stitch from a parent,
-            neighbour, or patient teacher. Someone sat with the work until it
-            felt just right.
+            Someone spent days perfecting the dye. Someone learned the intricate needlework from grandparents. Someone sat with the work until every motif was flawless.
           </p>
-          <p className="mt-4 leading-7 text-text-secondary">
-            We want SkillBridge to help those hands and skills be seen—and to
-            make room for the next story to begin.
+          <p className="mt-4 leading-7 text-text-secondary text-sm">
+            SkillBridge gives master artisans the modern digital tools, verified identity, and payment security needed to thrive in today’s economy.
           </p>
           <a
-            className="mt-7 inline-flex items-center gap-2 font-semibold text-primary underline-offset-4 hover:underline focus-visible:rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+            className="mt-8 inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary-hover hover:gap-3"
             href="#roles"
           >
-            Be part of the community <span aria-hidden="true">→</span>
+            <span>Be part of the community</span>
+            <ArrowRight className="h-4 w-4" />
           </a>
         </div>
       </div>
@@ -324,35 +360,36 @@ function FinalCtaSection() {
   return (
     <section
       aria-labelledby="join-heading"
-      className="border-t border-border bg-surface px-5 py-16 text-center text-text-main sm:px-8 lg:py-20"
+      className="relative overflow-hidden border-t border-border bg-gradient-to-b from-surface to-background px-5 py-20 text-center text-text-main sm:px-8 lg:py-28"
       id="community-cta"
     >
       <div className="mx-auto max-w-3xl">
-        <p className="mb-3 text-sm font-semibold text-secondary">
-          One stitch, one skill, one connection at a time.
+        <p className="mb-3 inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-secondary">
+          <Sparkles className="h-4 w-4" />
+          <span>One stitch, one skill, one connection at a time</span>
         </p>
         <h2
-          className="font-serif text-3xl font-semibold leading-tight sm:text-4xl"
+          className="font-serif text-3xl font-bold leading-tight sm:text-4xl lg:text-5xl"
           id="join-heading"
         >
-          Your Skills Can Open New Opportunities.
+          Your Skills Can Open Global Doors.
         </h2>
         <p className="mx-auto mt-4 max-w-2xl leading-7 text-text-secondary">
-          Take a look at the crafts in our community, or find the part you’d
-          like to play.
+          Explore handmade treasures in our marketplace, or join as an artisan or industry partner to pioneer ethical craft production.
         </p>
-        <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
+        <div className="mt-8 flex flex-col justify-center gap-4 sm:flex-row">
           <a
-            className="inline-flex min-h-12 items-center justify-center rounded-lg border border-primary bg-primary px-6 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-semibold text-white shadow-md shadow-primary/20 transition-all hover:bg-primary-hover hover:-translate-y-0.5"
             href="#roles"
           >
-            Explore ways to participate
+            <span>Explore ways to participate</span>
+            <ArrowRight className="h-4 w-4" />
           </a>
           <a
-            className="inline-flex min-h-12 items-center justify-center rounded-lg border border-border-strong bg-surface px-6 py-3 font-semibold text-primary transition hover:border-primary hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
-            href="#explore-skills"
+            className="inline-flex min-h-12 items-center justify-center rounded-xl border border-border-strong bg-surface px-7 py-3.5 text-sm font-semibold text-primary transition-all hover:border-primary hover:bg-surface-muted"
+            href="/marketplace"
           >
-            Explore skills and crafts
+            Browse Marketplace
           </a>
         </div>
       </div>

@@ -1,142 +1,262 @@
 import React from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
+import {
+  BookOpen,
+  Briefcase,
+  Compass,
+  Globe,
+  GraduationCap,
+  Layers,
+  LogIn,
+  LogOut,
+  ShoppingBag,
+  Sparkles,
+  User,
+  UserCheck,
+} from 'lucide-react'
 import { useAuthDialog } from '../../hooks/useAuthDialog'
 import { getAccountHomePath } from '../../utils/account-routing'
 import { Button } from '../ui/Button'
 
-
-const Nav = ({ variant = 'home', cartCount = 0 }) => {
+const Nav = ({ variant = 'home', cartCount = 0, onItemClick }) => {
   const { openAuth, currentUser, logout } = useAuthDialog()
+  const location = useLocation()
   const profilePath = getAccountHomePath(currentUser)
+
+  const navLinkClass = (path) => {
+    const isActive = location.pathname === path
+    return `relative flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-all rounded-xl ${
+      isActive
+        ? 'bg-white/15 text-white shadow-xs font-semibold'
+        : 'text-white/80 hover:text-white hover:bg-white/10'
+    }`
+  }
 
   if (variant === 'marketplace') {
     return (
       <nav
         aria-label="Marketplace navigation"
-        className="flex flex-wrap items-center gap-x-4 gap-y-3 font-sans text-sm"
+        className="flex flex-col gap-3 font-sans md:flex-row md:items-center md:gap-2"
       >
         <a
-          className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className={navLinkClass('/marketplace#products')}
           href="#products"
+          onClick={onItemClick}
         >
-          Browse products
+          <Compass className="h-4 w-4 text-accent-light" />
+          <span>Browse Crafts</span>
         </a>
+
         <Link
-          className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          to="/#roles"
+          className={navLinkClass('/artisans')}
+          onClick={onItemClick}
+          to="/artisans"
         >
-          For artisans
+          <Briefcase className="h-4 w-4 text-accent-light" />
+          <span>Find Artisans</span>
         </Link>
+
         <Link
           aria-label={`View order summary, ${cartCount} items in bag`}
-          className="rounded-lg border border-white/40 px-3 py-2 font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className="relative inline-flex items-center gap-2 rounded-xl border border-accent/40 bg-accent/15 px-3.5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-accent/25 hover:border-accent"
+          onClick={onItemClick}
           to="/marketplace/order-summary"
         >
-          Bag ({cartCount})
+          <ShoppingBag className="h-4 w-4 text-accent-light" />
+          <span>Bag</span>
+          <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-xs font-bold text-primary">
+            {cartCount}
+          </span>
         </Link>
+
         <Link
-          className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          className={navLinkClass('/marketplace/orders')}
+          onClick={onItemClick}
           to="/marketplace/orders"
         >
-          Orders
+          <span>Orders</span>
         </Link>
+
         {currentUser ? (
-          <>
+          <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 md:border-l md:border-white/15 md:pl-2">
             <Link
-              className="rounded-lg border border-white/40 px-3 py-2 font-semibold text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              className="inline-flex items-center gap-2 rounded-xl border border-white/20 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white transition hover:bg-white/20"
+              onClick={onItemClick}
               to={profilePath}
             >
-              {currentUser.accountType === 'artisan'
-                ? 'Artisan profile'
-                : currentUser.accountType === 'expert'
-                  ? 'Expert studio'
+              <User className="h-4 w-4 text-accent-light" />
+              <span>
+                {currentUser.accountType === 'artisan'
+                  ? 'Artisan Profile'
+                  : currentUser.accountType === 'expert'
+                  ? 'Expert Studio'
                   : currentUser.accountType === 'industry'
-                    ? 'Industry workspace'
-                  : 'Profile'}
+                  ? 'Industry Workspace'
+                  : 'My Profile'}
+              </span>
             </Link>
             <button
-              className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              onClick={logout}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-medium text-white/70 hover:bg-white/10 hover:text-white"
+              onClick={() => {
+                onItemClick?.()
+                logout()
+              }}
               type="button"
             >
-              Log out
+              <LogOut className="h-4 w-4" />
+              <span>Log out</span>
             </button>
-          </>
+          </div>
         ) : (
-          <>
+          <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 md:border-l md:border-white/15 md:pl-2">
             <button
-              className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              onClick={() => openAuth('login')}
+              className="inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-sm font-medium text-white/90 hover:bg-white/10 hover:text-white"
+              onClick={() => {
+                onItemClick?.()
+                openAuth('login')
+              }}
               type="button"
             >
-              Log in
+              <LogIn className="h-4 w-4" />
+              <span>Log in</span>
             </button>
-            <button
-              className="rounded-lg bg-white px-3 py-2 font-semibold text-primary transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-primary"
-              onClick={() => openAuth('signup')}
-              type="button"
+            <Button
+              className="text-xs px-4 py-2 font-semibold shadow-sm"
+              onClick={() => {
+                onItemClick?.()
+                openAuth('signup')
+              }}
+              variant="accent"
             >
               Sign up
-            </button>
-          </>
+            </Button>
+          </div>
         )}
-      
       </nav>
     )
   }
 
+  // Home / General Navigation
   return (
-    <>
-    <nav className="flex min-w-0 w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 bg-primary px-2 py-2 font-sans text-white md:w-auto md:flex-1 md:justify-end">
+    <nav
+      aria-label="Main navigation"
+      className="flex flex-col gap-3 font-sans md:flex-row md:items-center md:gap-1.5"
+    >
+      <Link
+        className={navLinkClass('/marketplace')}
+        onClick={onItemClick}
+        to="/marketplace"
+      >
+        <ShoppingBag className="h-4 w-4 text-accent-light" />
+        <span>Marketplace</span>
+      </Link>
 
-        <Link
-          className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          to="/artisans"
+      <Link
+        className={navLinkClass('/artisans')}
+        onClick={onItemClick}
+        to="/artisans"
+      >
+        <Compass className="h-4 w-4 text-accent-light" />
+        <span>Find Artisans</span>
+      </Link>
+
+      <Link
+        className={navLinkClass('/story-of-art')}
+        onClick={onItemClick}
+        to="/story-of-art"
+      >
+        <BookOpen className="h-4 w-4 text-accent-light" />
+        <span>Story of Art</span>
+      </Link>
+
+      <Link
+        className={navLinkClass('/#how-it-works')}
+        onClick={onItemClick}
+        to="/#how-it-works"
+      >
+        <GraduationCap className="h-4 w-4 text-accent-light" />
+        <span>Learn Skills</span>
+      </Link>
+
+      <Link
+        className={navLinkClass('/about-us')}
+        onClick={onItemClick}
+        to="/about-us"
+      >
+        <span>About</span>
+      </Link>
+
+      {/* Language Selector */}
+      <div className="flex items-center gap-1.5 rounded-xl border border-white/15 bg-white/5 px-2.5 py-1 text-xs text-white/80">
+        <Globe className="h-3.5 w-3.5 text-accent-light" />
+        <select
+          aria-label="Select language"
+          className="cursor-pointer bg-transparent text-xs text-white outline-none"
+          defaultValue="en"
+          id="language"
+          name="language"
         >
-          Find Artisans
-        </Link>
-        <Link
-          className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          to="/story-of-art"
-        >
-          Story of Art
-        </Link>
-        <Link
-          className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          to="/#how-it-works"
-        >
-          Learn Skills
-        </Link>
-        <Link
-          className="rounded-sm text-white/85 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          to="/about-us"
-        >
-          About Us
-        </Link>
-        <label htmlFor="language">Language:</label>
-        <select name="language" id="language" className='bg-primary text-white border-none outline-none'>
-          <option defaultChecked value="en">English</option>
-          <option value="pun">Punjabi</option>
-          <option value="hin">Hindi</option>
+          <option className="bg-primary text-white" value="en">EN</option>
+          <option className="bg-primary text-white" value="hin">HI</option>
+          <option className="bg-primary text-white" value="pun">PA</option>
         </select>
-        {currentUser ? (
-          <>
-            <Link
-              className="rounded-lg border border-white/60 px-4 py-2 font-semibold text-white transition hover:bg-white hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-              to={profilePath}
-            >
-              Profile
-            </Link>
-            <Button onClick={logout}>Log out</Button>
-          </>
-        ) : (
-          <>
-            <Button onClick={() => openAuth('signup')}>Signup</Button>
-            <Button onClick={() => openAuth('login')}>Login</Button>
-          </>
-        )}
-</nav>
-    </>
+      </div>
+
+      {currentUser ? (
+        <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 md:border-l md:border-white/15 md:pl-2">
+          <Link
+            className="inline-flex items-center gap-1.5 rounded-xl border border-white/25 bg-white/10 px-3.5 py-2 text-sm font-semibold text-white shadow-xs transition hover:bg-white/20"
+            onClick={onItemClick}
+            to={profilePath}
+          >
+            <UserCheck className="h-4 w-4 text-accent-light" />
+            <span>
+              {currentUser.accountType === 'artisan'
+                ? 'Artisan Studio'
+                : currentUser.accountType === 'industry'
+                ? 'Industry Workspace'
+                : currentUser.accountType === 'expert'
+                ? 'Expert Dashboard'
+                : 'My Profile'}
+            </span>
+          </Link>
+          <button
+            className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-2 text-sm text-white/70 hover:bg-white/10 hover:text-white"
+            onClick={() => {
+              onItemClick?.()
+              logout()
+            }}
+            type="button"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="md:sr-only">Log out</span>
+          </button>
+        </div>
+      ) : (
+        <div className="flex flex-wrap items-center gap-2 pt-2 md:pt-0 md:border-l md:border-white/15 md:pl-2">
+          <button
+            className="rounded-xl px-3.5 py-2 text-sm font-medium text-white/90 transition hover:bg-white/10 hover:text-white"
+            onClick={() => {
+              onItemClick?.()
+              openAuth('login')
+            }}
+            type="button"
+          >
+            Login
+          </button>
+          <Button
+            className="text-xs px-4 py-2 font-semibold shadow-sm"
+            onClick={() => {
+              onItemClick?.()
+              openAuth('signup')
+            }}
+            variant="accent"
+          >
+            Get Started
+          </Button>
+        </div>
+      )}
+    </nav>
   )
 }
 

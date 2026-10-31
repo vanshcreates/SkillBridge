@@ -1,5 +1,21 @@
 import { useEffect, useState } from 'react'
-import { ArrowLeft, CheckCircle, Edit2, LogOut, MapPin, Save, UserRound, X } from 'lucide-react'
+import {
+  ArrowLeft,
+  CheckCircle,
+  CreditCard,
+  Edit2,
+  LogOut,
+  Mail,
+  MapPin,
+  Package,
+  Phone,
+  Save,
+  ShoppingBag,
+  Sparkles,
+  User,
+  UserRound,
+  X,
+} from 'lucide-react'
 import { Link, Navigate } from 'react-router-dom'
 import { getAccountHomePath } from '../utils/account-routing'
 import MarketplaceLayout from '../components/layout/MarketplaceLayout'
@@ -11,14 +27,14 @@ import { useCart } from '../hooks/useCart'
 import { getCustomerProfileApi, updateCustomerProfileApi } from '../services/marketplace-api'
 
 const formatRole = (role) => {
-  if (!role) return 'Community member'
+  if (!role) return 'Customer'
   return role.replace(/(^\w|[-_]\w)/g, (match) =>
     match.replace(/[-_]/, ' ').toUpperCase(),
   )
 }
 
 const fieldClass =
-  'mt-1 w-full rounded-lg border border-border bg-white px-3 py-2.5 text-sm text-text-main outline-none focus:border-secondary focus:ring-2 focus:ring-secondary/25'
+  'mt-1 w-full rounded-xl border border-border bg-white px-3.5 py-2.5 text-sm text-text-main outline-none focus:border-secondary focus:ring-3 focus:ring-secondary/15 transition-all'
 
 const ProfilePage = () => {
   const { currentUser, openAuth, logout, setCurrentUser } = useAuthDialog()
@@ -57,37 +73,39 @@ const ProfilePage = () => {
   if (!currentUser) {
     return (
       <MarketplaceLayout>
-        <main className="mx-auto max-w-2xl px-5 py-20 text-center sm:px-8">
-          <div className="mx-auto inline-flex h-14 w-14 items-center justify-center rounded-full bg-surface-muted text-secondary">
-            <UserRound aria-hidden="true" className="h-7 w-7" />
+        <main className="mx-auto max-w-2xl px-5 py-24 text-center sm:px-8">
+          <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-secondary/10 text-secondary">
+            <UserRound aria-hidden="true" className="h-8 w-8" />
           </div>
-          <h1 className="mt-5 font-serif text-3xl font-semibold text-text-main">
-            Sign in to view your profile
+          <h1 className="mt-6 font-serif text-3xl font-bold text-text-main">
+            Sign In to View Your Profile
           </h1>
-          <p className="mt-3 leading-7 text-text-secondary">
-            Log in or create an account to access your profile, orders, and saved addresses.
+          <p className="mt-3 text-sm leading-relaxed text-text-secondary">
+            Log in or create a customer account to access your orders, track artisan fulfillment, and manage saved delivery addresses.
           </p>
-          <button
-            className="mt-7 rounded-lg bg-primary px-5 py-3 font-semibold text-white transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
-            onClick={() => openAuth('login')}
-            type="button"
-          >
-            Log in
-          </button>
-          <button
-            className="ml-3 mt-7 rounded-lg border border-border-strong px-5 py-3 font-semibold text-primary transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
-            onClick={() => openAuth('signup')}
-            type="button"
-          >
-            Create profile
-          </button>
-          <Link
-            className="ml-3 mt-7 inline-flex items-center gap-2 rounded-lg border border-border px-5 py-3 font-semibold text-text-secondary transition hover:bg-surface-muted hover:text-text-main"
-            to="/"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to main page
-          </Link>
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
+            <button
+              className="rounded-xl bg-primary px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary focus-visible:ring-offset-2"
+              onClick={() => openAuth('login')}
+              type="button"
+            >
+              Sign In
+            </button>
+            <button
+              className="rounded-xl border border-border-strong px-6 py-3 font-semibold text-primary transition hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+              onClick={() => openAuth('signup')}
+              type="button"
+            >
+              Create Customer Profile
+            </button>
+            <Link
+              className="inline-flex items-center gap-2 rounded-xl border border-border px-5 py-3 text-sm font-semibold text-text-secondary transition hover:bg-surface-muted hover:text-text-main"
+              to="/"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Return Home
+            </Link>
+          </div>
         </main>
       </MarketplaceLayout>
     )
@@ -132,54 +150,61 @@ const ProfilePage = () => {
     <MarketplaceLayout>
       <main className="mx-auto max-w-5xl px-5 py-8 sm:px-8 sm:py-12">
         <Link
-          className="inline-flex items-center gap-2 text-sm font-semibold text-text-secondary hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+          className="inline-flex items-center gap-2 text-xs font-semibold text-text-secondary hover:text-primary transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
           to="/marketplace"
         >
-          <ArrowLeft aria-hidden="true" className="h-4 w-4" />
-          Back to marketplace
+          <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+          <span>Back to Marketplace</span>
         </Link>
 
-        {/* Profile card */}
-        <section className="mt-6 overflow-hidden rounded-3xl border border-border bg-surface shadow-card">
-          <div className="h-32 bg-primary sm:h-44" />
+        {/* Profile Card */}
+        <section className="mt-6 overflow-hidden rounded-3xl border border-border/80 bg-surface shadow-card">
+          <div className="h-36 bg-gradient-to-r from-primary via-primary-hover to-[#5a2e16] sm:h-44 relative">
+            <div className="absolute right-4 top-4 flex items-center gap-1.5 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold text-white/90 backdrop-blur-md">
+              <Sparkles className="h-3.5 w-3.5 text-accent" />
+              <span>SkillBridge Patron</span>
+            </div>
+          </div>
           <div className="px-5 pb-7 sm:px-9 sm:pb-9">
-            <div className="-mt-12 flex flex-col justify-between gap-4 sm:-mt-14 sm:flex-row sm:items-end">
-              <ProfileImageControl
-                className="h-24 w-24 border-4 border-surface text-3xl sm:h-28 sm:w-28"
-                size="large"
-                user={displayUser}
-              />
-              <div className="flex flex-wrap gap-2">
+            <div className="-mt-14 flex flex-col justify-between gap-4 sm:-mt-16 sm:flex-row sm:items-end">
+              <div className="relative">
+                <ProfileImageControl
+                  className="h-24 w-24 rounded-2xl border-4 border-surface shadow-lg text-3xl sm:h-28 sm:w-28"
+                  size="large"
+                  user={displayUser}
+                />
+              </div>
+              <div className="flex flex-wrap gap-2.5">
                 {!editing && (
                   <button
-                    className="inline-flex w-fit items-center gap-2 rounded-lg border border-border-strong px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border-strong px-4 py-2 text-xs font-bold text-primary transition hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
                     onClick={() => setEditing(true)}
                     type="button"
                   >
-                    <Edit2 aria-hidden="true" className="h-4 w-4" />
-                    Edit profile
+                    <Edit2 aria-hidden="true" className="h-3.5 w-3.5" />
+                    <span>Edit Profile</span>
                   </button>
                 )}
                 <button
-                  className="inline-flex w-fit items-center gap-2 rounded-lg border border-border-strong px-4 py-2.5 text-sm font-semibold text-primary transition hover:bg-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                  className="inline-flex items-center gap-2 rounded-xl border border-border-strong px-4 py-2 text-xs font-bold text-text-secondary transition hover:border-error/40 hover:bg-red-50 hover:text-error focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
                   onClick={logout}
                   type="button"
                 >
-                  <LogOut aria-hidden="true" className="h-4 w-4" />
-                  Log out
+                  <LogOut aria-hidden="true" className="h-3.5 w-3.5" />
+                  <span>Log Out</span>
                 </button>
               </div>
             </div>
 
             {saveSuccess && (
-              <div className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">
+              <div className="mt-4 flex items-center gap-2 rounded-xl bg-green-50 px-4 py-3 text-xs font-semibold text-green-700">
                 <CheckCircle className="h-4 w-4" />
-                Profile updated successfully.
+                <span>Profile details updated successfully.</span>
               </div>
             )}
             {profileLoadError && (
               <p
-                className="mt-4 rounded-lg border border-warning/30 bg-amber-50 px-4 py-3 text-sm text-warning"
+                className="mt-4 rounded-xl border border-warning/30 bg-amber-50 px-4 py-3 text-xs text-warning"
                 role="status"
               >
                 {profileLoadError}
@@ -187,10 +212,10 @@ const ProfilePage = () => {
             )}
 
             {editing ? (
-              <form className="mt-5" onSubmit={handleEditSubmit}>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="text-sm font-medium text-text-main">
-                    Full name
+              <form className="mt-6" onSubmit={handleEditSubmit}>
+                <div className="grid gap-3.5 sm:grid-cols-2">
+                  <label className="text-xs font-bold text-text-main">
+                    Full Name
                     <input
                       className={fieldClass}
                       defaultValue={displayUser?.name || ''}
@@ -198,8 +223,8 @@ const ProfilePage = () => {
                       required
                     />
                   </label>
-                  <label className="text-sm font-medium text-text-main">
-                    Phone
+                  <label className="text-xs font-bold text-text-main">
+                    Phone Number
                     <input
                       className={fieldClass}
                       defaultValue={displayUser?.phone || ''}
@@ -207,7 +232,7 @@ const ProfilePage = () => {
                       type="tel"
                     />
                   </label>
-                  <label className="text-sm font-medium text-text-main">
+                  <label className="text-xs font-bold text-text-main">
                     City
                     <input
                       className={fieldClass}
@@ -215,7 +240,7 @@ const ProfilePage = () => {
                       name="city"
                     />
                   </label>
-                  <label className="text-sm font-medium text-text-main">
+                  <label className="text-xs font-bold text-text-main">
                     State
                     <input
                       className={fieldClass}
@@ -223,8 +248,8 @@ const ProfilePage = () => {
                       name="state"
                     />
                   </label>
-                  <label className="text-sm font-medium text-text-main sm:col-span-2">
-                    Bio
+                  <label className="text-xs font-bold text-text-main sm:col-span-2">
+                    Bio / About You
                     <textarea
                       className={fieldClass}
                       defaultValue={displayUser?.bio || ''}
@@ -234,49 +259,52 @@ const ProfilePage = () => {
                   </label>
                 </div>
                 {editError && (
-                  <p className="mt-3 text-sm text-error" role="alert">{editError}</p>
+                  <p className="mt-3 text-xs font-medium text-error" role="alert">{editError}</p>
                 )}
-                <div className="mt-4 flex gap-2">
+                <div className="mt-5 flex gap-2.5">
                   <button
-                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-white hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:opacity-60"
+                    className="inline-flex items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-xs font-bold text-white shadow-xs hover:bg-primary-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary disabled:opacity-60"
                     disabled={saving}
                     type="submit"
                   >
-                    <Save className="h-4 w-4" />
-                    {saving ? 'Saving…' : 'Save changes'}
+                    <Save className="h-3.5 w-3.5" />
+                    <span>{saving ? 'Saving Changes…' : 'Save Profile'}</span>
                   </button>
                   <button
-                    className="inline-flex items-center gap-2 rounded-lg border border-border-strong px-4 py-2.5 text-sm font-semibold text-primary hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
+                    className="inline-flex items-center gap-2 rounded-xl border border-border bg-surface px-4 py-2.5 text-xs font-bold text-text-secondary hover:bg-surface-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-secondary"
                     onClick={() => { setEditing(false); setEditError('') }}
                     type="button"
                   >
-                    <X className="h-4 w-4" />
-                    Cancel
+                    <X className="h-3.5 w-3.5" />
+                    <span>Cancel</span>
                   </button>
                 </div>
               </form>
             ) : (
               <div className="mt-5">
-                <p className="text-sm font-semibold uppercase tracking-[0.12em] text-secondary">
+                <span className="inline-flex items-center gap-1 rounded-full bg-secondary/10 px-2.5 py-0.5 text-xs font-bold text-secondary">
                   {formatRole(displayUser?.accountType)}
-                </p>
-                <h1 className="mt-1 font-serif text-3xl font-semibold text-text-main sm:text-4xl">
+                </span>
+                <h1 className="mt-2 font-serif text-3xl font-bold tracking-tight text-text-main sm:text-4xl">
                   {displayUser?.name}
                 </h1>
-                <p className="mt-2 text-text-secondary">{displayUser?.email}</p>
+                <p className="mt-1 flex items-center gap-2 text-xs text-text-secondary">
+                  <Mail className="h-3.5 w-3.5 text-text-muted" />
+                  <span>{displayUser?.email}</span>
+                </p>
                 {location && (
-                  <p className="mt-2 inline-flex items-center gap-1.5 text-sm text-text-muted">
-                    <MapPin aria-hidden="true" className="h-4 w-4 text-secondary" />
-                    {location}
+                  <p className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-text-muted">
+                    <MapPin aria-hidden="true" className="h-3.5 w-3.5 text-secondary" />
+                    <span>{location}</span>
                   </p>
                 )}
                 {displayUser?.bio && (
-                  <p className="mt-5 max-w-2xl leading-7 text-text-secondary">
+                  <p className="mt-4 max-w-2xl text-sm leading-relaxed text-text-secondary">
                     {displayUser.bio}
                   </p>
                 )}
                 {displayUser?.createdAt && (
-                  <p className="mt-5 text-xs text-text-muted">
+                  <p className="mt-4 text-[0.72rem] text-text-muted">
                     Member since {new Date(displayUser.createdAt).toLocaleDateString()}
                   </p>
                 )}
@@ -287,46 +315,53 @@ const ProfilePage = () => {
 
         {/* Stats bar */}
         {stats && (
-          <section className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <section className="mt-5 grid grid-cols-2 gap-3 sm:grid-cols-4">
             {[
-              { label: 'Total orders', value: stats.totalOrders ?? 0 },
-              { label: 'Active orders', value: stats.activeOrders ?? 0 },
-              { label: 'Wishlist items', value: stats.wishlistCount ?? 0 },
-              { label: 'Saved addresses', value: stats.addressCount ?? 0 },
-            ].map(({ label, value }) => (
+              { label: 'Total Orders', value: stats.totalOrders ?? 0, icon: Package },
+              { label: 'Active Orders', value: stats.activeOrders ?? 0, icon: ShoppingBag },
+              { label: 'Wishlist Finds', value: stats.wishlistCount ?? 0, icon: Sparkles },
+              { label: 'Saved Addresses', value: stats.addressCount ?? 0, icon: MapPin },
+            ].map(({ label, value, icon: Icon }) => (
               <div
-                className="rounded-2xl border border-border bg-surface p-4 text-center"
+                className="rounded-2xl border border-border/80 bg-surface p-4 text-center shadow-xs transition-all hover:border-secondary/30"
                 key={label}
               >
-                <p className="text-2xl font-bold text-primary">{value}</p>
-                <p className="mt-1 text-xs text-text-muted">{label}</p>
+                <Icon className="mx-auto h-4 w-4 text-secondary mb-1 opacity-70" />
+                <p className="text-2xl font-extrabold text-primary">{value}</p>
+                <p className="mt-1 text-[0.7rem] font-semibold uppercase tracking-wider text-text-muted">{label}</p>
               </div>
             ))}
           </section>
         )}
 
-        {/* Quick links */}
-        <section className="mt-4 grid gap-4 sm:grid-cols-2">
+        {/* Quick Links */}
+        <section className="mt-5 grid gap-4 sm:grid-cols-2">
           <Link
-            className="rounded-2xl border border-border bg-surface p-5 transition hover:border-border-strong hover:shadow-card"
+            className="group rounded-2xl border border-border/80 bg-surface p-5 shadow-xs transition-all hover:border-secondary/40 hover:shadow-card"
             to="/marketplace"
           >
-            <h2 className="font-serif text-lg font-semibold text-text-main">
-              Explore handmade crafts
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">
-              Discover thoughtful products and the people who make them.
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-lg font-bold text-text-main group-hover:text-primary transition-colors">
+                Explore Handmade Crafts
+              </h2>
+              <ArrowLeft className="h-4 w-4 rotate-180 text-text-muted group-hover:text-primary transition-transform group-hover:translate-x-1" />
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
+              Discover verified traditional crafts and support local makers directly.
             </p>
           </Link>
           <Link
-            className="rounded-2xl border border-border bg-surface p-5 transition hover:border-border-strong hover:shadow-card"
+            className="group rounded-2xl border border-border/80 bg-surface p-5 shadow-xs transition-all hover:border-secondary/40 hover:shadow-card"
             to="/marketplace/order-summary"
           >
-            <h2 className="font-serif text-lg font-semibold text-text-main">
-              Your bag ({itemCount})
-            </h2>
-            <p className="mt-2 text-sm leading-6 text-text-secondary">
-              Review saved items and continue to the order summary.
+            <div className="flex items-center justify-between">
+              <h2 className="font-serif text-lg font-bold text-text-main group-hover:text-primary transition-colors">
+                Your Shopping Bag ({itemCount})
+              </h2>
+              <ArrowLeft className="h-4 w-4 rotate-180 text-text-muted group-hover:text-primary transition-transform group-hover:translate-x-1" />
+            </div>
+            <p className="mt-1.5 text-xs leading-relaxed text-text-secondary">
+              Review saved artisan pieces and proceed with fast Razorpay checkout.
             </p>
           </Link>
         </section>

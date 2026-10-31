@@ -1,42 +1,152 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
 @theme {
   /* Brand colors */
   --color-primary: #4A0010;
-  --color-primary-hover: #2D000A;
+  --color-primary-hover: #34000B;
+  --color-primary-light: #660E20;
   --color-secondary: #A9572E;
   --color-secondary-hover: #8F4526;
+  --color-secondary-light: #C46D3F;
 
   /* Backgrounds */
-  --color-background: #F8F5EF;
-  --color-surface: #FFFCF8;
-  --color-surface-muted: #F0E8DC;
+  --color-background: #F9F6F0;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #F2EBE1;
   --color-card: #FFFFFF;
 
   /* Typography colors */
-  --color-text-main: #26372D;
-  --color-text-secondary: #514B41;
-  --color-text-muted: #71695D;
+  --color-text-main: #1E2922;
+  --color-text-secondary: #4A463E;
+  --color-text-muted: #787166;
 
   /* Borders and accents */
-  --color-border: #D9C9B3;
-  --color-border-strong: #BDA88C;
-  --color-accent: #E0B256;
+  --color-border: #E5D9C8;
+  --color-border-strong: #CBB99F;
+  --color-accent: #E5B25D;
+  --color-accent-light: #F7D488;
 
   /* Status */
-  --color-success: #347653;
-  --color-warning: #9A6418;
-  --color-error: #B54135;
+  --color-success: #1E7D48;
+  --color-warning: #B46C18;
+  --color-error: #C53B2C;
 
   /* Shadows */
-  --shadow-card: 0 4px 16px rgb(54 43 29 / 8%);
-  --shadow-card-hover: 0 8px 24px rgb(54 43 29 / 12%);
+  --shadow-card: 0 10px 25px -5px rgba(74, 0, 16, 0.05), 0 8px 10px -6px rgba(74, 0, 16, 0.03);
+  --shadow-card-hover: 0 20px 35px -8px rgba(74, 0, 16, 0.12), 0 10px 15px -5px rgba(74, 0, 16, 0.06);
+  --shadow-glow: 0 0 25px -4px rgba(169, 87, 46, 0.35);
+  --shadow-emerald-glow: 0 0 25px -4px rgba(30, 125, 72, 0.4);
 
   /* Fonts */
-  --font-sans: "DM Sans", sans-serif;
-  --font-serif: "Lora", serif;
+  --font-sans: "Plus Jakarta Sans", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-serif: "Playfair Display", "Lora", Georgia, serif;
 }
+
+/* Base Body Styling */
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-text-main);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Glassmorphism Styles */
+.glass {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(229, 217, 200, 0.65);
+}
+
+.glass-dark {
+  background: rgba(45, 8, 16, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.glass-nav {
+  background: rgba(74, 0, 16, 0.94);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid rgba(229, 178, 93, 0.25);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(229, 217, 200, 0.7);
+  box-shadow: 0 12px 30px -6px rgba(74, 0, 16, 0.06);
+}
+
+/* Gradient Text Utilities */
+.gradient-text {
+  background: linear-gradient(135deg, #4A0010 0%, #8A2B18 50%, #A9572E 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-gold {
+  background: linear-gradient(135deg, #F3CE7A 0%, #E5B25D 50%, #C48E2E 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-hero {
+  background: radial-gradient(circle at 80% 20%, rgba(229, 178, 93, 0.18) 0%, transparent 45%),
+              radial-gradient(circle at 10% 80%, rgba(169, 87, 46, 0.15) 0%, transparent 50%),
+              #F9F6F0;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes pulse-subtle {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.92;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 3s ease-in-out infinite;
+}
+
+.shimmer-badge {
+  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 3s infinite;
+}
+
+/* Section divider pattern */
 .section-divider {
   background-image:
     url("https://static.vecteezy.com/system/resources/previews/022/862/116/non_2x/ethnic-pattern-kerchief-pattern-silk-neck-scarf-bandana-print-headscarf-floral-vintage-style-indonesian-batik-textile-fabric-tile-clothing-tribal-texture-blue-red-gold-yellow-vector.jpg"),
@@ -44,4 +154,23 @@
   background-size: auto 50px, cover;
   background-repeat: repeat-x, no-repeat;
   background-position: bottom left, center;
+}
+
+/* Custom Smooth Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #F2EBE1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #CBB99F;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A9572E;
 }
