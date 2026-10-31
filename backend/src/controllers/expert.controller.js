@@ -454,6 +454,22 @@ export const getCourseLessons = async (req, res) => {
   }
 };
 
+export const formatDuration = (seconds) => {
+  if (!seconds || isNaN(seconds) || Number(seconds) <= 0) return "";
+  const totalSecs = Math.round(Number(seconds));
+  const hrs = Math.floor(totalSecs / 3600);
+  const mins = Math.floor((totalSecs % 3600) / 60);
+  const secs = totalSecs % 60;
+
+  if (hrs > 0) {
+    return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`;
+  }
+  if (mins > 0) {
+    return secs > 10 ? `${mins} min ${secs} sec` : `${mins} min`;
+  }
+  return `${secs} sec`;
+};
+
 export const uploadCourseVideo = async (req, res) => {
   try {
     if (!req.file) {
@@ -475,11 +491,16 @@ export const uploadCourseVideo = async (req, res) => {
       });
     }
 
+    const formattedDuration = uploadRes.duration
+      ? formatDuration(uploadRes.duration)
+      : "";
+
     return res.status(200).json({
       success: true,
       message: "Video uploaded successfully.",
       url: uploadRes.secure_url,
-      duration: uploadRes.duration ? `${Math.round(uploadRes.duration)}s` : "",
+      duration: formattedDuration,
+      durationSeconds: uploadRes.duration ? Math.round(uploadRes.duration) : 0,
       format: uploadRes.format,
       bytes: uploadRes.bytes,
     });
@@ -524,7 +545,7 @@ export const addCourseLesson = async (req, res) => {
       if (uploadRes?.secure_url) {
         videoUrl = uploadRes.secure_url;
         if (!duration && uploadRes.duration) {
-          duration = `${Math.round(uploadRes.duration)}s`;
+          duration = formatDuration(uploadRes.duration);
         }
       }
     }

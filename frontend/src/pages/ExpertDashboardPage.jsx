@@ -34,6 +34,10 @@ import {
   uploadCourseVideoApi,
 } from '../services/expert-api'
 import {
+  formatDuration,
+  getVideoDuration,
+} from '../utils/course-video'
+import {
   getExpertCourses,
   saveExpertCourse,
 } from '../utils/training-storage'
@@ -46,6 +50,9 @@ const LESSONS_PER_PAGE = 3
 const ExpertDashboardPage = () => {
   const { currentUser } = useAuthDialog()
   const [courseFormOpen, setCourseFormOpen] = useState(false)
+  const [courseDuration, setCourseDuration] = useState('')
+  const [isAutoDuration, setIsAutoDuration] = useState(true)
+
   const [lessonDrafts, setLessonDrafts] = useState([
     {
       id: 1,
@@ -56,6 +63,7 @@ const ExpertDashboardPage = () => {
       uploadError: '',
       useUrlInput: false,
       duration: '',
+      durationSeconds: 0,
     },
   ])
   const nextLessonId = useRef(2)
@@ -150,25 +158,50 @@ const ExpertDashboardPage = () => {
     return <Navigate replace to="/marketplace" />
   }
 
-  // Handle uploading video file for a specific lesson draft
+  // Handle uploading video file for a specific lesson draft and calculate duration
   const handleLessonFileChange = async (lessonId, file) => {
     if (!file) return
 
     const localPreviewUrl = URL.createObjectURL(file)
 
-    setLessonDrafts((drafts) =>
-      drafts.map((entry) =>
+    // Calculate duration on its own in the browser immediately
+    let calculatedSecs = 0
+    let formattedDurationStr = ''
+    try {
+      calculatedSecs = await getVideoDuration(file)
+      formattedDurationStr = formatDuration(calculatedSecs)
+    } catch (err) {
+      console.warn('Could not read video duration in browser:', err)
+    }
+
+    setLessonDrafts((drafts) => {
+      const updated = drafts.map((entry) =>
         entry.id === lessonId
           ? {
               ...entry,
               fileName: file.name,
               videoUrl: localPreviewUrl,
+              duration: formattedDurationStr || entry.duration,
+              durationSeconds: calculatedSecs,
               isUploading: true,
               uploadError: '',
             }
           : entry
       )
-    )
+
+      // Auto-calculate the total course duration from all lesson videos
+      if (isAutoDuration) {
+        const totalSecs = updated.reduce(
+          (sum, l) => sum + (l.durationSeconds || 0),
+          0
+        )
+        if (totalSecs > 0) {
+          setCourseDuration(formatDuration(totalSecs))
+        }
+      }
+
+      return updated
+    })
 
     try {
       const uploadRes = await uploadCourseVideoApi(file)
@@ -181,7 +214,8 @@ const ExpertDashboardPage = () => {
                   videoUrl: uploadRes.url,
                   fileName: file.name,
                   isUploading: false,
-                  duration: uploadRes.duration || entry.duration,
+                  duration: uploadRes.duration || formattedDurationStr || entry.duration,
+                  durationSeconds: uploadRes.durationSeconds || calculatedSecs,
                 }
               : entry
           )
@@ -203,15 +237,43 @@ const ExpertDashboardPage = () => {
     }
   }
 
-  // Handle uploading video file in the Add Lesson modal
+  // Handle removing a lesson and recalculating total course duration
+  const handleRemoveLesson = (lessonId) => {
+    setLessonDrafts((drafts) => {
+      const updated = drafts.filter((entry) => entry.id !== lessonId)
+      if (isAutoDuration) {
+        const totalSecs = updated.reduce(
+          (sum, l) => sum + (l.durationSeconds || 0),
+          0
+        )
+        setCourseDuration(totalSecs > 0 ? formatDuration(totalSecs) : '')
+      }
+      return updated
+    })
+  }
+
+  // Handle uploading video file in the Add Lesson modal and calculate duration
   const handleModalFileChange = async (file) => {
     if (!file) return
 
     const localPreviewUrl = URL.createObjectURL(file)
+
+    // Calculate duration on its own in the browser immediately
+    let calculatedSecs = 0
+    let formattedDurationStr = ''
+    try {
+      calculatedSecs = await getVideoDuration(file)
+      formattedDurationStr = formatDuration(calculatedSecs)
+    } catch (err) {
+      console.warn('Could not read video duration in browser:', err)
+    }
+
     setNewLessonModal((prev) => ({
       ...prev,
       fileName: file.name,
       videoUrl: localPreviewUrl,
+      duration: formattedDurationStr || prev.duration,
+      durationSeconds: calculatedSecs,
       isUploading: true,
       uploadError: '',
     }))
@@ -223,7 +285,8 @@ const ExpertDashboardPage = () => {
           ...prev,
           videoUrl: uploadRes.url,
           isUploading: false,
-          duration: uploadRes.duration || prev.duration,
+          duration: uploadRes.duration || formattedDurationStr || prev.duration,
+          durationSeconds: uploadRes.durationSeconds || calculatedSecs,
         }))
       }
     } catch (err) {
@@ -254,7 +317,7 @@ const ExpertDashboardPage = () => {
     const title = formData.get('title')
     const category = formData.get('category')
     const description = formData.get('description')
-    const duration = formData.get('duration')
+    const duration = courseDuration.trim() || formData.get('duration') || 'Flexible'
     const level = formData.get('level')
     const outcomesRaw = formData.get('outcomes') || ''
 
@@ -263,7 +326,7 @@ const ExpertDashboardPage = () => {
       .map((l) => ({
         title: l.title.trim(),
         videoUrl: (l.videoUrl || '').trim(),
-        duration: l.duration?.trim() || '',
+        duration: (l.duration || '').trim(),
       }))
 
     if (!validLessons.length) {
@@ -310,6 +373,8 @@ const ExpertDashboardPage = () => {
       }
 
       setCourseFormOpen(false)
+      setCourseDuration('')
+      setIsAutoDuration(true)
       setLessonDrafts([
         {
           id: 1,
@@ -320,6 +385,7 @@ const ExpertDashboardPage = () => {
           uploadError: '',
           useUrlInput: false,
           duration: '',
+          durationSeconds: 0,
         },
       ])
       nextLessonId.current = 2
@@ -585,16 +651,31 @@ const ExpertDashboardPage = () => {
                   required
                 />
               </label>
+
+              {/* COURSE DURATION WITH AUTO-CALCULATION */}
               <label className="text-sm font-medium text-text-main">
-                Duration
+                <div className="flex items-center justify-between">
+                  <span>Duration</span>
+                  {courseDuration && (
+                    <span className="text-xs font-normal text-secondary">
+                      Auto-calculated from videos
+                    </span>
+                  )}
+                </div>
                 <input
                   className={fieldClass}
                   maxLength={40}
                   name="duration"
-                  placeholder="e.g. 1 hr 20 min"
+                  onChange={(e) => {
+                    setCourseDuration(e.target.value)
+                    setIsAutoDuration(false)
+                  }}
+                  placeholder="e.g. 1 hr 20 min (or auto from videos)"
                   required
+                  value={courseDuration}
                 />
               </label>
+
               <label className="text-sm font-medium text-text-main">
                 Learner level
                 <select className={fieldClass} defaultValue="Beginner" name="level">
@@ -622,7 +703,7 @@ const ExpertDashboardPage = () => {
                   Course video lessons
                 </legend>
                 <p className="-mt-2 text-sm leading-6 text-text-secondary">
-                  Add each lesson with a title and upload a video file directly from your computer.
+                  Add each lesson with a title and upload a video file. Duration will be calculated automatically.
                 </p>
                 {lessonDrafts.map((lesson, index) => (
                   <div
@@ -637,11 +718,7 @@ const ExpertDashboardPage = () => {
                       {lessonDrafts.length > 1 && (
                         <button
                           className="rounded px-2 py-1 text-sm font-medium text-error hover:bg-red-50"
-                          onClick={() =>
-                            setLessonDrafts((drafts) =>
-                              drafts.filter((entry) => entry.id !== lesson.id)
-                            )
-                          }
+                          onClick={() => handleRemoveLesson(lesson.id)}
                           type="button"
                         >
                           Remove lesson
@@ -668,7 +745,7 @@ const ExpertDashboardPage = () => {
                       />
                     </label>
 
-                    {/* VIDEO UPLOAD FIELD */}
+                    {/* VIDEO UPLOAD FIELD WITH AUTOMATIC DURATION */}
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between">
                         <span className="text-sm font-medium text-text-main">Video</span>
@@ -747,6 +824,15 @@ const ExpertDashboardPage = () => {
                             )}
                           </div>
 
+                          {/* Calculated Duration Display */}
+                          {lesson.duration && (
+                            <div className="mt-1.5 flex items-center gap-1 text-xs text-text-secondary">
+                              <Clock3 aria-hidden="true" className="h-3.5 w-3.5 text-secondary" />
+                              <span>Duration: <strong className="text-text-main">{lesson.duration}</strong></span>
+                              <span className="text-[0.68rem] text-text-muted">(auto-calculated)</span>
+                            </div>
+                          )}
+
                           {lesson.uploadError && (
                             <p className="mt-1.5 text-xs text-error">{lesson.uploadError}</p>
                           )}
@@ -771,6 +857,7 @@ const ExpertDashboardPage = () => {
                         uploadError: '',
                         useUrlInput: false,
                         duration: '',
+                        durationSeconds: 0,
                       },
                     ])
                   }}
@@ -983,6 +1070,7 @@ const ExpertDashboardPage = () => {
                                 uploadError: '',
                                 useUrlInput: false,
                                 duration: '',
+                                durationSeconds: 0,
                               })
                             }
                             type="button"
@@ -1004,6 +1092,8 @@ const ExpertDashboardPage = () => {
                                 typeof lesson === 'string' ? lesson : lesson.title
                               const hasVideo =
                                 typeof lesson !== 'string' && Boolean(lesson.videoUrl)
+                              const lessonDuration =
+                                typeof lesson !== 'string' ? lesson.duration : ''
 
                               return (
                                 <li
@@ -1015,6 +1105,11 @@ const ExpertDashboardPage = () => {
                                       #{startIdx + idx + 1}{' '}
                                     </span>
                                     <span>{lessonTitle}</span>
+                                    {lessonDuration && (
+                                      <span className="ml-1.5 text-[0.68rem] text-text-muted">
+                                        ({lessonDuration})
+                                      </span>
+                                    )}
                                   </div>
                                   <div className="flex shrink-0 items-center gap-1.5">
                                     {hasVideo ? (
@@ -1218,7 +1313,7 @@ const ExpertDashboardPage = () => {
                 </button>
               </div>
               <p className="mt-1 text-xs text-text-secondary">
-                Upload a video file from your computer or provide a link.
+                Upload a video file from your computer. Duration will be calculated automatically.
               </p>
 
               <div className="mt-4 space-y-3">
@@ -1319,8 +1414,16 @@ const ExpertDashboardPage = () => {
                   )}
                 </div>
 
+                {/* AUTOMATIC DURATION FIELD IN MODAL */}
                 <label className="block text-sm font-medium text-text-main">
-                  Duration <span className="font-normal text-text-muted">(optional)</span>
+                  <div className="flex items-center justify-between">
+                    <span>Duration</span>
+                    {newLessonModal.duration && (
+                      <span className="text-xs font-normal text-secondary">
+                        Auto-calculated from video
+                      </span>
+                    )}
+                  </div>
                   <input
                     className={fieldClass}
                     maxLength={30}
@@ -1330,7 +1433,7 @@ const ExpertDashboardPage = () => {
                         duration: e.target.value,
                       }))
                     }
-                    placeholder="e.g. 15 min"
+                    placeholder="e.g. 15 min (or auto-calculated on upload)"
                     value={newLessonModal.duration}
                   />
                 </label>

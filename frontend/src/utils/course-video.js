@@ -64,3 +64,57 @@ export function getCourseVideoSource(value) {
 
   return null
 }
+
+/**
+ * Reads local video file metadata in the browser and returns the duration in seconds
+ * @param {File|Blob} file
+ * @returns {Promise<number>} duration in seconds
+ */
+export function getVideoDuration(file) {
+  return new Promise((resolve) => {
+    if (!file || !(file instanceof Blob)) {
+      return resolve(0)
+    }
+
+    try {
+      const video = document.createElement('video')
+      video.preload = 'metadata'
+      const url = URL.createObjectURL(file)
+
+      video.onloadedmetadata = () => {
+        URL.revokeObjectURL(url)
+        resolve(video.duration || 0)
+      }
+
+      video.onerror = () => {
+        URL.revokeObjectURL(url)
+        resolve(0)
+      }
+
+      video.src = url
+    } catch {
+      resolve(0)
+    }
+  })
+}
+
+/**
+ * Formats duration in seconds into a friendly string: "45 sec", "12 min", "1 hr 15 min"
+ * @param {number|string} seconds
+ * @returns {string}
+ */
+export function formatDuration(seconds) {
+  if (!seconds || isNaN(seconds) || Number(seconds) <= 0) return ''
+  const totalSecs = Math.round(Number(seconds))
+  const hrs = Math.floor(totalSecs / 3600)
+  const mins = Math.floor((totalSecs % 3600) / 60)
+  const secs = totalSecs % 60
+
+  if (hrs > 0) {
+    return mins > 0 ? `${hrs} hr ${mins} min` : `${hrs} hr`
+  }
+  if (mins > 0) {
+    return secs > 10 ? `${mins} min ${secs} sec` : `${mins} min`
+  }
+  return `${secs} sec`
+}
