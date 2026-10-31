@@ -68,9 +68,9 @@ const Footer = () => {
               <li>
                 <Link
                   className="hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-                  to="/#mission"
+                  to="/about-us"
                 >
-                  Our mission
+                  About Us
                 </Link>
               </li>
             </ul>

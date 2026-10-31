@@ -20,6 +20,7 @@ const IndustryDashboardPage = lazy(() => import('./pages/IndustryDashboardPage')
 const NotFoundPage = lazy(() => import('./pages/NotFoundPage'))
 const FindArtisansPage = lazy(() => import('./pages/FindArtisansPage'))
 const StoryOfArtPage = lazy(() => import('./pages/StoryOfArtPage'))
+const AboutUsPage = lazy(() => import('./pages/AboutUsPage'))
 
 const App = () => {
   return (
@@ -33,6 +34,7 @@ const App = () => {
               <Route path="/" element={<Home />} />
               <Route path="/artisans" element={<FindArtisansPage />} />
               <Route path="/story-of-art" element={<StoryOfArtPage />} />
+              <Route path="/about-us" element={<AboutUsPage />} />
               <Route path="/artisan/auth" element={<ArtisanAuthPage />} />
               <Route path="/artisan/profile" element={<ArtisanProfilePage />} />
               <Route
