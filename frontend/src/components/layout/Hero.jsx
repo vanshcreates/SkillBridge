@@ -119,19 +119,7 @@ export const Hero = () => {
               SkillBridge unites artisans, discerning consumers, and ethical industries to honor traditional techniques with modern compensation.
             </p>
 
-            {/* Quick Stats Grid */}
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-xs">
-                <p className="text-xs font-medium text-white/70">Master Makers</p>
-                <p className="mt-1 font-serif text-2xl font-bold text-accent">1,250+</p>
-                <p className="mt-0.5 text-[11px] text-white/60">Verified across 18 states</p>
-              </div>
-              <div className="rounded-2xl border border-white/15 bg-white/10 p-4 backdrop-blur-xs">
-                <p className="text-xs font-medium text-white/70">Fair Wages Paid</p>
-                <p className="mt-1 font-serif text-2xl font-bold text-green-300">₹45.8L+</p>
-                <p className="mt-0.5 text-[11px] text-white/60">100% direct settlement</p>
-              </div>
-            </div>
+    
 
             <div className="mt-5 rounded-xl border border-accent/30 bg-accent/10 p-3.5 text-xs text-white/90 flex items-center gap-3">
               <Award className="h-5 w-5 text-accent shrink-0" />
