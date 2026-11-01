@@ -18,15 +18,10 @@ export const Hero = () => {
       className="relative min-h-[85vh] w-full overflow-hidden flex items-center justify-center px-4 sm:px-8 md:px-16 lg:px-24 py-16 lg:py-24 section-divider"
       style={{
         '--hero-background':
-          "url('https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSN8lvtaOg6W_MGhl6-wyAT-Kq-WA-DJiXHCmlBNP_b0XP90tScMU47F2Q&s=10')",
+          "url('/images/home-hero-hand-embroidery.jpg')",
       }}
     >
-      {/* High-end Gradient & Backdrop Overlay */}
-      <div className="absolute inset-x-0 top-0 bottom-[50px] z-0 bg-gradient-to-r from-black/25 via-black/70 to-primary/75 backdrop-blur-[2px]" />
-
-      {/* Decorative Floating Ambient Orbs */}
-      <div className="pointer-events-none absolute -left-20 top-1/4 h-80 w-80 rounded-full bg-accent/20 blur-3xl animate-float" />
-      <div className="pointer-events-none absolute -right-20 top-1/3 h-96 w-96 rounded-full bg-secondary/30 blur-3xl animate-pulse-subtle" />
+      <div className="absolute inset-x-0 top-0 bottom-[50px] z-0 bg-black/35" />
 
       {/* Main Content Container */}
       <div className="relative z-10 mx-auto flex w-full max-w-7xl flex-col items-center justify-between gap-12 lg:flex-row">
