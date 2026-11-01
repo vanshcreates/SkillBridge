@@ -169,3 +169,60 @@ export async function updateExpertProfileApi(profileData) {
     body: JSON.stringify(profileData),
   })
 }
+
+
+/**
+ * Fetch products in the expert evaluation queue
+ * @param {Object} params - { status: 'all'|'pending'|'evaluated'|'rejected', category, search }
+ */
+export async function getExpertEvaluationQueueApi(params = {}) {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  )
+  const queryString = new URLSearchParams(cleanParams).toString()
+  return await apiRequest(
+    `/expert/evaluations/queue${queryString ? `?${queryString}` : ''}`,
+    { method: 'GET' }
+  )
+}
+
+/**
+ * Fetch details of a product being evaluated
+ * @param {string} productId
+ */
+export async function getEvaluationProductByIdApi(productId) {
+  return await apiRequest(`/expert/evaluations/product/${productId}`, {
+    method: 'GET',
+  })
+}
+
+/**
+ * Mark a product as 'Under Evaluation'
+ * @param {string} productId
+ */
+export async function startProductEvaluationApi(productId) {
+  return await apiRequest(`/expert/evaluations/product/${productId}/start`, {
+    method: 'PATCH',
+  })
+}
+
+/**
+ * Submit expert evaluation across 5 criteria (1-10 each), feedback, and verdict
+ * @param {string} productId
+ * @param {Object} evaluationData
+ */
+export async function submitProductEvaluationApi(productId, evaluationData) {
+  return await apiRequest(`/expert/evaluations/product/${productId}/evaluate`, {
+    method: 'POST',
+    body: JSON.stringify(evaluationData),
+  })
+}
+
+/**
+ * Self-verify expert account for evaluation testing / instant access
+ */
+export async function verifyExpertStatusApi() {
+  return await apiRequest('/expert/verify-status', {
+    method: 'POST',
+  })
+}

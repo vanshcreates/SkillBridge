@@ -118,6 +118,7 @@ export const signup = async (req, res) => {
       industry: sanitizeString(industry),
       companyAddress: sanitizeString(companyAddress),
       avatar: avatarUrl,
+      isVerified: normalizedRole === "expert" ? true : false,
     });
 
     const token = user.generateAccessToken();

@@ -20,6 +20,11 @@ import {
   removeArtisanProfilePhoto,
   getArtisanPayments,
 } from "../controllers/artisan.controller.js";
+import {
+  submitProductForEvaluation,
+  getArtisanEvaluations,
+  getArtisanEvaluationById,
+} from "../controllers/evaluation.controller.js";
 import { verifyJWT, requireArtisan } from "../middlewares/auth.middleware.js";
 import { upload } from "../middlewares/multer.middleware.js";
 
@@ -64,23 +69,35 @@ router.patch("/products/:id/publish", publishArtisanProduct);
 router.patch("/products/:id/unpublish", unpublishArtisanProduct);
 router.delete("/products/:id", deleteArtisanProduct);
 
-// 4. Orders & Responsible Industry Projects
+// 4. Women Artisan Product Evaluation
+router.post(
+  "/evaluations/submit",
+  upload.fields([
+    { name: "images", maxCount: 10 },
+    { name: "image", maxCount: 10 },
+  ]),
+  submitProductForEvaluation
+);
+router.get("/evaluations", getArtisanEvaluations);
+router.get("/evaluations/:productId", getArtisanEvaluationById);
+
+// 5. Orders & Responsible Industry Projects
 router.get("/orders", getArtisanOrders);
 router.patch("/orders/:id/status", updateOrderStatus);
 router.get("/responsible-projects", getAvailableResponsibleProjects);
 router.post("/responsible-projects/:id/take", takeResponsibleProject);
 
-// 5. Training
+// 6. Training
 router.get("/courses", getArtisanCourses);
 router.get("/courses/:id", getArtisanCourseById);
 
-// 6. Profile Info
+// 7. Profile Info
 router.get("/profile", getArtisanProfile);
 router.put("/profile", upload.single("avatar"), updateArtisanProfile);
 router.post("/profile/photo", upload.single("photo"), uploadArtisanProfilePhoto);
 router.delete("/profile/photo", removeArtisanProfilePhoto);
 
-// 7. Payment History
+// 8. Payment History
 router.get("/payments", getArtisanPayments);
 
 export default router;

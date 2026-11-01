@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Check, Heart, ImageOff, ShoppingBag, Sparkles, Star } from 'lucide-react'
+import { Award, Check, Heart, ImageOff, ShoppingBag, Sparkles, Star } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { getProductSlug } from '../../utils/marketplace'
 import { useAuthDialog } from '../../hooks/useAuthDialog'

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import {
   ArrowLeft,
+  Award,
   CheckCircle2,
   ChevronLeft,
   ChevronRight,
@@ -337,6 +338,60 @@ const ProductDetail = () => {
                 View artisan profile →
               </Link>
             </div>
+
+            {/* Expert Evaluation Appraisal Card */}
+            {(product.averageEvaluationRating > 0 || product.evaluationStatus === 'Evaluated') && (
+              <div className="mt-6 rounded-2xl border border-emerald-500/30 bg-emerald-50/50 p-5 shadow-xs">
+                <div className="flex items-center justify-between border-b border-emerald-500/20 pb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-xs">
+                      <Award className="h-4 w-4" />
+                    </span>
+                    <div>
+                      <p className="text-xs font-bold uppercase tracking-wider text-emerald-900">
+                        Certified Expert Appraisal
+                      </p>
+                      <p className="text-[11px] text-emerald-700">Evaluated by verified master craftspeople</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <span className="inline-flex items-center gap-1 font-serif text-xl font-bold text-emerald-800">
+                      <Star className="h-4 w-4 fill-emerald-600 text-emerald-600" />
+                      {(product.averageEvaluationRating || 0).toFixed(1)} <span className="text-xs font-normal text-emerald-700">/ 10</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* 5-Point Criteria Breakdown */}
+                {product.evaluationCriteriaAverages && (
+                  <div className="mt-3.5 space-y-2 text-xs">
+                    {[
+                      { label: 'Quality & Materials', val: product.evaluationCriteriaAverages.productQuality },
+                      { label: 'Creativity & Originality', val: product.evaluationCriteriaAverages.creativityOriginality },
+                      { label: 'Craftsmanship Technique', val: product.evaluationCriteriaAverages.craftsmanship },
+                      { label: 'Design & Finishing', val: product.evaluationCriteriaAverages.designFinishing },
+                      { label: 'Market Potential', val: product.evaluationCriteriaAverages.marketPotential },
+                    ].filter((c) => c.val > 0).map(({ label, val }) => (
+                      <div key={label} className="flex items-center justify-between">
+                        <span className="text-text-secondary">{label}</span>
+                        <div className="flex items-center gap-2">
+                          <div className="h-1.5 w-20 rounded-full bg-emerald-200 overflow-hidden">
+                            <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${(val / 10) * 100}%` }} />
+                          </div>
+                          <span className="font-bold text-emerald-900 text-[11px]">{val.toFixed(1)}/10</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {product.latestExpertFeedback && (
+                  <p className="mt-3 border-t border-emerald-500/15 pt-2.5 text-xs italic text-emerald-900 leading-relaxed">
+                    "{product.latestExpertFeedback}"
+                  </p>
+                )}
+              </div>
+            )}
 
             {/* Description & Specs */}
             <div className="mt-6 space-y-4 border-t border-border/70 pt-6">

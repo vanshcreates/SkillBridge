@@ -1,6 +1,7 @@
 import { createElement, useEffect, useState } from 'react'
-import { Navigate } from 'react-router-dom'
+import { Navigate, useSearchParams } from 'react-router-dom'
 import {
+  Award,
   Bot,
   Sparkles,
   ArrowUpRight,
@@ -29,6 +30,7 @@ import {
 import { Link } from 'react-router-dom'
 import ArtisanLayout from '../components/layout/ArtisanLayout'
 import ProfileImageControl from '../components/profile/ProfileImageControl'
+import ArtisanProductEvaluationsSection from '../components/profile/ArtisanProductEvaluationsSection'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getAccountHomePath } from '../utils/account-routing'
 import {
@@ -46,6 +48,7 @@ import {
 
 const sections = [
   { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { id: 'evaluations', label: 'Get Evaluated', icon: Award },
   { id: 'training', label: 'Training', icon: GraduationCap },
   { id: 'arts', label: 'My Shop', icon: Store },
   { id: 'orders', label: 'Orders', icon: ClipboardList },
@@ -65,7 +68,20 @@ function getStatusStyle(status) {
 
 const ArtisanProfilePage = () => {
   const { currentUser, authenticate } = useAuthDialog()
-  const [activeSection, setActiveSection] = useState('dashboard')
+  const [searchParams] = useSearchParams()
+  const initialTab = searchParams.get('tab')
+  const [activeSection, setActiveSection] = useState(
+    initialTab && ['dashboard', 'evaluations', 'training', 'arts', 'orders', 'profile', 'payments'].includes(initialTab)
+      ? initialTab
+      : 'dashboard'
+  )
+
+  useEffect(() => {
+    const tab = searchParams.get('tab')
+    if (tab && ['dashboard', 'evaluations', 'training', 'arts', 'orders', 'profile', 'payments'].includes(tab)) {
+      setActiveSection(tab)
+    }
+  }, [searchParams])
   const [publishedCourseState, setPublishedCourseState] = useState({
     courses: [],
     error: '',
@@ -664,6 +680,10 @@ const ArtisanProfilePage = () => {
                 </section>
               </div>
             </div>
+          )}
+
+          {activeSection === 'evaluations' && (
+            <ArtisanProductEvaluationsSection />
           )}
 
           {activeSection === 'training' && (

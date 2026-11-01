@@ -94,6 +94,32 @@ export const requireArtisan = requireRoles("artisan");
 export const requireExpert = requireRoles("expert");
 export const requireIndustry = requireRoles("industry");
 
+export const requireVerifiedExpert = (req, res, next) => {
+  if (!req.user) {
+    return res.status(401).json({
+      success: false,
+      message: "Unauthorized: Please log in first.",
+    });
+  }
+
+  if (req.user.accountType !== "expert") {
+    return res.status(403).json({
+      success: false,
+      message: `Access denied. Only verified expert accounts can evaluate products. Your account type is "${req.user.accountType}".`,
+    });
+  }
+
+  if (req.user.isVerified === false) {
+    return res.status(403).json({
+      success: false,
+      message: "Your expert account is pending verification. Only verified experts can evaluate products.",
+      requiresVerification: true,
+    });
+  }
+
+  next();
+};
+
 /**
  * Optional JWT authentication middleware
  * Attaches req.user if a valid token is provided; otherwise leaves req.user = null and continues.

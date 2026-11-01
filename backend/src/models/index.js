@@ -7,3 +7,4 @@ export { Notification } from "./notification.model.js";
 export { Project } from "./project.model.js";
 export { Wishlist } from "./wishlist.model.js";
 export { Address } from "./address.model.js";
+export { Evaluation } from "./evaluation.model.js";

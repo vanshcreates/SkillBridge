@@ -216,3 +216,18 @@ export async function deleteCustomerAddressApi(addressId) {
 export async function setDefaultAddressApi(addressId) {
   return await apiRequest(`/customer/addresses/${addressId}/default`, { method: 'PATCH' })
 }
+
+
+/**
+ * Fetch top expert-ranked artisan products (for industrialists & marketplace)
+ * @param {Object} params - { category, minRating, limit }
+ */
+export async function getRankedArtisanProductsApi(params = {}) {
+  const cleanParams = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== undefined && v !== null && v !== '')
+  )
+  const query = new URLSearchParams(cleanParams).toString()
+  return await apiRequest(`/marketplace/ranked-products${query ? `?${query}` : ''}`, {
+    method: 'GET',
+  })
+}

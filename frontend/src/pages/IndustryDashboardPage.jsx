@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
   AlertCircle,
+  Award,
   Bell,
   BellRing,
   Building2,
@@ -17,6 +18,7 @@ import {
   Receipt,
   ShieldCheck,
   Sparkles,
+  Star,
   Store,
   WalletCards,
   X,
@@ -28,6 +30,7 @@ import {
   reportPaymentFailureApi,
 } from '../services/payment-api'
 import { loadRazorpayScript } from '../utils/razorpay'
+import { getRankedArtisanProductsApi } from '../services/marketplace-api'
 import IndustryLayout from '../components/layout/IndustryLayout'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getArtisansApi } from '../services/auth-api'
@@ -65,6 +68,7 @@ const IndustryDashboardPage = () => {
 
   const [artisans, setArtisans] = useState([])
   const [orders, setOrders] = useState([])
+  const [rankedProducts, setRankedProducts] = useState([])
   const [notifications, setNotifications] = useState([])
   const [unreadNotifsCount, setUnreadNotifsCount] = useState(0)
   const [stats, setStats] = useState({
@@ -198,6 +202,13 @@ const IndustryDashboardPage = () => {
           }
         })
         setOrders(combined)
+        getRankedArtisanProductsApi({ limit: 6 })
+          .then((rankedRes) => {
+            if (rankedRes?.success && Array.isArray(rankedRes.products)) {
+              setRankedProducts(rankedRes.products)
+            }
+          })
+          .catch(() => {})
       }
     } catch (err) {
       console.warn('Backend industry fetch error:', err.message)
@@ -1051,6 +1062,85 @@ const IndustryDashboardPage = () => {
               </div>
             )}
           </form>
+        )}
+
+        {/* Top Expert-Rated Artisan Products (Rankings) */}
+        {rankedProducts.length > 0 && (
+          <section className="mt-5 rounded-2xl border border-secondary/20 bg-gradient-to-br from-surface to-secondary/5 p-5 shadow-card sm:p-8">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <div className="inline-flex items-center gap-1.5 rounded-full border border-secondary/30 bg-secondary/15 px-3 py-1 text-xs font-semibold text-secondary">
+                  <Award className="h-3.5 w-3.5" />
+                  Certified Craft Quality
+                </div>
+                <h2 className="mt-2 font-serif text-2xl font-bold text-text-main">
+                  Top Expert-Evaluated Artisan Products
+                </h2>
+                <p className="mt-1 text-sm text-text-secondary">
+                  Appraised and verified by master craftspeople for superior craftsmanship, design, and market appeal.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {rankedProducts.map((prod) => (
+                <div
+                  className="group flex flex-col overflow-hidden rounded-xl border border-border bg-surface shadow-xs transition hover:border-secondary/40 hover:shadow-card"
+                  key={prod.id || prod._id}
+                >
+                  <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-muted">
+                    {prod.image ? (
+                      <img
+                        alt={prod.title || prod.name}
+                        className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                        src={prod.image}
+                      />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-text-muted">
+                        No image
+                      </div>
+                    )}
+                    <span className="absolute left-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-emerald-950/90 px-2.5 py-0.5 text-[11px] font-bold text-emerald-300 backdrop-blur-xs">
+                      <Star className="h-3 w-3 fill-emerald-400 text-emerald-400" />
+                      {prod.averageEvaluationRating?.toFixed(1)}/10
+                    </span>
+                  </div>
+
+                  <div className="flex flex-1 flex-col p-4">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-secondary">
+                      {prod.category}
+                    </span>
+                    <h4 className="mt-1 font-serif text-base font-bold text-text-main line-clamp-1">
+                      {prod.title || prod.name}
+                    </h4>
+                    <p className="text-xs text-text-muted">
+                      By <strong className="text-text-main">{prod.artisan}</strong> · {prod.location}
+                    </p>
+
+                    <div className="mt-3 border-t border-border/70 pt-2.5 flex items-center justify-between text-xs">
+                      <span className="font-bold text-primary">₹{(prod.price || 0).toLocaleString('en-IN')}</span>
+                      <button
+                        className="inline-flex items-center gap-1 rounded-lg bg-primary/10 px-2.5 py-1 text-xs font-semibold text-primary hover:bg-primary hover:text-white transition cursor-pointer"
+                        onClick={() => {
+                          setFormOpen(true)
+                          setFormFields((prev) => ({
+                            ...prev,
+                            artisanId: prod.ownerId || prod.artisanId || prev.artisanId,
+                            title: `Bulk order: ${prod.title || prod.name}`,
+                            category: prod.category || prev.category,
+                            unitPrice: prod.price || prev.unitPrice,
+                          }))
+                        }}
+                        type="button"
+                      >
+                        Commission Order →
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         )}
 
         {/* Assigned Orders & Projects List */}

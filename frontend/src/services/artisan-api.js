@@ -174,3 +174,31 @@ export async function takeResponsibleProjectApi(projectId, payload = {}) {
     body: JSON.stringify(payload),
   })
 }
+
+
+/**
+ * Submit product for expert evaluation
+ * @param {FormData|Object} evaluationData
+ */
+export async function submitProductForEvaluationApi(evaluationData) {
+  const isFormData =
+    typeof FormData !== 'undefined' && evaluationData instanceof FormData
+  return await apiRequest('/artisan/evaluations/submit', {
+    method: 'POST',
+    body: isFormData ? evaluationData : JSON.stringify(evaluationData),
+  })
+}
+
+/**
+ * Fetch all evaluation submissions for artisan
+ */
+export async function getArtisanEvaluationsApi() {
+  return await apiRequest('/artisan/evaluations', { method: 'GET' })
+}
+
+/**
+ * Fetch detailed evaluation for a single product
+ */
+export async function getArtisanEvaluationByIdApi(productId) {
+  return await apiRequest(`/artisan/evaluations/${productId}`, { method: 'GET' })
+}

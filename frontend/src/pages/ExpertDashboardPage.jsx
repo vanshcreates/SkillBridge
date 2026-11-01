@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate } from 'react-router-dom'
 import {
+  Award,
   BookOpenCheck,
   CheckCircle,
   CheckCircle2,
@@ -23,6 +24,7 @@ import {
 } from 'lucide-react'
 import ExpertLayout from '../components/layout/ExpertLayout'
 import CourseVideo from '../components/training/CourseVideo'
+import ExpertEvaluationStudio from '../components/expert/ExpertEvaluationStudio'
 import { useAuthDialog } from '../hooks/useAuthDialog'
 import { getAccountHomePath } from '../utils/account-routing'
 import {
@@ -49,7 +51,8 @@ const fieldClass =
 const LESSONS_PER_PAGE = 3
 
 const ExpertDashboardPage = () => {
-  const { currentUser } = useAuthDialog()
+  const { currentUser, authenticate } = useAuthDialog()
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState('evaluations')
   const [courseFormOpen, setCourseFormOpen] = useState(false)
   const [editingCourseId, setEditingCourseId] = useState(null)
 
@@ -688,7 +691,53 @@ const ExpertDashboardPage = () => {
           </div>
         </section>
 
-        {/* Real-time Metrics */}
+        {/* Workspace Navigation Tabs */}
+        <nav
+          aria-label="Expert workspace navigation"
+          className="mt-5 overflow-x-auto rounded-xl border border-border bg-surface p-1.5 shadow-card"
+        >
+          <div className="flex gap-2">
+            <button
+              className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition cursor-pointer ${
+                activeWorkspaceTab === 'evaluations'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-text-secondary hover:bg-background hover:text-primary'
+              }`}
+              onClick={() => setActiveWorkspaceTab('evaluations')}
+              type="button"
+            >
+              <Award className="h-4 w-4 text-secondary" />
+              Product Evaluations & Rankings
+            </button>
+            <button
+              className={`inline-flex items-center gap-2 rounded-lg px-5 py-2.5 text-sm font-bold transition cursor-pointer ${
+                activeWorkspaceTab === 'courses'
+                  ? 'bg-primary text-white shadow-xs'
+                  : 'text-text-secondary hover:bg-background hover:text-primary'
+              }`}
+              onClick={() => setActiveWorkspaceTab('courses')}
+              type="button"
+            >
+              <GraduationCap className="h-4 w-4" />
+              Courses & Masterclasses
+            </button>
+          </div>
+        </nav>
+
+        {/* Tab 1: Product Evaluations */}
+        {activeWorkspaceTab === 'evaluations' && (
+          <div className="mt-6">
+            <ExpertEvaluationStudio
+              currentUser={currentUser}
+              onUserUpdated={authenticate}
+            />
+          </div>
+        )}
+
+        {/* Tab 2: Courses & Masterclasses */}
+        {activeWorkspaceTab === 'courses' && (
+          <div>
+            {/* Real-time Metrics */}
         <section className="mt-5 grid gap-4 sm:grid-cols-4">
           <div className="rounded-xl border border-border bg-surface p-5">
             <p className="text-sm font-medium text-text-secondary">Total Courses</p>
@@ -1411,6 +1460,9 @@ const ExpertDashboardPage = () => {
             )
           )}
         </section>
+
+                  </div>
+        )}
 
         {/* Video Preview Modal */}
         {activePreview && (
