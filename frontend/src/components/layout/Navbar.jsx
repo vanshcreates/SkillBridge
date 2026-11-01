@@ -29,9 +29,7 @@ const Navbar = ({
             className="group flex items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-accent"
             to="/"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-accent via-secondary to-primary shadow-sm transition-transform duration-300 group-hover:scale-105 group-hover:rotate-3">
-              <Sparkles className="h-5 w-5 text-white" />
-            </div>
+         
             <div className="flex flex-col">
               <span className="font-serif text-2xl font-bold tracking-tight text-white transition-colors group-hover:text-accent-light">
                 SkillBridge
