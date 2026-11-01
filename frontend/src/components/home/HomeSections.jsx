@@ -57,7 +57,7 @@ function SectionHeading({
 }) {
   return (
     <div className={`max-w-3xl ${centered ? 'mx-auto text-center' : ''}`}>
-      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-secondary/10 px-3.5 py-1 text-xs font-semibold text-secondary uppercase tracking-wider">
+      <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-secondary/25 bg-background px-3.5 py-1 text-xs font-semibold text-secondary uppercase tracking-wider">
         <Sparkles className="h-3.5 w-3.5" />
         <span>{eyebrow}</span>
       </div>
@@ -157,7 +157,7 @@ function SkillsSection() {
   return (
     <section
       aria-labelledby="skills-heading"
-      className="border-y border-border/80 bg-background/60 px-5 py-20 sm:px-8 lg:py-28"
+      className="border-y border-border/80 bg-background px-5 py-20 sm:px-8 lg:py-28"
       id="explore-skills"
     >
       <div className="mx-auto max-w-7xl">

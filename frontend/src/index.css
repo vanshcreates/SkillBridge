@@ -1,46 +1,141 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400;1,600&family=DM+Sans:wght@400;500;600;700&family=Lora:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
 @import "tailwindcss";
 
-@theme {
-  /* Brand colors */
+:root {
+  /* Primary brand color (Preserved as requested) */
   --color-primary: #4A0010;
   --color-primary-hover: #34000B;
   --color-primary-light: #660E20;
-  --color-secondary: #A9572E;
-  --color-secondary-hover: #8F4526;
-  --color-secondary-light: #C46D3F;
 
-  /* Backgrounds */
-  --color-background: #FFE4C4;
-  --color-surface:  #FDF3E6;
-  --color-surface-muted: #F2EBE1;
+  /* Secondary brand: Rich warm camel/tan shade of beige */
+  --color-secondary: #8E6437;
+  --color-secondary-hover: #754E26;
+  --color-secondary-light: #AE804F;
+
+  /* Backgrounds & Surfaces: Natural linen & almond tints of beige */
+  --color-background: #F7EFE4;
+  --color-surface: #FFFFFF;
+  --color-surface-muted: #EFE5D5;
   --color-card: #FFFFFF;
 
-  /* Typography colors */
-  --color-text-main: #1E2922;
-  --color-text-secondary: #4A463E;
-  --color-text-muted: #787166;
+  /* Typography: Deep roasted bistre & taupe shades of beige */
+  --color-text-main: #2B231D;
+  --color-text-secondary: #5C4F42;
+  --color-text-muted: #8A7B6E;
 
-  /* Borders and accents */
-  --color-border: #E5D9C8;
-  --color-border-strong: #CBB99F;
-  --color-accent: #E5C57E;
-  --color-accent-light: #F7D488;
+  /* Borders & Accents: Warm sand & oat shades of beige */
+  --color-border: #E2D5C3;
+  --color-border-strong: #C4B29B;
+  --color-accent: #D4AC64;
+  --color-accent-light: #F4E2BD;
 
-  /* Status */
-  --color-success: #1E7D48;
-  --color-warning: #B46C18;
-  --color-error: #C53B2C;
+  /* Status: Earthy tones harmonized with beige undertones */
+  --color-success: #2E6B47;
+  --color-success-bg: #EDF4EE;
+  --color-success-border: #BBD5C4;
+  --color-warning: #9E6720;
+  --color-warning-bg: #FDF5E8;
+  --color-warning-border: #E9D1AF;
+  --color-error: #A8382F;
+  --color-error-bg: #FAECEB;
+  --color-error-border: #EABDB8;
+  --color-info: #2B5E7D;
+  --color-info-bg: #EDF3F7;
+  --color-info-border: #BCD0DD;
 
-  /* Shadows */
-  --shadow-card: 0 10px 25px -5px rgba(74, 0, 16, 0.05), 0 8px 10px -6px rgba(74, 0, 16, 0.03);
-  --shadow-card-hover: 0 20px 35px -8px rgba(74, 0, 16, 0.12), 0 10px 15px -5px rgba(74, 0, 16, 0.06);
-  --shadow-glow: 0 0 25px -4px rgba(169, 87, 46, 0.35);
-  --shadow-emerald-glow: 0 0 25px -4px rgba(30, 125, 72, 0.4);
+  /* Direct aliases for standard CSS var() usage */
+  --primary: var(--color-primary);
+  --primary-hover: var(--color-primary-hover);
+  --primary-light: var(--color-primary-light);
+  --secondary: var(--color-secondary);
+  --secondary-hover: var(--color-secondary-hover);
+  --secondary-light: var(--color-secondary-light);
+
+  --background: var(--color-background);
+  --surface: var(--color-surface);
+  --surface-muted: var(--color-surface-muted);
+  --card: var(--color-card);
+
+  --text-main: var(--color-text-main);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+
+  --border: var(--color-border);
+  --border-strong: var(--color-border-strong);
+  --accent: var(--color-accent);
+  --accent-light: var(--color-accent-light);
+
+  --success: var(--color-success);
+  --success-bg: var(--color-success-bg);
+  --success-border: var(--color-success-border);
+  --warning: var(--color-warning);
+  --warning-bg: var(--color-warning-bg);
+  --warning-border: var(--color-warning-border);
+  --error: var(--color-error);
+  --error-bg: var(--color-error-bg);
+  --error-border: var(--color-error-border);
+  --info: var(--color-info);
+  --info-bg: var(--color-info-bg);
+  --info-border: var(--color-info-border);
+
+  /* Shadows derived from root colors */
+  --shadow-xs: 0 1px 2px 0 rgba(43, 35, 29, 0.04);
+  --shadow-sm: 0 1px 3px 0 rgba(43, 35, 29, 0.06), 0 1px 2px -1px rgba(43, 35, 29, 0.04);
+  --shadow-card: 0 10px 25px -5px rgba(43, 35, 29, 0.05), 0 8px 10px -6px rgba(43, 35, 29, 0.03);
+  --shadow-card-hover: 0 20px 35px -8px rgba(43, 35, 29, 0.10), 0 10px 15px -5px rgba(43, 35, 29, 0.05);
 
   /* Fonts */
   --font-sans: "Plus Jakarta Sans", "DM Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-serif: "Playfair Display", "Lora", Georgia, serif;
+}
+
+@theme {
+  /* Brand colors taken only from :root */
+  --color-primary: var(--color-primary);
+  --color-primary-hover: var(--color-primary-hover);
+  --color-primary-light: var(--color-primary-light);
+  --color-secondary: var(--color-secondary);
+  --color-secondary-hover: var(--color-secondary-hover);
+  --color-secondary-light: var(--color-secondary-light);
+
+  /* Backgrounds taken only from :root */
+  --color-background: var(--color-background);
+  --color-surface: var(--color-surface);
+  --color-surface-muted: var(--color-surface-muted);
+  --color-card: var(--color-card);
+
+  /* Typography colors taken only from :root */
+  --color-text-main: var(--color-text-main);
+  --color-text-secondary: var(--color-text-secondary);
+  --color-text-muted: var(--color-text-muted);
+
+  /* Borders and accents taken only from :root */
+  --color-border: var(--color-border);
+  --color-border-strong: var(--color-border-strong);
+  --color-accent: var(--color-accent);
+  --color-accent-light: var(--color-accent-light);
+
+  /* Status taken only from :root */
+  --color-success: var(--color-success);
+  --color-success-bg: var(--color-success-bg);
+  --color-success-border: var(--color-success-border);
+  --color-warning: var(--color-warning);
+  --color-warning-bg: var(--color-warning-bg);
+  --color-warning-border: var(--color-warning-border);
+  --color-error: var(--color-error);
+  --color-error-bg: var(--color-error-bg);
+  --color-error-border: var(--color-error-border);
+  --color-info: var(--color-info);
+  --color-info-bg: var(--color-info-bg);
+  --color-info-border: var(--color-info-border);
+
+  /* Shadows */
+  --shadow-card: var(--shadow-card);
+  --shadow-card-hover: var(--shadow-card-hover);
+
+  /* Fonts */
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
 }
 
 /* Base Body Styling */
@@ -53,124 +148,101 @@ body {
   overflow-x: hidden;
 }
 
-/* Glassmorphism Styles */
+/* Surfaces and Panels derived from :root */
+.surface-card {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.surface-card-hover {
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.surface-card-hover:hover {
+  border-color: var(--color-border-strong);
+  box-shadow: var(--shadow-card);
+}
+
+/* Glassmorphism Styles (taking colors only from :root) */
 .glass {
-  background: rgba(255, 255, 255, 0.85);
+  background: color-mix(in srgb, var(--color-surface) 88%, transparent);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(229, 217, 200, 0.65);
+  border: 1px solid var(--color-border);
 }
 
 .glass-dark {
-  background: rgba(45, 8, 16, 0.88);
+  background: color-mix(in srgb, var(--color-primary) 92%, black);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  border: 1px solid color-mix(in srgb, var(--color-surface) 15%, transparent);
 }
 
 .glass-nav {
-  background: rgba(74, 0, 16, 0.94);
+  background: color-mix(in srgb, var(--color-primary) 96%, transparent);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(229, 178, 93, 0.25);
+  border-bottom: 1px solid color-mix(in srgb, var(--color-surface) 12%, transparent);
 }
 
 .glass-card {
-  background: rgba(255, 255, 255, 0.92);
+  background: color-mix(in srgb, var(--color-surface) 94%, transparent);
   backdrop-filter: blur(14px);
   -webkit-backdrop-filter: blur(14px);
-  border: 1px solid rgba(229, 217, 200, 0.7);
-  box-shadow: 0 12px 30px -6px rgba(74, 0, 16, 0.06);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-card);
 }
 
-/* Gradient Text Utilities */
+/* Gradient Text Utilities (taking colors only from :root) */
 .gradient-text {
-  background: linear-gradient(135deg, #4A0010 0%, #8A2B18 50%, #A9572E 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 50%, var(--color-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gradient-gold {
-  background: linear-gradient(135deg, #F3CE7A 0%, #E5B25D 50%, #C48E2E 100%);
+  background: linear-gradient(135deg, var(--color-accent-light) 0%, var(--color-accent) 50%, var(--color-secondary) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
 .gradient-hero {
-  background: radial-gradient(circle at 80% 20%, rgba(229, 178, 93, 0.18) 0%, transparent 45%),
-              radial-gradient(circle at 10% 80%, rgba(169, 87, 46, 0.15) 0%, transparent 50%),
-              #F9F6F0;
-}
-
-/* Animations */
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
-}
-
-@keyframes pulse-subtle {
-  0%, 100% {
-    opacity: 1;
-    transform: scale(1);
-  }
-  50% {
-    opacity: 0.92;
-    transform: scale(1.02);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
-}
-
-.animate-float {
-  animation: float 4s ease-in-out infinite;
-}
-
-.animate-pulse-subtle {
-  animation: pulse-subtle 3s ease-in-out infinite;
-}
-
-.shimmer-badge {
-  background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.4) 50%, rgba(255,255,255,0) 100%);
-  background-size: 200% 100%;
-  animation: shimmer 3s infinite;
+  background: radial-gradient(circle at 80% 20%, color-mix(in srgb, var(--color-accent) 18%, transparent) 0%, transparent 45%),
+              radial-gradient(circle at 10% 80%, color-mix(in srgb, var(--color-secondary) 15%, transparent) 0%, transparent 50%),
+              var(--color-background);
 }
 
 /* Section divider pattern */
 .section-divider {
   background-image:
     url("https://static.vecteezy.com/system/resources/previews/022/862/116/non_2x/ethnic-pattern-kerchief-pattern-silk-neck-scarf-bandana-print-headscarf-floral-vintage-style-indonesian-batik-textile-fabric-tile-clothing-tribal-texture-blue-red-gold-yellow-vector.jpg"),
-    var(--hero-background);
+    var(--color-background);
   background-size: auto 50px, cover;
   background-repeat: repeat-x, no-repeat;
   background-position: bottom left, center;
 }
 
-/* Custom Smooth Scrollbar */
+/* Custom Smooth Scrollbar (taking colors only from :root) */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #F2EBE1;
+  background: var(--color-surface-muted);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBB99F;
+  background: var(--color-border-strong);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #A9572E;
+  background: var(--color-secondary);
 }
